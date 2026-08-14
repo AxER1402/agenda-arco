@@ -1,0 +1,322 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Sistema de diseño (shadcn/ui sobre Tailwind v4).
+
+   Los componentes de src/components/ui/ NO tienen colores fijos: usan estos
+   tokens. Cambiar la identidad visual del sistema completo se hace aquí.
+
+   Identidad: neo-brutalismo plano. Trazo negro sólido de 2 px, rellenos de
+   color pleno y canto vivo. Sin sombras, sin degradados y sin relieve: lo que
+   ordena la pantalla es el contorno negro y el contraste entre bloques.
+
+   El reparto de color:
+
+     blanco   — el fondo: lienzo, tarjetas, tablas y diálogos.
+     negro    — todo el trazo, los titulares y los bloques macizos.
+     agua     — cabeceras de módulo y de tabla, insignias neutras. Es el color
+                que se ve repartido por la interfaz.
+     sol      — la acción principal y la sección activa. Nada más.
+
+   El morado tinta queda reservado a dos sitios y no debe salir de ahí: la
+   barra lateral y el panel de la pantalla de acceso.
+--------------------------------------------------------------------------- */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* ---- Paleta de marca --------------------------------------------------
+     Todo lo demás se deriva de aquí.                                        */
+  --negro: #000000; /* trazo, titulares y bloques macizos */
+  --tinta: #272343; /* solo barra lateral y panel de acceso */
+  --sol: #ffd803; /* acción principal y resaltado */
+  --papel: #fffffe; /* fondo y superficies */
+  --menta: #e3f6f5; /* secundario */
+  --agua: #bae8e8; /* terciario */
+
+  /* Canto vivo en todo el sistema. */
+  --radius: 0rem;
+
+  /* ---- Tokens semánticos ----------------------------------------------- */
+  --background: var(--papel);
+  --foreground: #1a1a1a;
+  --titular: var(--negro);
+
+  --card: var(--papel);
+  --card-foreground: #1a1a1a;
+
+  /* El lienzo sobre el que van las tarjetas. Es blanco: el trabajo se lee
+     mejor sobre papel y las líneas ya ordenan la página. Va aparte de
+     `--background` para poder teñirlo en oscuro sin tocar el resto.        */
+  --lienzo: var(--papel);
+  --barra: var(--tinta);
+  --barra-foreground: var(--papel);
+  --barra-suave: var(--agua);
+  --barra-linea: rgba(255, 255, 254, 0.14);
+
+  --popover: var(--papel);
+  --popover-foreground: #1a1a1a;
+
+  --primary: var(--sol);
+  --primary-foreground: var(--negro);
+  /* Amarillo un punto más hondo para la pulsación: el bloque responde sin
+     invertirse entero.                                                     */
+  --primary-hover: #f0ca00;
+
+  /* Gris muy claro para lo que se rellena por dentro: campos de formulario y
+     estados de hover. Es el fondo de trabajo, y por eso no lleva color.    */
+  --secondary: #f4f4f5;
+  --secondary-foreground: var(--negro);
+
+  --muted: #f4f4f5;
+  --muted-foreground: #5c5c66;
+
+  /* El agua de la marca: cabeceras de módulo y de tabla, insignias neutras y
+     el texto secundario de la barra lateral. Es el color que reparte la
+     interfaz, siempre sobre bloques acotados y nunca como fondo de página. */
+  --accent: var(--agua);
+  --accent-foreground: var(--negro);
+
+  /* Cada color de estado va en trío: el tono fuerte (legible como texto y
+     como borde), el texto que se pone encima del relleno sólido, y un relleno
+     pastel para insignias y avisos.                                         */
+  --destructive: #c9184a;
+  --destructive-foreground: #fffffe;
+  --destructive-suave: #ffe3ec;
+
+  --success: #12876a;
+  --success-foreground: #fffffe;
+  --success-suave: #d6f4e9;
+
+  --warning: #a15c07;
+  --warning-foreground: #fffffe;
+  --warning-suave: #ffedcc;
+
+  /* El trazo negro es lo que sostiene todo el diseño: 2 px, sólido, en cada
+     tarjeta, tabla, campo y bloque. `--linea` es su versión diluida para las
+     divisiones internas (filas de tabla), donde un trazo pleno haría reja.  */
+  --trazo: var(--negro);
+  --border: var(--negro);
+  --linea: rgba(0, 0, 0, 0.14);
+  --input: var(--negro);
+  --ring: var(--negro);
+}
+
+.dark {
+  --background: #141414;
+  --foreground: #e5e5e5;
+  --titular: #fffffe;
+
+  --card: #141414;
+  --card-foreground: #e5e5e5;
+
+  /* En oscuro se invierte la relación: el lienzo se hunde por debajo de la
+     tarjeta, que es la que tiene que salir a flote.                        */
+  --lienzo: #0a0a0a;
+  --barra: #232244;
+  --barra-foreground: #e6eaf7;
+  --barra-suave: #949cc4;
+  --barra-linea: rgba(255, 255, 254, 0.12);
+
+  --popover: #1c1c1c;
+  --popover-foreground: #e5e5e5;
+
+  --primary: var(--sol);
+  --primary-foreground: var(--negro);
+  --primary-hover: #f0ca00;
+
+  --secondary: #262626;
+  --secondary-foreground: #f5f5f5;
+
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+
+  --accent: #2f4f4f;
+  --accent-foreground: #eafafa;
+
+  --destructive: #ff6b93;
+  --destructive-foreground: #2a0a16;
+  --destructive-suave: #3d1f2e;
+
+  --success: #4fd1a5;
+  --success-foreground: #06251c;
+  --success-suave: #17352d;
+
+  --warning: #f2b04a;
+  --warning-foreground: #2b1a00;
+  --warning-suave: #382c15;
+
+  /* El trazo se invierte con el tema: lo que en claro es negro pleno, aquí es
+     blanco pleno. El contorno sigue siendo lo que sostiene el diseño.       */
+  --trazo: #fffffe;
+  --border: #fffffe;
+  --linea: rgba(255, 255, 254, 0.18);
+  --input: #fffffe;
+  --ring: #fffffe;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-titular: var(--titular);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-lienzo: var(--lienzo);
+  --color-barra: var(--barra);
+  --color-barra-foreground: var(--barra-foreground);
+  --color-barra-suave: var(--barra-suave);
+  --color-barra-linea: var(--barra-linea);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-suave: var(--destructive-suave);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-suave: var(--success-suave);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-suave: var(--warning-suave);
+  --color-border: var(--border);
+  --color-linea: var(--linea);
+  --color-input: var(--input);
+  --color-trazo: var(--trazo);
+  --color-ring: var(--ring);
+
+  /* Paleta de marca en crudo. Los tokens semánticos de arriba se invierten con
+     el tema; estos no. Son para los bloques que son identidad y deben verse
+     igual siempre, como el panel de la pantalla de acceso. */
+  --color-negro: var(--negro);
+  --color-tinta: var(--tinta);
+  --color-papel: var(--papel);
+  --color-agua: var(--agua);
+  --color-menta: var(--menta);
+  --color-sol: var(--sol);
+
+  /* Canto vivo: cualquier `rounded-*` heredado se resuelve a cero. */
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+  --radius-2xl: 0rem;
+  --radius-3xl: 0rem;
+  --radius-full: 0rem;
+
+  /* Una sola familia para todo. La redondeada anterior (Baloo 2) era la que
+     más infantilizaba la pantalla: los titulares se distinguen ahora por
+     tamaño, peso y espaciado, no por cambiar de letra. `--font-display` se
+     mantiene como token para no tener que tocar cada `font-display`. */
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-display: var(--font-sans);
+
+  /* Diseño plano: las escalas de sombra de Tailwind se anulan para que ningún
+     `shadow-*` heredado reintroduzca relieve. */
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-2xl: none;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Todo titular va en tinta y con el mismo peso. Las páginas solo eligen el
+     tamaño; la familia y el peso ya vienen decididos desde aquí. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: var(--font-display);
+    color: var(--titular);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  /* Las cifras se alinean en columna en tablas y contadores. */
+  th,
+  td,
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: var(--sol);
+    color: var(--negro);
+  }
+}
+
+@layer components {
+  /* Cifra de panel: se sostiene sola con el tabular y el espaciado cerrado,
+     sin necesidad de engordarla. */
+  .cifra {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--titular);
+  }
+
+  /* Etiqueta menuda en versalitas: sirve de contrapeso a las cifras y marca
+     la jerarquía sin añadir más peso visual. */
+  .rotulo {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Avisos de sonner.
+
+   La librería inyecta su hoja de estilos en el <head> al montarse: va sin capa
+   y con selectores de dos atributos, así que gana tanto a `@layer base` como a
+   las clases de utilidad. Por eso el `rounded-none` que se le pasa en main.jsx
+   no le quitaba el redondeo, ni el `shadow-none` la sombra: era el único
+   relieve que quedaba en toda la aplicación. Estas reglas van fuera de
+   `@layer` a propósito, que es la única forma de ganarle.
+--------------------------------------------------------------------------- */
+html [data-sonner-toast][data-styled='true'] {
+  box-shadow: none;
+  border-radius: 0;
+}
+
+html [data-sonner-toast] [data-close-button] {
+  border-radius: 0;
+}
+
+/* Quien haya pedido menos animación no ve ninguna. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

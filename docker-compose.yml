@@ -1,0 +1,118 @@
+name: el-arco-laboratorios
+
+services:
+  database:
+    image: mysql:8.0
+    container_name: arco-database
+    restart: unless-stopped
+    command: >
+      --default-authentication-plugin=caching_sha2_password
+      --default-time-zone=-06:00
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ}
+    ports:
+      - "${DB_PORT}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - arco-net
+
+  backend:
+    build:
+      context: ./backend
+      target: development
+    container_name: arco-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3000
+      TZ: ${TZ}
+      DB_HOST: database
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      WHATSAPP_SERVICE_URL: http://whatsapp-service:3001
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    ports:
+      - "${BACKEND_PORT}:3000"
+    volumes:
+      - ./backend/src:/app/src
+      - /app/node_modules
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - arco-net
+
+  whatsapp-service:
+    build:
+      context: ./whatsapp-service
+      target: development
+    container_name: arco-whatsapp
+    restart: unless-stopped
+    # Cerrar Chromium sin dejar el perfil a medias lleva unos segundos, y los 10
+    # que da Docker por omisión no siempre bastan. Si se le corta antes, la
+    # sesión vinculada queda inservible al siguiente arranque.
+    stop_grace_period: 30s
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3001
+      TZ: ${TZ}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      WHATSAPP_SESSION_PATH: /app/session
+    ports:
+      - "${WHATSAPP_PORT}:3001"
+    volumes:
+      - ./whatsapp-service/src:/app/src
+      - wa_session:/app/session
+      - /app/node_modules
+    networks:
+      - arco-net
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    container_name: arco-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      TZ: ${TZ}
+      VITE_API_URL: ${VITE_API_URL}
+    ports:
+      - "${FRONTEND_PORT}:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - arco-net
+
+volumes:
+  db_data:
+  wa_session:
+
+networks:
+  arco-net:
+    driver: bridge

@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (nunca versionar credenciales)
+.env
+.env.local
+.env.*.local
+
+# Builds
+dist/
+build/
+
+# Sesión de WhatsApp Web (contiene credenciales de la cuenta vinculada)
+.wwebjs_auth/
+.wwebjs_cache/
+whatsapp-service/session/
+
+# Cobertura y logs
+coverage/
+*.log
+npm-debug.log*
+
+# Sistema operativo / editores
+.DS_Store
+.idea/
+.vscode/

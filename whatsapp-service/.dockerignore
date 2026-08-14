@@ -1,0 +1,9 @@
+node_modules
+coverage
+session
+.wwebjs_auth
+.wwebjs_cache
+npm-debug.log
+.env
+.env.*
+*.md
