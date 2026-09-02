@@ -10,6 +10,7 @@ import EstadoSistemaPage from '@/pages/EstadoSistemaPage';
 import ExamenesPage from '@/pages/ExamenesPage';
 import LoginPage from '@/pages/LoginPage';
 import PacientesPage from '@/pages/PacientesPage';
+import ReportesPage from '@/pages/ReportesPage';
 import UsuariosPage from '@/pages/UsuariosPage';
 
 const ROLES = { ADMINISTRADOR: 'ADMINISTRADOR' };
@@ -32,6 +33,7 @@ function App() {
           <Route path="/citas" element={<CitasPage />} />
           <Route path="/agenda" element={<AgendaPage />} />
           <Route path="/examenes" element={<ExamenesPage />} />
+          <Route path="/reportes" element={<ReportesPage />} />
 
           <Route element={<RutaProtegida rolesPermitidos={[ROLES.ADMINISTRADOR]} />}>
             <Route path="/usuarios" element={<UsuariosPage />} />

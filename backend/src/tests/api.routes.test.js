@@ -80,6 +80,8 @@ describe('protección de los recursos', () => {
     ['GET', '/api/citas/estados'],
     ['GET', '/api/agenda'],
     ['GET', '/api/recordatorios'],
+    ['GET', '/api/reportes/citas'],
+    ['GET', '/api/reportes/actividad'],
   ])('%s %s exige sesión', async (metodo, ruta) => {
     const respuesta = await request(app)[metodo.toLowerCase()](ruta);
 
@@ -486,5 +488,54 @@ describe('Catálogo de exámenes', () => {
       .set('Authorization', `Bearer ${tokenCitas}`);
 
     expect(respuesta.status).toBe(403);
+  });
+});
+
+describe('GET /api/reportes', () => {
+  const PERIODO = 'desde=2026-09-01&hasta=2026-09-30';
+
+  beforeEach(() => {
+    citaModel.listarPorRango.mockResolvedValue([]);
+  });
+
+  it('devuelve un PDF, con el nombre del archivo en la cabecera', async () => {
+    const respuesta = await request(app)
+      .get(`/api/reportes/citas?${PERIODO}`)
+      .set('Authorization', `Bearer ${tokenCitas}`);
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers['content-type']).toBe('application/pdf');
+    expect(respuesta.headers['content-disposition']).toContain(
+      'citas-2026-09-01-a-2026-09-30.pdf',
+    );
+    expect(respuesta.body.subarray(0, 5).toString()).toBe('%PDF-');
+  });
+
+  it('devuelve un Word cuando se pide formato docx', async () => {
+    const respuesta = await request(app)
+      .get(`/api/reportes/actividad?${PERIODO}&formato=docx`)
+      .set('Authorization', `Bearer ${tokenCitas}`);
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers['content-type']).toContain('wordprocessingml.document');
+    expect(respuesta.headers['content-disposition']).toContain(
+      'actividad-2026-09-01-a-2026-09-30.docx',
+    );
+  });
+
+  it('rechaza un formato que no existe', async () => {
+    const respuesta = await request(app)
+      .get(`/api/reportes/citas?${PERIODO}&formato=xls`)
+      .set('Authorization', `Bearer ${tokenCitas}`);
+
+    expect(respuesta.status).toBe(422);
+  });
+
+  it('rechaza un periodo sin fechas', async () => {
+    const respuesta = await request(app)
+      .get('/api/reportes/citas')
+      .set('Authorization', `Bearer ${tokenCitas}`);
+
+    expect(respuesta.status).toBe(422);
   });
 });

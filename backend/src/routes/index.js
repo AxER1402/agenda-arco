@@ -12,6 +12,7 @@ const ordenRoutes = require('./orden.routes');
 const citaRoutes = require('./cita.routes');
 const agendaRoutes = require('./agenda.routes');
 const recordatorioRoutes = require('./recordatorio.routes');
+const reporteRoutes = require('./reporte.routes');
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/ordenes', ordenRoutes);
 router.use('/citas', citaRoutes);
 router.use('/agenda', agendaRoutes);
 router.use('/recordatorios', recordatorioRoutes);
+router.use('/reportes', reporteRoutes);
 
 module.exports = router;
