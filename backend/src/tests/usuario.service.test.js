@@ -1,6 +1,8 @@
 jest.mock('../models/usuario.model');
+jest.mock('../services/auth.service');
 
 const usuarioModel = require('../models/usuario.model');
+const authService = require('../services/auth.service');
 const usuarioService = require('../services/usuario.service');
 const { ROLES } = require('../utils/roles');
 
@@ -85,5 +87,63 @@ describe('usuario.service.crear', () => {
         rol: 'ROL_QUE_NO_EXISTE',
       }),
     ).rejects.toMatchObject({ statusCode: 400 });
+  });
+});
+
+describe('usuario.service.eliminar', () => {
+  const personal = { ...administrador, id: 5, rol: ROLES.PERSONAL_CITAS };
+
+  beforeEach(() => {
+    authService.confirmarIdentidad.mockResolvedValue(true);
+  });
+
+  it('no permite que un usuario se elimine a sí mismo', async () => {
+    await expect(
+      usuarioService.eliminar(1, { idUsuarioSolicitante: 1, contrasena: 'x' }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+
+    expect(usuarioModel.eliminar).not.toHaveBeenCalled();
+  });
+
+  it('exige la contraseña de quien lo pide', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue(personal);
+    authService.confirmarIdentidad.mockRejectedValue(
+      Object.assign(new Error('La contraseña no es correcta.'), { statusCode: 401 }),
+    );
+
+    await expect(
+      usuarioService.eliminar(5, { idUsuarioSolicitante: 1, contrasena: 'mala' }),
+    ).rejects.toMatchObject({ statusCode: 401 });
+
+    expect(usuarioModel.eliminar).not.toHaveBeenCalled();
+  });
+
+  it('impide borrar al único administrador activo', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue(administrador);
+    usuarioModel.contarAdministradoresActivos.mockResolvedValue(1);
+
+    await expect(
+      usuarioService.eliminar(1, { idUsuarioSolicitante: 2, contrasena: 'buena' }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(usuarioModel.eliminar).not.toHaveBeenCalled();
+  });
+
+  it('borra la fila cuando todo cuadra', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue(personal);
+
+    await expect(
+      usuarioService.eliminar(5, { idUsuarioSolicitante: 1, contrasena: 'buena' }),
+    ).resolves.toEqual({ id: 5, eliminado: true });
+
+    expect(usuarioModel.eliminar).toHaveBeenCalledWith(5);
+  });
+
+  it('devuelve 404 si el usuario no existe', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue(null);
+
+    await expect(
+      usuarioService.eliminar(99, { idUsuarioSolicitante: 1, contrasena: 'buena' }),
+    ).rejects.toMatchObject({ statusCode: 404 });
   });
 });

@@ -8,6 +8,7 @@ const {
   reglasActualizar,
   reglasRestablecerContrasena,
   reglasObtener,
+  reglasEliminar,
 } = require('../validators/usuario.validator');
 
 const router = Router();
@@ -22,7 +23,10 @@ router.get('/', usuarioController.listar);
 router.post('/', reglasCrear, usuarioController.crear);
 router.get('/:id', reglasObtener, usuarioController.obtener);
 router.patch('/:id', reglasActualizar, usuarioController.actualizar);
+// Baja lógica: el usuario deja de entrar pero su rastro en el historial queda.
 router.delete('/:id', reglasObtener, usuarioController.desactivar);
+// Borrado definitivo: pide la contraseña de la sesión (va en el cuerpo).
+router.delete('/:id/definitivo', reglasEliminar, usuarioController.eliminar);
 router.patch(
   '/:id/contrasena',
   reglasRestablecerContrasena,

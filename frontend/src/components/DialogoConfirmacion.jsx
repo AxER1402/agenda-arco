@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { InputContrasena } from '@/components/ui/input-contrasena';
 
 /**
  * Confirmación de una acción, dentro de la aplicación.
@@ -110,18 +111,22 @@ function DialogoConfirmacion({
               ayuda={campo.ayuda}
               requerido={campo.requerido}
             >
-              {(props) => (
-                <Input
-                  {...props}
-                  type={campo.tipo ?? 'text'}
-                  autoComplete={campo.tipo === 'password' ? 'new-password' : 'off'}
-                  autoFocus
-                  minLength={minimo || undefined}
-                  maxLength={200}
-                  value={valor}
-                  onChange={(evento) => setValor(evento.target.value)}
-                />
-              )}
+              {(props) => {
+                const Control = campo.tipo === 'password' ? InputContrasena : Input;
+
+                return (
+                  <Control
+                    {...props}
+                    type={campo.tipo ?? 'text'}
+                    autoComplete={campo.tipo === 'password' ? 'new-password' : 'off'}
+                    autoFocus
+                    minLength={minimo || undefined}
+                    maxLength={200}
+                    value={valor}
+                    onChange={(evento) => setValor(evento.target.value)}
+                  />
+                );
+              }}
             </CampoFormulario>
           )}
 
@@ -133,9 +138,8 @@ function DialogoConfirmacion({
               requerido
             >
               {(props) => (
-                <Input
+                <InputContrasena
                   {...props}
-                  type="password"
                   autoComplete="current-password"
                   autoFocus={!campo}
                   required

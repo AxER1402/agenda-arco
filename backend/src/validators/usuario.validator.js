@@ -69,9 +69,24 @@ const reglasRestablecerContrasena = [
 
 const reglasObtener = [reglaId, validar];
 
+/**
+ * Borrado definitivo: además del identificador, la contraseña de quien lo pide.
+ * Que coincida lo comprueba `auth.service`; aquí solo se exige que venga.
+ */
+const reglasEliminar = [
+  reglaId,
+  // Una sola regla para que falte o venga vacía den el mismo mensaje, y no
+  // el «Invalid value» genérico de express-validator.
+  body('contrasena')
+    .custom((valor) => typeof valor === 'string' && valor.length > 0)
+    .withMessage('Escriba su contraseña para confirmar el borrado.'),
+  validar,
+];
+
 module.exports = {
   reglasCrear,
   reglasActualizar,
   reglasRestablecerContrasena,
   reglasObtener,
+  reglasEliminar,
 };

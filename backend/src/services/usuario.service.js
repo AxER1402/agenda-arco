@@ -3,6 +3,7 @@
  * Solo el rol ADMINISTRADOR llega hasta aquí (lo garantiza el middleware).
  */
 const usuarioModel = require('../models/usuario.model');
+const authService = require('./auth.service');
 const password = require('../utils/password');
 const AppError = require('../utils/AppError');
 const { ROLES } = require('../utils/roles');
@@ -77,6 +78,42 @@ async function desactivar(id, idUsuarioSolicitante) {
   return actualizar(id, { activo: false });
 }
 
+/**
+ * Borrado definitivo.
+ *
+ * `desactivar` sigue siendo lo recomendable —conserva quién registró cada cita—,
+ * pero un usuario creado por error, o alguien que nunca debió tener acceso, no
+ * tiene por qué quedarse para siempre en la lista.
+ *
+ * Se pide la contraseña de quien lo solicita porque no se puede deshacer: un
+ * equipo que alguien dejó abierto en el mostrador no basta para borrar a nadie.
+ */
+async function eliminar(id, { idUsuarioSolicitante, contrasena } = {}) {
+  if (Number(id) === Number(idUsuarioSolicitante)) {
+    throw AppError.badRequest('No puede eliminar su propio usuario.');
+  }
+
+  const existente = await obtener(id);
+
+  await authService.confirmarIdentidad(idUsuarioSolicitante, contrasena);
+
+  // Borrar al último administrador activo dejaría el sistema sin quien
+  // administre, y sin forma de crear otro.
+  if (
+    existente.rol === ROLES.ADMINISTRADOR &&
+    existente.activo &&
+    (await usuarioModel.contarAdministradoresActivos()) <= 1
+  ) {
+    throw AppError.conflict(
+      'No se puede eliminar al único administrador activo del sistema.',
+    );
+  }
+
+  await usuarioModel.eliminar(existente.id);
+
+  return { id: existente.id, eliminado: true };
+}
+
 /** Restablecimiento de contraseña por parte de un administrador. */
 async function restablecerContrasena(id, contrasenaNueva) {
   await obtener(id);
@@ -98,6 +135,7 @@ module.exports = {
   crear,
   actualizar,
   desactivar,
+  eliminar,
   restablecerContrasena,
   listarRoles,
 };

@@ -1,22 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { KeyRound, UserCog, UserPlus, UserX } from 'lucide-react';
+import { KeyRound, Pencil, Trash2, UserCheck, UserCog, UserPlus, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
-import CampoFormulario from '@/components/CampoFormulario';
 import DialogoConfirmacion from '@/components/DialogoConfirmacion';
 import EncabezadoModulo from '@/components/layout/EncabezadoModulo';
+import ContrasenaDialog from '@/components/usuarios/ContrasenaDialog';
+import UsuarioFormDialog from '@/components/usuarios/UsuarioFormDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { SelectNativo } from '@/components/ui/select-nativo';
 import {
   Table,
   TableBody,
@@ -27,27 +18,23 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  crearUsuario,
+  actualizarUsuario,
   desactivarUsuario,
+  eliminarUsuario,
   listarRoles,
   listarUsuarios,
   restablecerContrasena,
 } from '@/services/usuario.service';
 import { useAuth } from '@/context/AuthContext';
 
-const VACIO = { nombreCompleto: '', usuario: '', contrasena: '', rol: 'PERSONAL_CITAS' };
-
 function UsuariosPage() {
   const { usuario: usuarioActual } = useAuth();
 
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [dialogoAbierto, setDialogoAbierto] = useState(false);
-  const [valores, setValores] = useState(VACIO);
-  const [errores, setErrores] = useState({});
-  const [guardando, setGuardando] = useState(false);
-  const [desactivando, setDesactivando] = useState(null);
-  const [restableciendo, setRestableciendo] = useState(null);
+
+  // Un solo diálogo abierto a la vez, y siempre sobre una fila concreta.
+  const [dialogo, setDialogo] = useState({ tipo: null, usuario: null });
 
   const cargar = useCallback(async () => {
     try {
@@ -63,45 +50,39 @@ function UsuariosPage() {
     cargar();
   }, [cargar]);
 
-  function cambiar(campo) {
-    return (evento) => {
-      setValores((previo) => ({ ...previo, [campo]: evento.target.value }));
-      setErrores((previo) => ({ ...previo, [campo]: undefined }));
-    };
-  }
+  const abrir = (tipo, usuario = null) => setDialogo({ tipo, usuario });
+  const cerrar = () => setDialogo({ tipo: null, usuario: null });
 
-  async function crear(evento) {
-    evento.preventDefault();
-    setGuardando(true);
-
-    try {
-      await crearUsuario(valores);
-      toast.success('Usuario creado.');
-      setDialogoAbierto(false);
-      setValores(VACIO);
-      cargar();
-    } catch (error) {
-      toast.error(error.message);
-      if (Array.isArray(error.detalles)) {
-        setErrores(
-          Object.fromEntries(error.detalles.map((detalle) => [detalle.campo, detalle.mensaje])),
-        );
-      }
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  /** Los errores suben al diálogo, que los muestra sin cerrarse. */
+  /**
+   * Los errores de estas tres suben al diálogo, que los muestra dentro sin
+   * cerrarse: si la contraseña no era la correcta, hay que poder reintentar.
+   */
   async function desactivar() {
-    await desactivarUsuario(desactivando.id);
+    await desactivarUsuario(dialogo.usuario.id);
     toast.success('Usuario desactivado.');
     cargar();
   }
 
-  async function restablecer({ valor: nueva }) {
-    await restablecerContrasena(restableciendo.id, nueva);
+  async function eliminar({ contrasena }) {
+    await eliminarUsuario(dialogo.usuario.id, contrasena);
+    toast.success('Usuario eliminado.');
+    cargar();
+  }
+
+  async function restablecer(nueva) {
+    await restablecerContrasena(dialogo.usuario.id, nueva);
     toast.success('Contraseña restablecida.');
+  }
+
+  /** Devolver el acceso es inocuo y reversible: no pide confirmación. */
+  async function activar(usuario) {
+    try {
+      await actualizarUsuario(usuario.id, { activo: true });
+      toast.success('Usuario activado.');
+      cargar();
+    } catch (error) {
+      toast.error(error.message);
+    }
   }
 
   return (
@@ -111,7 +92,7 @@ function UsuariosPage() {
         titulo="Usuarios"
         descripcion="Personal con acceso al sistema."
         acciones={
-          <Button onClick={() => setDialogoAbierto(true)}>
+          <Button onClick={() => abrir('formulario')}>
             <UserPlus aria-hidden="true" />
             Crear usuario
           </Button>
@@ -132,131 +113,122 @@ function UsuariosPage() {
           {usuarios.length === 0 ? (
             <TableEmpty colSpan={5}>Cargando...</TableEmpty>
           ) : (
-            usuarios.map((fila) => (
-              <TableRow key={fila.id}>
-                <TableCell className="font-medium">{fila.nombre_completo}</TableCell>
-                <TableCell>{fila.usuario}</TableCell>
-                <TableCell>{fila.rol_nombre}</TableCell>
-                <TableCell>
-                  <Badge variant={fila.activo ? 'success' : 'outline'}>
-                    {fila.activo ? 'Activo' : 'Inactivo'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => setRestableciendo(fila)}>
-                      <KeyRound aria-hidden="true" />
-                      Contraseña
-                    </Button>
-                    {fila.activo && fila.id !== usuarioActual?.id && (
-                      <Button size="sm" variant="ghost" onClick={() => setDesactivando(fila)}>
-                        <UserX aria-hidden="true" />
-                        Desactivar
+            usuarios.map((fila) => {
+              const esUnoMismo = fila.id === usuarioActual?.id;
+
+              return (
+                <TableRow key={fila.id}>
+                  <TableCell className="font-medium">{fila.nombre_completo}</TableCell>
+                  <TableCell>{fila.usuario}</TableCell>
+                  <TableCell>{fila.rol_nombre}</TableCell>
+                  <TableCell>
+                    <Badge variant={fila.activo ? 'success' : 'outline'}>
+                      {fila.activo ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Editar"
+                        onClick={() => abrir('formulario', fila)}
+                      >
+                        <Pencil aria-hidden="true" />
+                        <span className="sr-only">Editar a {fila.nombre_completo}</span>
                       </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
+
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Cambiar la contraseña"
+                        onClick={() => abrir('contrasena', fila)}
+                      >
+                        <KeyRound aria-hidden="true" />
+                        <span className="sr-only">
+                          Cambiar la contraseña de {fila.nombre_completo}
+                        </span>
+                      </Button>
+
+                      {!esUnoMismo &&
+                        (fila.activo ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Desactivar"
+                            onClick={() => abrir('desactivar', fila)}
+                          >
+                            <UserX aria-hidden="true" />
+                            <span className="sr-only">Desactivar a {fila.nombre_completo}</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Activar"
+                            onClick={() => activar(fila)}
+                          >
+                            <UserCheck aria-hidden="true" />
+                            <span className="sr-only">Activar a {fila.nombre_completo}</span>
+                          </Button>
+                        ))}
+
+                      {!esUnoMismo && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          title="Eliminar"
+                          onClick={() => abrir('eliminar', fila)}
+                        >
+                          <Trash2 aria-hidden="true" />
+                          <span className="sr-only">Eliminar a {fila.nombre_completo}</span>
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>
 
-      <Dialog open={dialogoAbierto} onOpenChange={setDialogoAbierto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Crear usuario</DialogTitle>
-            <DialogDescription>
-              El usuario podrá cambiar su contraseña después de iniciar sesión.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form className="flex flex-col gap-4" onSubmit={crear} noValidate>
-            <CampoFormulario
-              id="usuario-nombre"
-              etiqueta="Nombre completo"
-              error={errores.nombreCompleto}
-              requerido
-            >
-              {(props) => (
-                <Input {...props} value={valores.nombreCompleto} onChange={cambiar('nombreCompleto')} />
-              )}
-            </CampoFormulario>
-
-            <CampoFormulario
-              id="usuario-acceso"
-              etiqueta="Nombre de acceso"
-              error={errores.usuario}
-              ayuda="Entre 4 y 50 caracteres: letras, números, punto, guion o guion bajo."
-              requerido
-            >
-              {(props) => <Input {...props} value={valores.usuario} onChange={cambiar('usuario')} />}
-            </CampoFormulario>
-
-            <CampoFormulario
-              id="usuario-contrasena"
-              etiqueta="Contraseña"
-              error={errores.contrasena}
-              ayuda="Mínimo 8 caracteres."
-              requerido
-            >
-              {(props) => (
-                <Input
-                  {...props}
-                  type="password"
-                  value={valores.contrasena}
-                  onChange={cambiar('contrasena')}
-                />
-              )}
-            </CampoFormulario>
-
-            <CampoFormulario id="usuario-rol" etiqueta="Rol" error={errores.rol} requerido>
-              {(props) => (
-                <SelectNativo {...props} value={valores.rol} onChange={cambiar('rol')}>
-                  {roles.map((rol) => (
-                    <option key={rol.id} value={rol.codigo}>
-                      {rol.nombre}
-                    </option>
-                  ))}
-                </SelectNativo>
-              )}
-            </CampoFormulario>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogoAbierto(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={guardando}>
-                {guardando ? 'Creando...' : 'Crear usuario'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <UsuarioFormDialog
+        abierto={dialogo.tipo === 'formulario'}
+        usuario={dialogo.usuario}
+        roles={roles}
+        onCerrar={cerrar}
+        onGuardado={cargar}
+      />
 
       <DialogoConfirmacion
-        abierto={Boolean(desactivando)}
-        onCerrar={() => setDesactivando(null)}
+        abierto={dialogo.tipo === 'desactivar'}
+        onCerrar={cerrar}
         onConfirmar={desactivar}
-        titulo={`¿Desactivar el acceso de ${desactivando?.nombre_completo}?`}
+        titulo={`¿Desactivar el acceso de ${dialogo.usuario?.nombre_completo}?`}
         descripcion="No podrá iniciar sesión, pero su nombre se conserva en las citas que registró. Puede volver a activarlo más adelante."
         textoConfirmar="Desactivar acceso"
       />
 
       <DialogoConfirmacion
-        abierto={Boolean(restableciendo)}
-        onCerrar={() => setRestableciendo(null)}
-        onConfirmar={restablecer}
-        titulo={`Nueva contraseña para ${restableciendo?.nombre_completo}`}
+        abierto={dialogo.tipo === 'eliminar'}
+        onCerrar={cerrar}
+        onConfirmar={eliminar}
+        titulo={`¿Eliminar a ${dialogo.usuario?.nombre_completo}?`}
+        descripcion="El usuario desaparece de la lista y no se puede recuperar. Las citas y las órdenes que registró se conservan, pero dejan de tener a quién atribuirlas. Si solo quiere quitarle el acceso, desactívelo."
+        textoConfirmar="Eliminar definitivamente"
+        destructivo
+        pedirContrasena
+      />
+
+      <ContrasenaDialog
+        abierto={dialogo.tipo === 'contrasena'}
+        onCerrar={cerrar}
+        onGuardar={restablecer}
+        titulo={`Nueva contraseña para ${dialogo.usuario?.nombre_completo}`}
         descripcion="La contraseña anterior deja de servir en cuanto se guarde. Comuníquesela a la persona para que pueda entrar."
-        textoConfirmar="Restablecer"
-        campo={{
-          etiqueta: 'Nueva contraseña',
-          ayuda: 'Mínimo 8 caracteres.',
-          tipo: 'password',
-          requerido: true,
-          minimo: 8,
-        }}
+        textoGuardar="Restablecer"
       />
     </div>
   );
