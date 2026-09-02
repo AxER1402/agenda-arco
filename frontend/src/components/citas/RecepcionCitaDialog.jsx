@@ -33,6 +33,13 @@ import {
   validarTelefono,
 } from '@/lib/validaciones';
 
+/**
+ * Hora con la que llega el formulario. Es la de apertura del laboratorio: casi
+ * todas las citas se dan a primera hora, y dejar el campo vacío obligaba a
+ * teclearla entera en cada recepción.
+ */
+const HORA_SUGERIDA = '07:00';
+
 const VACIO = {
   telefono: '',
   nombreCompleto: '',
@@ -42,7 +49,7 @@ const VACIO = {
   numeroOrden: '',
   fechaRecepcion: hoyISO(),
   fecha: '',
-  hora: '',
+  hora: HORA_SUGERIDA,
   notas: '',
 };
 

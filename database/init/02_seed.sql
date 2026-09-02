@@ -22,7 +22,7 @@ INSERT INTO estados_cita (codigo, nombre, es_final, ocupa_cupo) VALUES
 INSERT INTO configuracion (clave, valor, descripcion) VALUES
   ('limite_diario_pacientes', '40', 'Cantidad máxima de pacientes que se pueden agendar por día.'),
   ('vigencia_orden_meses',    '3',  'Meses de vigencia de una orden del IGSS desde su fecha de entrega.'),
-  ('dias_laborables',         '1,2,3,4,5,6', 'Días laborables (1=lunes ... 7=domingo).'),
+  ('dias_laborables',         '1,2,3,4,5,6,7', 'Días laborables (1=lunes ... 7=domingo).'),
   ('hora_apertura',           '07:00', 'Hora de inicio de atención.'),
   ('hora_cierre',             '17:00', 'Hora de fin de atención.'),
   ('intervalo_citas_minutos', '15', 'Duración del espacio asignado a cada cita.'),

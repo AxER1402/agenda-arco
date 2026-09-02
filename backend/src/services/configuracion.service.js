@@ -81,7 +81,10 @@ const DEFINICIONES = {
     mensaje: 'La vigencia debe ser un número entero de meses entre 1 y 24.',
   },
   [CLAVES.DIAS_LABORABLES]: {
-    porDefecto: [1, 2, 3, 4, 5, 6],
+    // Los siete días. El laboratorio quita en Configuración los que no atienda:
+    // es preferible que un día abierto se cierre a mano a que un sábado o un
+    // domingo de trabajo no se pueda agendar.
+    porDefecto: [1, 2, 3, 4, 5, 6, 7],
     convertir: (valor) =>
       String(valor)
         .split(',')

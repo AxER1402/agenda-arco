@@ -150,8 +150,19 @@ describe('Envío', () => {
 
     await userEvent.type(screen.getByLabelText(/Nombre completo/), 'Marta Ruiz');
     await userEvent.click(screen.getByRole('checkbox', { name: /Hematología completa/ }));
+
+    // El campo llega con la hora de apertura puesta; escribir encima sin
+    // vaciarlo antes mezclaría las dos horas.
+    await userEvent.clear(screen.getByLabelText(/^Hora/));
     await userEvent.type(screen.getByLabelText(/^Hora/), '09:00');
   }
+
+  it('propone la hora de apertura sin que haya que teclearla', async () => {
+    renderizar();
+    await screen.findByText(/Se puede recibir hasta el/);
+
+    expect(screen.getByLabelText(/^Hora/)).toHaveValue('07:00');
+  });
 
   it('registra paciente, orden y cita en una sola llamada', async () => {
     citaService.recibirPaciente.mockResolvedValue({
