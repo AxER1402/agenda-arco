@@ -48,12 +48,12 @@ function EstadoSistemaPage() {
   return (
     <main className="min-h-screen bg-lienzo px-6 py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header className="border-2 border-trazo bg-negro px-6 py-6 text-papel">
-          <p className="rotulo text-agua">Laboratorio Clínico Biológico</p>
+        <header className="border-2 border-trazo bg-abismo px-6 py-6 text-papel">
+          <p className="rotulo text-turquesa">Laboratorio Clínico Biológico</p>
           <h1 className="mt-2 text-2xl leading-tight text-papel sm:text-3xl">
             El Arco Laboratorios
           </h1>
-          <p className="mt-2 text-sm text-agua">
+          <p className="mt-2 text-sm text-turquesa">
             Sistema de gestión de citas. Instalación base verificada.
           </p>
         </header>

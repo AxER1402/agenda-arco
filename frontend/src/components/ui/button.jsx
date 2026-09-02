@@ -26,7 +26,7 @@ const buttonVariants = cva(
         destructive:
           'border-trazo bg-destructive text-destructive-foreground hover:bg-destructive/90',
         outline: 'border-trazo bg-card text-titular hover:bg-secondary',
-        secondary: 'border-trazo bg-accent text-accent-foreground hover:bg-menta',
+        secondary: 'border-trazo bg-accent text-accent-foreground hover:bg-accent-hover',
         ghost: 'border-transparent text-foreground hover:border-trazo hover:bg-secondary hover:text-titular',
         link: 'border-transparent text-titular underline decoration-primary decoration-2 underline-offset-4 hover:decoration-titular',
       },

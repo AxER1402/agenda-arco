@@ -3,7 +3,7 @@ import * as LabelPrimitive from '@radix-ui/react-label';
 import { cn } from '@/lib/utils';
 
 /**
- * Etiqueta menuda en versalitas y color tinta. Contrasta en tamaño con el
+ * Etiqueta menuda en versalitas y en el color de los titulares. Contrasta en tamaño con el
  * campo que rotula, así el formulario se lee de un vistazo sin subrayar cada
  * nombre con negrita.
  */

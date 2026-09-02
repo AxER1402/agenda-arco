@@ -15,7 +15,7 @@ function Table({ className, ...props }) {
   );
 }
 
-/** Cabecera en agua: es lo que separa la tabla del papel sin gastar trazo. */
+/** Cabecera en bruma: es lo que separa la tabla del papel sin gastar trazo. */
 function TableHeader({ className, ...props }) {
   return (
     <thead

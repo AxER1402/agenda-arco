@@ -24,7 +24,7 @@ function SelectNativo({ className, children, ...props }) {
       >
         {children}
       </select>
-      {/* Bloque amarillo pegado al canto derecho, separado por su propio trazo:
+      {/* Bloque turquesa pegado al canto derecho, separado por su propio trazo:
           marca el único punto de la caja que despliega algo. */}
       <span
         className="pointer-events-none absolute inset-y-0 right-0 flex w-9 items-center justify-center border-l-2 border-trazo bg-primary text-primary-foreground"

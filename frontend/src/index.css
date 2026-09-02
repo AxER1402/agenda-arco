@@ -6,20 +6,23 @@
    Los componentes de src/components/ui/ NO tienen colores fijos: usan estos
    tokens. Cambiar la identidad visual del sistema completo se hace aquí.
 
-   Identidad: neo-brutalismo plano. Trazo negro sólido de 2 px, rellenos de
-   color pleno y canto vivo. Sin sombras, sin degradados y sin relieve: lo que
-   ordena la pantalla es el contorno negro y el contraste entre bloques.
+   Identidad: plana, de trazo. Contorno sólido de 2 px, rellenos de color pleno
+   y canto vivo. Sin sombras, sin degradados y sin relieve: lo que ordena la
+   pantalla es el contorno y el contraste entre bloques.
 
    El reparto de color:
 
-     blanco   — el fondo: lienzo, tarjetas, tablas y diálogos.
-     negro    — todo el trazo, los titulares y los bloques macizos.
-     agua     — cabeceras de módulo y de tabla, insignias neutras. Es el color
-                que se ve repartido por la interfaz.
-     sol      — la acción principal y la sección activa. Nada más.
+     papel     — el fondo: lienzo, tarjetas, tablas y diálogos.
+     abismo    — todo el trazo, los titulares y los bloques macizos.
+     marino    — la barra lateral y el panel de la pantalla de acceso.
+     turquesa  — la acción principal y la sección activa.
+     bruma     — cabeceras de módulo y de tabla, insignias neutras. Es el color
+                 que se ve repartido por la interfaz, en bloques acotados.
+     aqua      — el resalte sobre fondo oscuro, y solo ahí: sobre blanco no
+                 tiene contraste suficiente para nada que haya que leer.
 
-   El morado tinta queda reservado a dos sitios y no debe salir de ahí: la
-   barra lateral y el panel de la pantalla de acceso.
+   El azul marino no sale de la barra y del acceso; el aqua no sale de encima
+   de un fondo oscuro.
 --------------------------------------------------------------------------- */
 
 @custom-variant dark (&:is(.dark *));
@@ -27,132 +30,152 @@
 :root {
   /* ---- Paleta de marca --------------------------------------------------
      Todo lo demás se deriva de aquí.                                        */
-  --negro: #000000; /* trazo, titulares y bloques macizos */
-  --tinta: #272343; /* solo barra lateral y panel de acceso */
-  --sol: #ffd803; /* acción principal y resaltado */
-  --papel: #fffffe; /* fondo y superficies */
-  --menta: #e3f6f5; /* secundario */
-  --agua: #bae8e8; /* terciario */
+  --abismo: #0b132b; /* trazo, titulares y bloques macizos */
+  --marino: #1c2541; /* barra lateral y panel de acceso */
+  --pizarra: #3a506b; /* texto secundario y datos de apoyo */
+  --turquesa: #5bc0be; /* acción principal */
+  --aqua: #6fffe9; /* resalte, solo sobre fondo oscuro */
+  --papel: #ffffff; /* fondo y superficies */
+
+  /* Derivados del turquesa para lo que necesita el mismo color más bajo de
+     tono: la pulsación del botón y los bloques de fondo suave.              */
+  --turquesa-hondo: #46a8a6;
+  --bruma: #ddf0ef;
+  --bruma-honda: #c2e6e5;
 
   /* Canto vivo en todo el sistema. */
   --radius: 0rem;
 
   /* ---- Tokens semánticos ----------------------------------------------- */
   --background: var(--papel);
-  --foreground: #1a1a1a;
-  --titular: var(--negro);
+  --foreground: #16203a;
+  --titular: var(--abismo);
 
   --card: var(--papel);
-  --card-foreground: #1a1a1a;
+  --card-foreground: #16203a;
 
   /* El lienzo sobre el que van las tarjetas. Es blanco: el trabajo se lee
      mejor sobre papel y las líneas ya ordenan la página. Va aparte de
      `--background` para poder teñirlo en oscuro sin tocar el resto.        */
   --lienzo: var(--papel);
-  --barra: var(--tinta);
-  --barra-foreground: var(--papel);
-  --barra-suave: var(--agua);
-  --barra-linea: rgba(255, 255, 254, 0.14);
+  --barra: var(--marino);
+  --barra-foreground: #e7ecf8;
+  --barra-suave: var(--turquesa);
+  --barra-linea: rgba(231, 236, 248, 0.16);
+
+  /* La sección abierta de la barra. No puede ser la acción principal: sobre
+     el azul marino, el turquesa se apaga y deja de leerse como «aquí está».
+     El aqua es lo único de la paleta que canta sobre ese fondo.            */
+  --barra-activa: var(--aqua);
+  --barra-activa-foreground: var(--abismo);
 
   --popover: var(--papel);
-  --popover-foreground: #1a1a1a;
+  --popover-foreground: #16203a;
 
-  --primary: var(--sol);
-  --primary-foreground: var(--negro);
-  /* Amarillo un punto más hondo para la pulsación: el bloque responde sin
+  --primary: var(--turquesa);
+  --primary-foreground: var(--abismo);
+  /* Turquesa un punto más hondo para la pulsación: el bloque responde sin
      invertirse entero.                                                     */
-  --primary-hover: #f0ca00;
+  --primary-hover: var(--turquesa-hondo);
 
-  /* Gris muy claro para lo que se rellena por dentro: campos de formulario y
-     estados de hover. Es el fondo de trabajo, y por eso no lleva color.    */
-  --secondary: #f4f4f5;
-  --secondary-foreground: var(--negro);
+  /* Azul grisáceo muy claro para lo que se rellena por dentro: campos de
+     formulario y estados de hover. Es el fondo de trabajo, y por eso no
+     levanta la voz.                                                        */
+  --secondary: #eff2f7;
+  --secondary-foreground: var(--abismo);
 
-  --muted: #f4f4f5;
-  --muted-foreground: #5c5c66;
+  --muted: #eff2f7;
+  --muted-foreground: var(--pizarra);
 
-  /* El agua de la marca: cabeceras de módulo y de tabla, insignias neutras y
-     el texto secundario de la barra lateral. Es el color que reparte la
-     interfaz, siempre sobre bloques acotados y nunca como fondo de página. */
-  --accent: var(--agua);
-  --accent-foreground: var(--negro);
+  /* La bruma de la marca: cabeceras de módulo y de tabla, insignias neutras
+     y el relleno de lo secundario. Es el color que reparte la interfaz,
+     siempre sobre bloques acotados y nunca como fondo de página.           */
+  --accent: var(--bruma);
+  --accent-foreground: var(--abismo);
+  --accent-hover: var(--bruma-honda);
 
   /* Cada color de estado va en trío: el tono fuerte (legible como texto y
      como borde), el texto que se pone encima del relleno sólido, y un relleno
-     pastel para insignias y avisos.                                         */
-  --destructive: #c9184a;
-  --destructive-foreground: #fffffe;
-  --destructive-suave: #ffe3ec;
+     suave para insignias y avisos. Se eligen dentro de la misma familia fría
+     de la marca para que un aviso no parezca de otra aplicación. El tono
+     fuerte se eligió comprobando que llega a 4.5:1 sobre su propio relleno
+     suave: la insignia va en cuerpo 11 y ahí no vale quedarse corto.        */
+  --destructive: #b3123a;
+  --destructive-foreground: #ffffff;
+  --destructive-suave: #fbe4ea;
 
-  --success: #12876a;
-  --success-foreground: #fffffe;
-  --success-suave: #d6f4e9;
+  --success: #0c6b52;
+  --success-foreground: #ffffff;
+  --success-suave: #d8f1e8;
 
-  --warning: #a15c07;
-  --warning-foreground: #fffffe;
-  --warning-suave: #ffedcc;
+  --warning: #91560a;
+  --warning-foreground: #ffffff;
+  --warning-suave: #fbeacf;
 
-  /* El trazo negro es lo que sostiene todo el diseño: 2 px, sólido, en cada
+  /* El trazo es lo que sostiene todo el diseño: 2 px, sólido, en cada
      tarjeta, tabla, campo y bloque. `--linea` es su versión diluida para las
      divisiones internas (filas de tabla), donde un trazo pleno haría reja.  */
-  --trazo: var(--negro);
-  --border: var(--negro);
-  --linea: rgba(0, 0, 0, 0.14);
-  --input: var(--negro);
-  --ring: var(--negro);
+  --trazo: var(--abismo);
+  --border: var(--abismo);
+  --linea: rgba(11, 19, 43, 0.16);
+  --input: var(--abismo);
+  --ring: var(--abismo);
 }
 
 .dark {
-  --background: #141414;
-  --foreground: #e5e5e5;
-  --titular: #fffffe;
+  --background: #0b132b;
+  --foreground: #dde5f2;
+  --titular: #ffffff;
 
-  --card: #141414;
-  --card-foreground: #e5e5e5;
+  --card: #0e1731;
+  --card-foreground: #dde5f2;
 
   /* En oscuro se invierte la relación: el lienzo se hunde por debajo de la
      tarjeta, que es la que tiene que salir a flote.                        */
-  --lienzo: #0a0a0a;
-  --barra: #232244;
-  --barra-foreground: #e6eaf7;
-  --barra-suave: #949cc4;
-  --barra-linea: rgba(255, 255, 254, 0.12);
+  --lienzo: #060b18;
+  --barra: var(--marino);
+  --barra-foreground: #e7ecf8;
+  --barra-suave: var(--turquesa);
+  --barra-linea: rgba(231, 236, 248, 0.14);
+  --barra-activa: var(--aqua);
+  --barra-activa-foreground: var(--abismo);
 
-  --popover: #1c1c1c;
-  --popover-foreground: #e5e5e5;
+  --popover: #121c38;
+  --popover-foreground: #dde5f2;
 
-  --primary: var(--sol);
-  --primary-foreground: var(--negro);
-  --primary-hover: #f0ca00;
+  --primary: var(--turquesa);
+  --primary-foreground: var(--abismo);
+  --primary-hover: var(--aqua);
 
-  --secondary: #262626;
-  --secondary-foreground: #f5f5f5;
+  --secondary: #18243f;
+  --secondary-foreground: #eef3fb;
 
-  --muted: #262626;
-  --muted-foreground: #a3a3a3;
+  --muted: #18243f;
+  --muted-foreground: #9aacc6;
 
-  --accent: #2f4f4f;
-  --accent-foreground: #eafafa;
+  --accent: #23365c;
+  --accent-foreground: #cfeeed;
+  --accent-hover: #2c4372;
 
-  --destructive: #ff6b93;
+  --destructive: #ff7a97;
   --destructive-foreground: #2a0a16;
   --destructive-suave: #3d1f2e;
 
   --success: #4fd1a5;
   --success-foreground: #06251c;
-  --success-suave: #17352d;
+  --success-suave: #133329;
 
   --warning: #f2b04a;
   --warning-foreground: #2b1a00;
   --warning-suave: #382c15;
 
-  /* El trazo se invierte con el tema: lo que en claro es negro pleno, aquí es
-     blanco pleno. El contorno sigue siendo lo que sostiene el diseño.       */
-  --trazo: #fffffe;
-  --border: #fffffe;
-  --linea: rgba(255, 255, 254, 0.18);
-  --input: #fffffe;
-  --ring: #fffffe;
+  /* El trazo se invierte con el tema: lo que en claro es tinta oscura, aquí
+     es casi blanco. El contorno sigue siendo lo que sostiene el diseño.     */
+  --trazo: #dde5f2;
+  --border: #dde5f2;
+  --linea: rgba(221, 229, 242, 0.2);
+  --input: #dde5f2;
+  --ring: #dde5f2;
 }
 
 @theme inline {
@@ -166,6 +189,8 @@
   --color-barra-foreground: var(--barra-foreground);
   --color-barra-suave: var(--barra-suave);
   --color-barra-linea: var(--barra-linea);
+  --color-barra-activa: var(--barra-activa);
+  --color-barra-activa-foreground: var(--barra-activa-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -177,6 +202,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-hover: var(--accent-hover);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-suave: var(--destructive-suave);
@@ -195,12 +221,13 @@
   /* Paleta de marca en crudo. Los tokens semánticos de arriba se invierten con
      el tema; estos no. Son para los bloques que son identidad y deben verse
      igual siempre, como el panel de la pantalla de acceso. */
-  --color-negro: var(--negro);
-  --color-tinta: var(--tinta);
+  --color-abismo: var(--abismo);
+  --color-marino: var(--marino);
+  --color-pizarra: var(--pizarra);
+  --color-turquesa: var(--turquesa);
+  --color-aqua: var(--aqua);
+  --color-bruma: var(--bruma);
   --color-papel: var(--papel);
-  --color-agua: var(--agua);
-  --color-menta: var(--menta);
-  --color-sol: var(--sol);
 
   /* Canto vivo: cualquier `rounded-*` heredado se resuelve a cero. */
   --radius-sm: 0rem;
@@ -211,13 +238,15 @@
   --radius-3xl: 0rem;
   --radius-full: 0rem;
 
-  /* Una sola familia para todo. La redondeada anterior (Baloo 2) era la que
-     más infantilizaba la pantalla: los titulares se distinguen ahora por
-     tamaño, peso y espaciado, no por cambiar de letra. `--font-display` se
-     mantiene como token para no tener que tocar cada `font-display`. */
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
-  --font-display: var(--font-sans);
+  /* Dos familias, con un reparto estricto:
+       Inter — todo lo que se lee y se rellena: tablas, formularios, avisos.
+               Es la que mejor aguanta el cuerpo pequeño y las cifras.
+       Rubik — titulares, cifras de panel y rótulos. Tiene más carácter y a
+               tamaño grande da la voz; en cuerpo pequeño cansaría.
+     Ninguna de las dos es redondeada: la jerarquía la marcan el tamaño, el
+     peso y el espaciado, no un cambio de tono de la letra. */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Rubik', var(--font-sans);
 
   /* Diseño plano: las escalas de sombra de Tailwind se anulan para que ningún
      `shadow-*` heredado reintroduzca relieve. */
@@ -243,7 +272,7 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Todo titular va en tinta y con el mismo peso. Las páginas solo eligen el
+  /* Todo titular va en Rubik y con el mismo peso. Las páginas solo eligen el
      tamaño; la familia y el peso ya vienen decididos desde aquí. */
   h1,
   h2,
@@ -264,8 +293,8 @@
   }
 
   ::selection {
-    background-color: var(--sol);
-    color: var(--negro);
+    background-color: var(--aqua);
+    color: var(--abismo);
   }
 }
 
@@ -284,9 +313,10 @@
   /* Etiqueta menuda en versalitas: sirve de contrapeso a las cifras y marca
      la jerarquía sin añadir más peso visual. */
   .rotulo {
+    font-family: var(--font-display);
     font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-weight: 500;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--muted-foreground);
   }

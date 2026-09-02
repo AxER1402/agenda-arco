@@ -1,14 +1,14 @@
 import { cn } from '@/lib/utils';
 
 /**
- * Cabecera de módulo: la franja de agua que abre cada sección.
+ * Cabecera de módulo: la franja de bruma que abre cada sección.
  *
  * Es la pieza que reparte el color en el interior de la aplicación: la franja
- * en agua y el bloque del icono en tinta. Todo lo que viene debajo —tarjetas y
- * tablas— es papel, así que el color queda acotado a la apertura de la página
- * y no compite con los datos.
+ * en bruma y el bloque del icono en tinta oscura. Todo lo que viene debajo
+ * —tarjetas y tablas— es papel, así que el color queda acotado a la apertura
+ * de la página y no compite con los datos.
  *
- * La descripción se recibe como nodo y se pinta aquí: sobre el agua, el gris
+ * La descripción se recibe como nodo y se pinta aquí: sobre la bruma, el gris
  * de `text-muted-foreground` que usaban las páginas se quedaba corto de
  * contraste.
  */
@@ -22,7 +22,7 @@ function EncabezadoModulo({ icono: Icono, titulo, descripcion, acciones, classNa
     >
       <div className="flex min-w-0 items-center gap-4">
         {Icono && (
-          <span className="hidden size-12 shrink-0 items-center justify-center bg-negro text-papel sm:flex">
+          <span className="hidden size-12 shrink-0 items-center justify-center bg-abismo text-papel sm:flex">
             <Icono className="size-6" aria-hidden="true" />
           </span>
         )}
@@ -43,9 +43,9 @@ function EncabezadoModulo({ icono: Icono, titulo, descripcion, acciones, classNa
 }
 
 /**
- * Titular de sección con una marca amarilla estrecha a la izquierda.
+ * Titular de sección con una marca turquesa estrecha a la izquierda.
  *
- * Reaparece en cada bloque de una página larga: es la única gota de sol del
+ * Reaparece en cada bloque de una página larga: es la única gota de color del
  * contenido, y por eso se mantiene fina.
  */
 function TituloSeccion({ children, className, ...props }) {

@@ -30,9 +30,9 @@ const DialogClose = DialogPrimitive.Close;
 function DialogContent({ className, children, ...props }) {
   return (
     <DialogPrimitive.Portal>
-      {/* Velo negro traslúcido: sin sombra en el modal, es lo único que lo
+      {/* Velo oscuro traslúcido: sin sombra en el modal, es lo único que lo
           separa de la página de atrás. */}
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-negro/50" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-abismo/50" />
       <DialogPrimitive.Content
         className={cn(
           'fixed z-50 flex flex-col rounded-none border-0 border-trazo bg-card',

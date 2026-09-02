@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarCheck, ClipboardList, FlaskConical, Loader2, MessageSquare } from 'lucide-react';
+import { CalendarCheck, ClipboardList, Loader2, MessageSquare } from 'lucide-react';
 
+import Logotipo from '@/components/layout/Logotipo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,19 +59,9 @@ function LoginPage() {
           diga: repetirlo en un lector de pantalla solo alarga el camino. */}
       <section
         aria-hidden="true"
-        className="hidden w-1/2 flex-col justify-between border-r-2 border-trazo bg-tinta px-12 py-14 text-papel lg:flex xl:w-[55%]"
+        className="hidden w-1/2 flex-col justify-between border-r-2 border-trazo bg-marino px-12 py-14 text-papel lg:flex xl:w-[55%]"
       >
-        <div className="flex items-center gap-4">
-          <span className="flex size-14 shrink-0 items-center justify-center bg-primary text-primary-foreground">
-            <FlaskConical className="size-7" />
-          </span>
-          <div className="leading-none">
-            <p className="text-xl font-semibold leading-none">El Arco</p>
-            <p className="mt-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-agua">
-              Laboratorio clínico
-            </p>
-          </div>
-        </div>
+        <Logotipo alt="" className="h-28 max-w-96" />
 
         <div className="max-w-lg">
           <p className="text-4xl font-semibold leading-[1.1] xl:text-5xl">
@@ -80,16 +71,16 @@ function LoginPage() {
           <ul className="mt-10 flex flex-col gap-5">
             {CAPACIDADES.map(({ icono: Icono, texto }) => (
               <li key={texto} className="flex items-center gap-4">
-                <span className="flex size-10 shrink-0 items-center justify-center border-2 border-agua/40 text-agua">
+                <span className="flex size-10 shrink-0 items-center justify-center border-2 border-turquesa/40 text-turquesa">
                   <Icono className="size-5" />
                 </span>
-                <span className="text-[0.9375rem] text-agua">{texto}</span>
+                <span className="text-[0.9375rem] text-turquesa">{texto}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="text-xs text-agua/70">
+        <p className="text-xs text-turquesa/70">
           Acceso exclusivo del personal. Las cuentas las crea el administrador.
         </p>
       </section>
@@ -97,12 +88,8 @@ function LoginPage() {
       <div className="flex w-full flex-col justify-center px-4 py-12 sm:px-10 lg:w-1/2 xl:w-[45%]">
         <div className="mx-auto w-full max-w-sm">
           {/* La marca solo mientras el panel de la izquierda no está. */}
-          <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-            <span className="mb-4 flex size-14 items-center justify-center bg-primary text-primary-foreground">
-              <FlaskConical className="size-8" aria-hidden="true" />
-            </span>
-            <p className="text-2xl font-semibold leading-none text-titular">El Arco</p>
-            <p className="rotulo mt-2">Laboratorio clínico</p>
+          <div className="mb-8 flex justify-center lg:hidden">
+            <Logotipo sobreClaro className="h-20 max-w-72" />
           </div>
 
           <h1 className="text-3xl leading-none">Ingresar</h1>

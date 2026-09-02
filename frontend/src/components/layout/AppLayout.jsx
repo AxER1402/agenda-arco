@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   ClipboardList,
+  FileText,
   FlaskConical,
   LayoutDashboard,
   LogOut,
@@ -16,6 +17,7 @@ import {
 import DialogoConfirmacion from '@/components/DialogoConfirmacion';
 import RelojEncabezado from '@/components/layout/RelojEncabezado';
 import { Button } from '@/components/ui/button';
+import Logotipo from '@/components/layout/Logotipo';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
@@ -25,6 +27,7 @@ const ENLACES = [
   { a: '/agenda', texto: 'Agenda', icono: CalendarDays },
   { a: '/pacientes', texto: 'Pacientes', icono: Users },
   { a: '/examenes', texto: 'Exámenes', icono: FlaskConical },
+  { a: '/reportes', texto: 'Reportes', icono: FileText },
   { a: '/usuarios', texto: 'Usuarios', icono: UserCog, soloAdministrador: true },
   { a: '/configuracion', texto: 'Configuración', icono: Settings, soloAdministrador: true },
 ];
@@ -38,9 +41,9 @@ const ENLACES = [
  * dos casos —un solo `<nav>`, un solo juego de enlaces— para que no haya dos
  * navegaciones que mantener sincronizadas.
  *
- * La barra va en tinta —uno de los dos únicos sitios donde queda ese morado,
- * junto al panel de acceso— y el contenido sobre blanco; lo que separa las dos
- * columnas, y la barra superior del trabajo, es el trazo negro de 2 px.
+ * La barra va en azul marino —uno de los dos únicos sitios donde sale ese
+ * azul, junto al panel de acceso— y el contenido sobre blanco; lo que separa
+ * las dos columnas, y la barra superior del trabajo, es el trazo de 2 px.
  */
 function AppLayout() {
   const { usuario, esAdministrador, salir } = useAuth();
@@ -110,7 +113,7 @@ function AppLayout() {
       {/* Velo del cajón. Solo existe por debajo de lg. */}
       {menuAbierto && (
         <div
-          className="fixed inset-0 z-40 bg-negro/60 lg:hidden"
+          className="fixed inset-0 z-40 bg-abismo/60 lg:hidden"
           onClick={() => setMenuAbierto(false)}
           aria-hidden="true"
         />
@@ -128,23 +131,17 @@ function AppLayout() {
           menuAbierto ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex items-center justify-between gap-2 border-barra-linea px-4 py-4">
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center border-2 border-papel bg-primary text-primary-foreground">
-              <FlaskConical className="size-5" aria-hidden="true" />
-            </span>
-            <div className="leading-none">
-              <p className="text-base font-semibold leading-none text-barra-foreground">
-                El Arco
-              </p>
-              <p className="rotulo mt-1 text-barra-suave">Laboratorios</p>
-            </div>
-          </div>
+        {/* El logotipo va centrado en la columna. El botón de cerrar se sale del
+            flujo y se ancla a la derecha: si ocupara sitio, el logotipo
+            quedaría centrado respecto al hueco que le deja y no respecto a la
+            barra, y se vería descuadrado en cuanto el menú se abre en móvil. */}
+        <div className="relative flex items-center justify-center border-barra-linea px-4 py-4">
+          <Logotipo className="h-16 max-w-full" />
 
           <button
             type="button"
             onClick={() => setMenuAbierto(false)}
-            className="flex size-9 items-center justify-center text-barra-suave transition-colors duration-100 hover:bg-barra-linea hover:text-barra-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barra-suave focus-visible:ring-offset-2 focus-visible:ring-offset-barra lg:hidden"
+            className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center text-barra-suave transition-colors duration-100 hover:bg-barra-linea hover:text-barra-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barra-suave focus-visible:ring-offset-2 focus-visible:ring-offset-barra lg:hidden"
           >
             <X className="size-4" aria-hidden="true" />
             <span className="sr-only">Cerrar menú</span>
@@ -163,7 +160,7 @@ function AppLayout() {
                     cn(
                       'flex items-center gap-3 border-l-2 px-4 py-3 text-sm font-semibold transition-colors duration-100',
                       isActive
-                        ? 'border-papel bg-primary text-primary-foreground'
+                        ? 'border-papel bg-barra-activa text-barra-activa-foreground'
                         : 'border-transparent text-barra-suave hover:bg-barra-linea hover:text-barra-foreground',
                     )
                   }
@@ -179,7 +176,7 @@ function AppLayout() {
         <div className="border-t-2 border-barra-linea p-4">
           <div className="mb-3 flex items-center gap-3">
             <span
-              className="flex size-10 shrink-0 items-center justify-center bg-agua text-sm font-semibold text-negro"
+              className="flex size-10 shrink-0 items-center justify-center bg-barra-suave text-sm font-semibold text-abismo"
               aria-hidden="true"
             >
               {iniciales}
@@ -198,7 +195,7 @@ function AppLayout() {
             variant="outline"
             size="sm"
             onClick={() => setConfirmandoSalida(true)}
-            className="w-full border-barra-suave bg-transparent text-barra-foreground hover:bg-papel hover:text-negro"
+            className="w-full border-barra-suave bg-transparent text-barra-foreground hover:bg-papel hover:text-abismo"
           >
             <LogOut aria-hidden="true" />
             Salir
@@ -210,12 +207,7 @@ function AppLayout() {
         {/* Barra superior. La marca y el botón de menú solo hacen falta mientras
             la lateral está plegada; el reloj acompaña a todas las vistas. */}
         <div className="sticky top-0 z-30 flex items-center gap-3 border-b-2 border-trazo bg-card px-3 py-3 sm:px-6">
-          <div className="flex items-center gap-2.5 lg:hidden">
-            <span className="flex size-9 shrink-0 items-center justify-center border-2 border-trazo bg-primary text-primary-foreground">
-              <FlaskConical className="size-4" aria-hidden="true" />
-            </span>
-            <p className="text-base font-semibold leading-none text-titular">El Arco</p>
-          </div>
+          <Logotipo sobreClaro className="h-10 max-w-40 lg:hidden" />
 
           <RelojEncabezado className="ml-auto" />
 

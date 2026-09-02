@@ -33,7 +33,7 @@ import {
  * versalitas, cifra grande, y el detalle de vuelta a cuerpo pequeño. Se lee el
  * número desde lejos y el resto solo si hace falta.
  *
- * Los tres llevan el mismo bloque de agua en el icono, no uno de cada color:
+ * Los tres llevan el mismo bloque de bruma en el icono, no uno de cada color:
  * tres tarjetas de tonos distintos en fila hacían del panel un mosaico. Lo que
  * distingue a cada una es el dato.
  */
@@ -98,18 +98,18 @@ function DashboardPage() {
   return (
     <div className="flex flex-col gap-10">
       {/* El panel es la primera pantalla del turno: el saludo va en un bloque
-          negro macizo para que se note que se ha entrado, con el nombre
-          recortado en amarillo. Sin el tamaño de cartel que tenía antes: la
+          de tinta oscura para que se note que se ha entrado, con el nombre
+          recortado en turquesa. Sin el tamaño de cartel que tenía antes: la
           fecha y el resumen tienen que caber junto a los datos del día. */}
-      <header className="border-2 border-trazo bg-negro px-6 py-6 text-papel sm:px-8">
-        <p className="rotulo mb-2 text-agua">{fechaLarga(resumen?.fecha)}</p>
+      <header className="border-2 border-trazo bg-abismo px-6 py-6 text-papel sm:px-8">
+        <p className="rotulo mb-2 text-turquesa">{fechaLarga(resumen?.fecha)}</p>
         <h1 className="text-2xl leading-tight text-papel sm:text-3xl">
           Hola,{' '}
           <span className="bg-primary px-2 text-primary-foreground [box-decoration-break:clone]">
             {usuario?.nombre_completo}
           </span>
         </h1>
-        <p className="mt-2 max-w-prose text-sm text-agua">
+        <p className="mt-2 max-w-prose text-sm text-turquesa">
           Este es el resumen del día. Todo lo que está agendado, en un vistazo.
         </p>
       </header>

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 /**
- * La tarjeta comparte el #fffffe del fondo: lo único que la delimita es el
+ * La tarjeta comparte el blanco del fondo: lo único que la delimita es el
  * trazo gris de 2 px. Sin sombra y sin esquinas redondeadas.
  */
 function Card({ className, ...props }) {

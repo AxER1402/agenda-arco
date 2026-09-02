@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
  *
  * Rectángulos planos de canto vivo: relleno pastel, trazo del mismo color en
  * tono fuerte y ese mismo tono en el texto. Evita el texto blanco sobre fondo
- * saturado —que en cuerpo 11 se lee mal— y deja el amarillo de marca reservado
+ * saturado —que en cuerpo 11 se lee mal— y deja el turquesa de marca reservado
  * para las acciones.
  */
 const badgeVariants = cva(
