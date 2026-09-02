@@ -8,9 +8,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test": "BABEL_ENV=test jest",
+    "test:watch": "BABEL_ENV=test jest --watch",
+    "test:coverage": "BABEL_ENV=test jest --coverage"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",

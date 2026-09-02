@@ -83,6 +83,10 @@ services:
       - "${WHATSAPP_PORT}:3001"
     volumes:
       - ./whatsapp-service/src:/app/src
+      # Los dobles de la librería de WhatsApp viven fuera de src. Sin montarlos,
+      # `docker compose exec whatsapp-service npm test` usa la copia que quedó
+      # dentro de la imagen y las pruebas fallan contra un doble antiguo.
+      - ./whatsapp-service/__mocks__:/app/__mocks__
       - wa_session:/app/session
       - /app/node_modules
     networks:
@@ -103,6 +107,9 @@ services:
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/index.html:/app/index.html
+      # El logotipo y el favicon. Van en public/ y no en src/, así que sin este
+      # montaje el contenedor serviría los que quedaron dentro de la imagen.
+      - ./frontend/public:/app/public
       - /app/node_modules
     depends_on:
       - backend
