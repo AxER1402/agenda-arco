@@ -47,6 +47,8 @@ Cuatro servicios independientes, cada uno en su propio contenedor:
 | Cupo verificado dentro de la transacción | Entre validar y escribir, otro usuario puede tomar el último espacio. Se recuenta con las filas del día bloqueadas (`FOR UPDATE`). |
 | `node-cron` dentro del backend | Con 25–40 mensajes al día, una cola externa (Redis, RabbitMQ) complicaría el despliegue sin aportar nada. |
 | shadcn/ui + Tailwind | Los componentes son código del propio repositorio (`src/components/ui/`), no una dependencia opaca: se pueden auditar y explicar uno por uno. |
+| Reportes generados en el backend | El PDF (`pdfkit`) y el Word (`docx`) salen iguales desde cualquier equipo, sin depender de lo que tenga instalado quien los pide ni del diálogo de impresión del navegador. |
+| Un documento neutro y dos generadores | `reporte.service` arma el reporte como título, indicadores y tablas, sin saber de PDF ni de Word; `src/reportes/` lo pinta. Las columnas se deciden una vez, no dos veces mal, y las pruebas leen el contenido sin abrir un binario. |
 
 ---
 
@@ -117,7 +119,8 @@ Las crea `database/init/03_usuarios_demo.sql` al inicializar la base.
    3. **Exámenes que trae.** Si alguno no está en el catálogo, se agrega sin
       salir del formulario.
    4. **Fecha y hora.** Viene propuesta la fecha con cupo más cercana al
-      vencimiento; se puede cambiar por cualquier otra válida.
+      vencimiento y la hora de apertura del laboratorio (07:00); las dos se
+      pueden cambiar por cualquier otra válida.
 
    No hay que registrar al paciente ni su orden por adelantado: los tres
    registros nacen de una sola operación, y si algo falla no queda nada a medias.
@@ -137,12 +140,36 @@ Las crea `database/init/03_usuarios_demo.sql` al inicializar la base.
    notificar—, para saber de un vistazo a quién falta avisar. Desde aquí también
    se reagenda una cancelada y se elimina una creada por error.
 6. **Pacientes**: búsqueda por nombre, teléfono o DPI, ficha con historial y
-   edición de datos.
+   edición de datos. El administrador puede además **eliminar** una ficha, que
+   se lleva por delante sus citas y sus órdenes; es para el duplicado o el
+   registro hecho sobre la persona equivocada, no para dar de baja a nadie.
 7. **Exámenes**: catálogo de lo que se puede asignar a una cita. Cualquiera
    puede agregar uno; editarlos y desactivarlos es del administrador.
-8. **Configuración** (administrador): límite diario, horario, vigencia de las
-   órdenes, hora de los recordatorios, redacción del mensaje que se envía y
-   vinculación de WhatsApp.
+8. **Reportes**: se elige un periodo y se descarga en **PDF** —listo para
+   imprimir— o en **Word** —para editarlo antes de entregarlo—. Son dos:
+   el **listado de citas** del periodo (fecha, hora, paciente, teléfono,
+   exámenes y estado, filtrable por estado y apaisado para que quepan los
+   exámenes) y el **resumen de actividad** (cuántas citas hubo y cómo
+   terminaron, asistencia, ocupación frente al límite diario, exámenes más
+   pedidos y cómo fueron los recordatorios).
+9. **Usuarios** (administrador): alta, edición —nombre, acceso, rol y estado—,
+   cambio de contraseña, desactivación y borrado definitivo. Desactivar quita el
+   acceso y conserva el historial; eliminar borra la fila. Un usuario inactivo se
+   vuelve a activar desde el mismo formulario.
+10. **Configuración** (administrador): límite diario, días de atención,
+    horario, vigencia de las órdenes, hora de los recordatorios, redacción del
+    mensaje que se envía y vinculación de WhatsApp.
+
+El logotipo del laboratorio es **`frontend/public/logo.png`**, y de él salen la
+marca de la barra lateral, la de la barra superior y la de la pantalla de
+acceso. Es de trazo cian sobre fondo transparente, así que sobre el azul marino
+de la barra va suelto (6,7:1) y sobre cualquier superficie clara se apoya en una
+placa de marino: sobre blanco se queda en 2,3:1 y no se ve.
+
+El icono de la pestaña es **`frontend/public/favicon.png`**: el mismo logotipo
+recortado a su contenido y encajado en un cuadrado de 256 px, con el fondo
+transparente. Va en un archivo aparte porque `logo.png` es de 3:2 y pesa de más
+para un icono. Al cambiar el logotipo hay que regenerarlo.
 
 ### Vincular WhatsApp
 
@@ -164,6 +191,11 @@ pantalla y también solo para el administrador. Cierra la sesión, borra los dat
 guardados en el volumen y deja el servicio pidiendo un código nuevo en el acto,
 sin reiniciar el contenedor. Mientras no se vincule otra cuenta no salen
 recordatorios: los pacientes de esos días hay que llamarlos.
+
+Cuando la sesión no está vinculada, el mismo botón se llama *Olvidar la sesión
+guardada* y hace lo propio: borrar lo que haya en el volumen y pedir un QR
+nuevo. Aparece siempre que el servicio responda, no solo con la cuenta
+vinculada, que es justo cuando hacía falta y no estaba.
 
 La imagen del QR la genera el propio `whatsapp-service` y viaja como data URI:
 la interfaz solo la pinta, sin necesitar ninguna librería de códigos QR.
@@ -251,11 +283,23 @@ Ninguna acción destructiva usa los cuadros del navegador: todas pasan por
 `window.confirm` se cierra con Enter sin haberlo mirado, y en el menú de la cita
 «Cancelar» y «Eliminar» son vecinas haciendo cosas muy distintas.
 
-El **borrado definitivo de una cita pide la contraseña de quien tiene la sesión
-abierta**. Es lo único del sistema que no se puede deshacer —lo demás se
-reactiva—, y en un mostrador la sesión se queda abierta. La comprobación es del
-servidor (`auth.service.confirmarIdentidad`), no del diálogo: un cuadro del
-navegador se salta con las herramientas de desarrollo.
+El **borrado definitivo de una cita o de un usuario pide la contraseña de quien
+tiene la sesión abierta**. Es lo único del sistema que no se puede deshacer —lo
+demás se reactiva—, y en un mostrador la sesión se queda abierta. La
+comprobación es del servidor (`auth.service.confirmarIdentidad`), no del
+diálogo: un cuadro del navegador se salta con las herramientas de desarrollo.
+
+En usuarios conviven las dos salidas. **Desactivar** quita el acceso y conserva
+quién registró cada cita; **Eliminar** borra la fila y no se puede recuperar
+—las citas y las órdenes siguen ahí, pero se quedan sin autor—. Ni uno ni otro
+se puede aplicar sobre uno mismo, y el sistema nunca se queda sin un
+administrador activo.
+
+En pacientes el borrado va más lejos, porque las claves foráneas de `citas` y
+`ordenes` son RESTRICT: o se baja todo el historial del paciente en la misma
+transacción, o no se puede borrar nada. Por eso el diálogo lo dice sin rodeos y
+la respuesta devuelve cuántas citas y cuántas órdenes se llevó por delante. La
+baja normal sigue siendo lógica.
 
 Cancelar, en cambio, no pide contraseña: conserva la cita y se puede revertir.
 Cerrar sesión también se confirma —el botón está a un palmo de los enlaces de la
@@ -316,6 +360,15 @@ sin margen para reprogramar.
 Configurable (40 por defecto). Las citas canceladas no ocupan cupo. Al llegar al
 límite, la API responde `409` con fechas alternativas.
 
+### Días de atención
+
+Se marcan en Configuración y de fábrica vienen **los siete**. En un día sin
+marcar la agenda responde `422` y propone otras fechas, y el calendario lo
+muestra apagado. El laboratorio abre sábados y algunos domingos, así que la
+opción por defecto es dejarlos abiertos y que sea el laboratorio quien cierre a
+mano el día que no atienda: lo contrario obligaba a tocar la base de datos para
+poder agendar un fin de semana.
+
 ### Estados de cita
 
 ```text
@@ -349,12 +402,14 @@ Todos los endpoints responden JSON. Los errores usan el formato
 | PATCH | `/api/auth/contrasena` | Autenticado |
 | GET/POST | `/api/usuarios` | Administrador |
 | GET | `/api/usuarios/roles` | Administrador |
-| GET/PATCH/DELETE | `/api/usuarios/:id` | Administrador |
+| GET/PATCH/DELETE | `/api/usuarios/:id` (el `DELETE` es baja lógica) | Administrador |
+| DELETE | `/api/usuarios/:id/definitivo` (borrado definitivo; exige `contrasena` en el cuerpo) | Administrador |
 | PATCH | `/api/usuarios/:id/contrasena` | Administrador |
 | GET/POST | `/api/pacientes` | Autenticado |
 | GET/PATCH | `/api/pacientes/:id` | Autenticado |
 | GET | `/api/pacientes/telefono/:telefono` | Autenticado |
-| DELETE | `/api/pacientes/:id` | Administrador |
+| DELETE | `/api/pacientes/:id` (baja lógica) | Administrador |
+| DELETE | `/api/pacientes/:id/definitivo` (borra también sus citas y órdenes; exige `contrasena` en el cuerpo) | Administrador |
 | GET/POST | `/api/examenes` | Autenticado |
 | GET | `/api/examenes/:id` | Autenticado |
 | PATCH/DELETE | `/api/examenes/:id` | Administrador |
@@ -373,6 +428,8 @@ Todos los endpoints responden JSON. Los errores usan el formato
 | GET | `/api/citas/paciente/:pacienteId` | Autenticado |
 | GET | `/api/agenda?vista=dia\|semana\|mes&fecha=` | Autenticado |
 | GET | `/api/agenda/resumen` | Autenticado |
+| GET | `/api/reportes/citas?desde=&hasta=&estado=&formato=pdf\|docx` | Autenticado |
+| GET | `/api/reportes/actividad?desde=&hasta=&formato=pdf\|docx` | Autenticado |
 | GET | `/api/agenda/configuracion` | Autenticado |
 | PATCH | `/api/agenda/configuracion` | Administrador |
 | GET | `/api/recordatorios`, `/api/recordatorios/resumen` | Autenticado |
@@ -466,16 +523,18 @@ respuestas.
 
 ## Pruebas
 
-**480 pruebas automatizadas.** Ninguna toca la base de datos real, una cuenta
+**530 pruebas automatizadas.** Ninguna toca la base de datos real, una cuenta
 real de WhatsApp ni datos reales de pacientes.
 
 ```bash
-cd backend           && npm test    # 330
-cd whatsapp-service  && npm test    #  60
-cd frontend          && npm test    #  90
+cd backend           && npm test    # 370
+cd whatsapp-service  && npm test    #  64
+cd frontend          && npm test    #  96
 
-# Dentro de Docker
+# Dentro de Docker (los tres funcionan igual)
 docker compose exec backend npm test
+docker compose exec frontend npm test
+docker compose exec whatsapp-service npm test
 ```
 
 Cobertura con `npm run test:coverage` en cualquiera de los tres.
@@ -507,6 +566,12 @@ Cobertura con `npm run test:coverage` en cualquiera de los tres.
 | Panel: citas de mañana y de ayer, y a quién hay que llamar | `backend/src/tests/agenda.service.test.js` |
 | Agenda día/semana/mes y sugerencia de fechas | `backend/src/tests/agenda.service.test.js` |
 | Autenticación, roles y protección de endpoints | `backend/src/tests/auth.*.test.js`, `api.routes.test.js` |
+| Usuarios: borrado definitivo con contraseña, ni sobre uno mismo ni sobre el último administrador | `backend/src/tests/usuario.service.test.js` |
+| Contraseña nueva: se escribe dos veces, se puede ver y no se guarda si no coinciden | `frontend/src/tests/ContrasenaDialog.test.jsx` |
+| Pacientes: el borrado definitivo pide la contraseña y arrastra citas y órdenes | `backend/src/tests/paciente.service.test.js` |
+| La recepción propone la hora de apertura sin que haya que teclearla | `frontend/src/tests/RecepcionCitaDialog.test.jsx` |
+| Reportes: qué columnas lleva cada uno, asistencia sobre citas cerradas y ocupación sobre días de atención | `backend/src/tests/reporte.service.test.js` |
+| Los dos generadores producen un PDF y un `.docx` válidos, con tabla vacía y con listados que pasan de página | `backend/src/tests/reportes.render.test.js` |
 | Validación de teléfono y DPI en el formulario | `frontend/src/tests/PacienteFormDialog.test.jsx` |
 | Recepción: identificar por teléfono, vigencia, fecha propuesta y rechazos | `frontend/src/tests/RecepcionCitaDialog.test.jsx` |
 | Acciones de la cita: menú, eliminar, reagendar, reactivar y recordatorio | `frontend/src/tests/AccionesCita.test.jsx` |
