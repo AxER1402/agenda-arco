@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CalendarPlus, Eye, Pencil, Search, UserPlus, Users } from 'lucide-react';
+import { CalendarPlus, Eye, Pencil, Search, Trash2, UserPlus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import RecepcionCitaDialog from '@/components/citas/RecepcionCitaDialog';
+import DialogoConfirmacion from '@/components/DialogoConfirmacion';
 import EncabezadoModulo from '@/components/layout/EncabezadoModulo';
 import PacienteDetalleDialog from '@/components/pacientes/PacienteDetalleDialog';
 import PacienteFormDialog from '@/components/pacientes/PacienteFormDialog';
@@ -18,10 +19,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useTerminoRetrasado } from '@/hooks/useTerminoRetrasado';
-import { buscarPacientes } from '@/services/paciente.service';
+import { buscarPacientes, eliminarPaciente } from '@/services/paciente.service';
 import { dpi as formatoDpi, telefono as formatoTelefono } from '@/lib/formato';
+import { useAuth } from '@/context/AuthContext';
 
 function PacientesPage() {
+  const { esAdministrador } = useAuth();
+
   const [termino, setTermino] = useState('');
   const terminoRetrasado = useTerminoRetrasado(termino);
 
@@ -55,6 +59,21 @@ function PacientesPage() {
 
   const abrir = (tipo, paciente = null) => setDialogo({ tipo, paciente });
   const cerrar = () => setDialogo({ tipo: null, paciente: null });
+
+  /**
+   * El error no se atrapa: `DialogoConfirmacion` lo muestra dentro y deja el
+   * diálogo abierto, que es lo que hace falta si la contraseña falla.
+   */
+  async function eliminar({ contrasena }) {
+    const { citas, ordenes } = await eliminarPaciente(dialogo.paciente.id, contrasena);
+
+    toast.success(
+      citas + ordenes === 0
+        ? 'Paciente eliminado.'
+        : `Paciente eliminado, junto con ${citas} cita(s) y ${ordenes} orden(es).`,
+    );
+    cargar();
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -155,6 +174,18 @@ function PacientesPage() {
                       <Pencil aria-hidden="true" />
                       <span className="sr-only">Editar a {paciente.nombre_completo}</span>
                     </Button>
+                    {esAdministrador && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        title="Eliminar"
+                        onClick={() => abrir('eliminar', paciente)}
+                      >
+                        <Trash2 aria-hidden="true" />
+                        <span className="sr-only">Eliminar a {paciente.nombre_completo}</span>
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -201,6 +232,17 @@ function PacientesPage() {
         paciente={dialogo.paciente}
         onCerrar={cerrar}
         onNuevaCita={(paciente) => abrir('cita', paciente)}
+      />
+
+      <DialogoConfirmacion
+        abierto={dialogo.tipo === 'eliminar'}
+        onCerrar={cerrar}
+        onConfirmar={eliminar}
+        titulo={`¿Eliminar a ${dialogo.paciente?.nombre_completo}?`}
+        descripcion="Desaparece la ficha y, con ella, todas sus citas, sus órdenes y los recordatorios de esas citas. No se puede recuperar: úselo solo para una ficha que nunca debió existir, como un duplicado o un registro hecho sobre la persona equivocada."
+        textoConfirmar="Eliminar definitivamente"
+        destructivo
+        pedirContrasena
       />
 
       {/* La orden del IGSS ya no se registra por separado: nace con la cita. */}

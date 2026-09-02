@@ -9,6 +9,7 @@ const {
   reglasBuscar,
   reglasObtener,
   reglasPorTelefono,
+  reglasEliminar,
 } = require('../validators/paciente.validator');
 
 const router = Router();
@@ -23,6 +24,13 @@ router.post('/', reglasCrear, pacienteController.crear);
 router.get('/:id', reglasObtener, pacienteController.obtener);
 router.patch('/:id', reglasActualizar, pacienteController.actualizar);
 router.delete('/:id', autorizar(ROLES.ADMINISTRADOR), reglasObtener, pacienteController.desactivar);
+// Borrado definitivo, con su historial. Pide la contraseña de la sesión.
+router.delete(
+  '/:id/definitivo',
+  autorizar(ROLES.ADMINISTRADOR),
+  reglasEliminar,
+  pacienteController.eliminar,
+);
 router.post(
   '/:id/reactivar',
   autorizar(ROLES.ADMINISTRADOR),

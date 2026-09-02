@@ -70,6 +70,18 @@ const reglasBuscar = [
 
 const reglasObtener = [reglaId, validar];
 
+/**
+ * Borrado definitivo: además del identificador, la contraseña de quien lo pide.
+ * Que coincida lo comprueba `auth.service`; aquí solo se exige que venga.
+ */
+const reglasEliminar = [
+  reglaId,
+  body('contrasena')
+    .custom((valor) => typeof valor === 'string' && valor.length > 0)
+    .withMessage('Escriba su contraseña para confirmar el borrado.'),
+  validar,
+];
+
 const reglasPorTelefono = [reglaTelefono(param('telefono')), validar];
 
 module.exports = {
@@ -78,4 +90,5 @@ module.exports = {
   reglasBuscar,
   reglasObtener,
   reglasPorTelefono,
+  reglasEliminar,
 };

@@ -2,6 +2,7 @@
  * Reglas de negocio de pacientes.
  */
 const pacienteModel = require('../models/paciente.model');
+const authService = require('./auth.service');
 const AppError = require('../utils/AppError');
 const { normalizarTelefono, esTelefonoValido } = require('../utils/telefono');
 const { normalizarDpi, esDpiValido } = require('../utils/dpi');
@@ -174,6 +175,27 @@ async function desactivar(id) {
   return pacienteModel.actualizar(id, { activo: false });
 }
 
+/**
+ * Borrado definitivo del paciente y de su historial.
+ *
+ * La baja normal es lógica (`desactivar`) y así debe seguir siendo. Esto existe
+ * para el paciente que nunca debió registrarse —un teléfono mal tecleado que
+ * creó una ficha duplicada, una recepción hecha sobre la persona equivocada—,
+ * donde dejar la ficha inactiva solo ensucia las búsquedas.
+ *
+ * Se lleva por delante sus citas y sus órdenes, así que pide la contraseña de
+ * quien lo solicita: no se puede deshacer.
+ */
+async function eliminar(id, { idUsuarioSolicitante, contrasena } = {}) {
+  const paciente = await obtener(id);
+
+  await authService.confirmarIdentidad(idUsuarioSolicitante, contrasena);
+
+  const borrado = await pacienteModel.eliminarConHistorial(paciente.id);
+
+  return { id: paciente.id, eliminado: true, ...borrado };
+}
+
 async function reactivar(id) {
   await obtener(id);
   return pacienteModel.actualizar(id, { activo: true });
@@ -187,6 +209,7 @@ module.exports = {
   actualizar,
   desactivar,
   reactivar,
+  eliminar,
   prepararTelefono,
   prepararDpi,
   prepararTieneWhatsapp,

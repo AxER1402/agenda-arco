@@ -1,6 +1,8 @@
 jest.mock('../models/paciente.model');
+jest.mock('../services/auth.service');
 
 const pacienteModel = require('../models/paciente.model');
+const authService = require('../services/auth.service');
 const pacienteService = require('../services/paciente.service');
 
 beforeEach(() => {
@@ -144,5 +146,44 @@ describe('baja lógica', () => {
     await pacienteService.desactivar(1);
 
     expect(pacienteModel.actualizar).toHaveBeenCalledWith(1, { activo: false });
+  });
+});
+
+describe('borrado definitivo', () => {
+  beforeEach(() => {
+    authService.confirmarIdentidad.mockResolvedValue(true);
+    pacienteModel.eliminarConHistorial.mockResolvedValue({ citas: 2, ordenes: 1 });
+  });
+
+  it('exige la contraseña de quien lo pide antes de tocar nada', async () => {
+    authService.confirmarIdentidad.mockRejectedValue(
+      Object.assign(new Error('La contraseña no es correcta.'), { statusCode: 401 }),
+    );
+
+    await expect(
+      pacienteService.eliminar(1, { idUsuarioSolicitante: 9, contrasena: 'mala' }),
+    ).rejects.toMatchObject({ statusCode: 401 });
+
+    expect(pacienteModel.eliminarConHistorial).not.toHaveBeenCalled();
+  });
+
+  it('borra al paciente con su historial y dice cuánto se llevó por delante', async () => {
+    const resultado = await pacienteService.eliminar(1, {
+      idUsuarioSolicitante: 9,
+      contrasena: 'buena',
+    });
+
+    expect(pacienteModel.eliminarConHistorial).toHaveBeenCalledWith(1);
+    expect(resultado).toEqual({ id: 1, eliminado: true, citas: 2, ordenes: 1 });
+  });
+
+  it('devuelve 404 si el paciente no existe', async () => {
+    pacienteModel.buscarPorId.mockResolvedValue(null);
+
+    await expect(
+      pacienteService.eliminar(99, { idUsuarioSolicitante: 9, contrasena: 'buena' }),
+    ).rejects.toMatchObject({ statusCode: 404 });
+
+    expect(pacienteModel.eliminarConHistorial).not.toHaveBeenCalled();
   });
 });
