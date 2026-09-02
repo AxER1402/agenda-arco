@@ -372,8 +372,14 @@ async function apagar() {
  * @returns {{desvinculada: boolean, estabaVinculada: boolean}}
  */
 function desvincular() {
+  // Sin cliente en marcha —el arranque falló, o hay una reconexión esperando—
+  // sigue habiendo credenciales en disco que hay que quitar de en medio: si no,
+  // el siguiente arranque volvería a restaurar la misma sesión.
   if (!client) {
-    return { desvinculada: false, estabaVinculada: false };
+    borrarSesionGuardada();
+    initialize();
+
+    return { desvinculada: true, estabaVinculada: false };
   }
 
   const instancia = client;
