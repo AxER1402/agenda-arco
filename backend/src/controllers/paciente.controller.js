@@ -64,6 +64,19 @@ async function desactivar(req, res, next) {
   }
 }
 
+/** DELETE /api/pacientes/:id/definitivo — se lleva también su historial. */
+async function eliminar(req, res, next) {
+  try {
+    const resultado = await pacienteService.eliminar(req.params.id, {
+      idUsuarioSolicitante: req.usuario.id,
+      contrasena: req.body.contrasena,
+    });
+    res.status(200).json(resultado);
+  } catch (error) {
+    next(error);
+  }
+}
+
 /** POST /api/pacientes/:id/reactivar */
 async function reactivar(req, res, next) {
   try {
@@ -73,4 +86,13 @@ async function reactivar(req, res, next) {
   }
 }
 
-module.exports = { buscar, obtener, porTelefono, crear, actualizar, desactivar, reactivar };
+module.exports = {
+  buscar,
+  obtener,
+  porTelefono,
+  crear,
+  actualizar,
+  desactivar,
+  eliminar,
+  reactivar,
+};

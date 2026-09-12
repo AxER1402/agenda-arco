@@ -23,7 +23,15 @@ function createApp() {
   }
 
   app.use(helmet());
-  app.use(cors({ origin: env.corsOrigin, credentials: true }));
+  // `Content-Disposition` se expone a propósito: es donde viaja el nombre del
+  // archivo de los reportes, y sin exponerlo el navegador no deja leerlo.
+  app.use(
+    cors({
+      origin: env.corsOrigin,
+      credentials: true,
+      exposedHeaders: ['Content-Disposition'],
+    }),
+  );
   // La imagen del recordatorio viaja en base64 y no cabe en los 100 kB que se
   // permiten en el resto de la API. Se amplía solo en esa ruta: el primer
   // parser que actúa es el que manda, y el general la deja pasar ya leída.

@@ -19,6 +19,21 @@ import {
   obtenerQrWhatsapp,
   prepararRecordatorios,
 } from '@/services/recordatorio.service';
+import { cn } from '@/lib/utils';
+
+/**
+ * Días de atención, en el orden de la semana. El número es el de la norma
+ * ISO-8601, el mismo con el que los guarda el backend: 1 es lunes y 7, domingo.
+ */
+const DIAS_SEMANA = [
+  { numero: 1, nombre: 'Lunes' },
+  { numero: 2, nombre: 'Martes' },
+  { numero: 3, nombre: 'Miércoles' },
+  { numero: 4, nombre: 'Jueves' },
+  { numero: 5, nombre: 'Viernes' },
+  { numero: 6, nombre: 'Sábado' },
+  { numero: 7, nombre: 'Domingo' },
+];
 
 /**
  * Configuración del laboratorio y vinculación de WhatsApp.
@@ -64,6 +79,23 @@ function ConfiguracionPage() {
       setConfiguracion((previo) => ({ ...previo, [clave]: evento.target.value }));
   }
 
+  /**
+   * Marca o desmarca un día de atención. En los días desmarcados la agenda no
+   * deja crear citas y el calendario los muestra apagados.
+   */
+  function alternarDia(numero) {
+    setConfiguracion((previo) => {
+      const actuales = previo.dias_laborables ?? [];
+
+      return {
+        ...previo,
+        dias_laborables: actuales.includes(numero)
+          ? actuales.filter((dia) => dia !== numero)
+          : [...actuales, numero].sort((uno, otro) => uno - otro),
+      };
+    });
+  }
+
   async function guardar(evento) {
     evento.preventDefault();
     setGuardando(true);
@@ -76,6 +108,7 @@ function ConfiguracionPage() {
         hora_cierre: configuracion.hora_cierre,
         intervalo_citas_minutos: Number(configuracion.intervalo_citas_minutos),
         hora_recordatorios: configuracion.hora_recordatorios,
+        dias_laborables: configuracion.dias_laborables,
       });
 
       setConfiguracion(actualizada);
@@ -157,8 +190,9 @@ function ConfiguracionPage() {
         <CardHeader>
           <CardTitle className="text-xl">Agenda</CardTitle>
           <CardDescription>
-            El límite diario controla cuántos pacientes se pueden agendar por día. La hora de los
-            recordatorios se aplica en cuanto se guarda, sin reiniciar nada.
+            El límite diario controla cuántos pacientes caben en un día; los días de atención, en
+            cuáles se puede agendar. La hora de los recordatorios se aplica en cuanto se guarda,
+            sin reiniciar nada.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -244,8 +278,49 @@ function ConfiguracionPage() {
                 )}
               </CampoFormulario>
 
+              <fieldset className="flex flex-col gap-2 sm:col-span-2 lg:col-span-3">
+                <legend className="mb-2 text-sm font-semibold text-titular">
+                  Días de atención
+                </legend>
+
+                <div className="flex flex-wrap gap-2">
+                  {DIAS_SEMANA.map((dia) => {
+                    const atiende = (configuracion.dias_laborables ?? []).includes(dia.numero);
+
+                    return (
+                      <label
+                        key={dia.numero}
+                        className={cn(
+                          'flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                          'transition-colors',
+                          atiende
+                            ? 'border-transparent bg-accent font-semibold text-accent-foreground'
+                            : 'bg-secondary text-muted-foreground hover:border-ring hover:text-titular',
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-titular"
+                          checked={atiende}
+                          onChange={() => alternarDia(dia.numero)}
+                        />
+                        {dia.nombre}
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  En los días sin marcar la agenda no admite citas y el calendario los muestra
+                  apagados. Debe quedar marcado al menos uno.
+                </p>
+              </fieldset>
+
               <div className="flex items-end">
-                <Button type="submit" disabled={guardando}>
+                <Button
+                  type="submit"
+                  disabled={guardando || (configuracion.dias_laborables ?? []).length === 0}
+                >
                   {guardando ? 'Guardando...' : 'Guardar cambios'}
                 </Button>
               </div>
@@ -294,10 +369,17 @@ function ConfiguracionPage() {
               Preparar y enviar recordatorios de mañana
             </Button>
 
-            {whatsapp?.listo && (
+            {/*
+              También sin la sesión vinculada: si el servicio arrancó con una
+              sesión que ya no responde —lo que pasa cuando el contenedor se
+              detiene de golpe— nunca llega a *Vinculado*, y era justo entonces
+              cuando el botón desaparecía y no quedaba forma de arreglarlo desde
+              la pantalla.
+            */}
+            {whatsapp?.disponible && (
               <Button size="sm" variant="outline" onClick={() => setConfirmandoDesvincular(true)}>
                 <Unlink aria-hidden="true" />
-                Desvincular WhatsApp
+                {whatsapp.listo ? 'Desvincular WhatsApp' : 'Olvidar la sesión guardada'}
               </Button>
             )}
           </div>
@@ -317,7 +399,7 @@ function ConfiguracionPage() {
                     <img
                       src={qr.imagen}
                       alt="Código QR para vincular la cuenta de WhatsApp del laboratorio"
-                      className="size-64 border-2 border-trazo bg-white p-2"
+                      className="size-64 rounded-lg border bg-white p-2"
                       width={320}
                       height={320}
                     />
@@ -349,9 +431,15 @@ function ConfiguracionPage() {
         abierto={confirmandoDesvincular}
         onCerrar={() => setConfirmandoDesvincular(false)}
         onConfirmar={desvincular}
-        titulo="¿Desvincular la cuenta de WhatsApp?"
-        descripcion="Mientras no se vincule otra cuenta, los recordatorios dejan de salir y habrá que llamar a los pacientes. Para volver a activarlos basta con escanear el código QR que aparecerá aquí mismo."
-        textoConfirmar="Desvincular"
+        titulo={
+          whatsapp?.listo ? '¿Desvincular la cuenta de WhatsApp?' : '¿Olvidar la sesión guardada?'
+        }
+        descripcion={
+          whatsapp?.listo
+            ? 'Mientras no se vincule otra cuenta, los recordatorios dejan de salir y habrá que llamar a los pacientes. Para volver a activarlos basta con escanear el código QR que aparecerá aquí mismo.'
+            : 'Se borra la sesión que el servicio tiene guardada y se pide un código QR nuevo. Úselo cuando el servicio no llegue a vincularse por sí solo. Compruebe también que en el teléfono, en Dispositivos vinculados, no quede una sesión antigua.'
+        }
+        textoConfirmar={whatsapp?.listo ? 'Desvincular' : 'Olvidar y pedir un QR'}
         destructivo
       />
     </div>

@@ -25,6 +25,12 @@ export async function desactivarUsuario(id) {
   return data;
 }
 
+/** Borrado definitivo. Pide la contraseña de quien tiene la sesión abierta. */
+export async function eliminarUsuario(id, contrasena) {
+  const { data } = await api.delete(`/usuarios/${id}/definitivo`, { data: { contrasena } });
+  return data;
+}
+
 export async function restablecerContrasena(id, contrasenaNueva) {
   const { data } = await api.patch(`/usuarios/${id}/contrasena`, { contrasenaNueva });
   return data;

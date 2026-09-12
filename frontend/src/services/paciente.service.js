@@ -36,6 +36,15 @@ export async function desactivarPaciente(id) {
   return data;
 }
 
+/**
+ * Borrado definitivo. Se lleva por delante las citas y las órdenes del
+ * paciente, así que pide la contraseña de quien tiene la sesión abierta.
+ */
+export async function eliminarPaciente(id, contrasena) {
+  const { data } = await api.delete(`/pacientes/${id}/definitivo`, { data: { contrasena } });
+  return data;
+}
+
 export async function historialDePaciente(id) {
   const { data } = await api.get(`/citas/paciente/${id}`);
   return data;

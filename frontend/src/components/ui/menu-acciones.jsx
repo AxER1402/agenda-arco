@@ -102,7 +102,7 @@ function MenuAcciones({ etiqueta = 'Más acciones', disabled = false, children }
             role="menu"
             aria-label={etiqueta}
             className={cn(
-              'fixed z-50 flex min-w-52 flex-col border-2 border-trazo bg-card py-1',
+              'superficie-flotante fixed z-50 flex min-w-52 flex-col rounded-md border p-1 text-popover-foreground shadow-md',
               posicion ? 'visible' : 'invisible',
             )}
             style={{ top: posicion?.top ?? 0, right: posicion?.right ?? 0 }}
@@ -125,10 +125,10 @@ function OpcionMenu({ icono: Icono, variante, className, children, ...props }) {
       type="button"
       role="menuitem"
       className={cn(
-        'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm font-semibold',
-        'transition-colors duration-100 hover:bg-secondary focus-visible:outline-none focus-visible:bg-secondary',
-        'disabled:pointer-events-none disabled:opacity-45',
-        variante === 'destructiva' ? 'text-destructive hover:bg-destructive-suave' : 'text-titular',
+        'flex w-full select-none items-center gap-2.5 rounded-sm px-2 py-2 text-left text-sm outline-none',
+        'transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent',
+        'disabled:pointer-events-none disabled:opacity-50',
+        variante === 'destructiva' ? 'text-destructive hover:bg-destructive-suave' : 'text-foreground',
         className,
       )}
       {...props}
@@ -141,7 +141,7 @@ function OpcionMenu({ icono: Icono, variante, className, children, ...props }) {
 
 /** Separador entre grupos de opciones. */
 function SeparadorMenu() {
-  return <div className="my-1 border-t border-linea" role="separator" />;
+  return <div className="-mx-1 my-1 h-px bg-border" role="separator" />;
 }
 
 export { MenuAcciones, OpcionMenu, SeparadorMenu };

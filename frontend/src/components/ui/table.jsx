@@ -1,31 +1,23 @@
 import { cn } from '@/lib/utils';
 
 /**
- * La tabla siempre va dentro de un contenedor con scroll horizontal propio.
+ * Tabla de shadcn.
  *
- * Trazo de 2 px por fuera; por dentro, las filas se dividen con la línea
- * diluida. Un trazo pleno en cada fila convertiría una tabla de treinta citas
- * en una reja.
+ * El contenedor lleva el borde, el canto y el scroll horizontal; la tabla va
+ * dentro. El radio se recorta solo, porque el `overflow` del contenedor ya
+ * recorta las esquinas de la primera y la última fila.
  */
 function Table({ className, ...props }) {
   return (
-    <div className="w-full overflow-x-auto rounded-none border-2 border-border bg-card">
+    <div className="w-full overflow-x-auto rounded-xl border bg-card">
       <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   );
 }
 
-/** Cabecera en agua: es lo que separa la tabla del papel sin gastar trazo. */
+/** Cabecera en el gris suave del tema, como la de la librería. */
 function TableHeader({ className, ...props }) {
-  return (
-    <thead
-      className={cn(
-        'bg-accent text-accent-foreground [&_tr]:border-b-2 [&_tr]:border-trazo',
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <thead className={cn('[&_tr]:border-b [&_tr]:bg-muted/60', className)} {...props} />;
 }
 
 function TableBody({ className, ...props }) {
@@ -34,20 +26,15 @@ function TableBody({ className, ...props }) {
 
 function TableRow({ className, ...props }) {
   return (
-    <tr
-      className={cn('border-b border-linea transition-colors hover:bg-secondary/70', className)}
-      {...props}
-    />
+    <tr className={cn('border-b border-linea transition-colors hover:bg-muted/50', className)} {...props} />
   );
 }
 
-/** Cabecera en versalitas menudas: contrasta con el cuerpo y no le roba peso. */
 function TableHead({ className, ...props }) {
   return (
     <th
       className={cn(
-        'h-11 whitespace-nowrap px-4 text-left align-middle',
-        'text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-titular',
+        'h-11 whitespace-nowrap px-4 text-left align-middle text-sm font-normal text-muted-foreground',
         className,
       )}
       {...props}

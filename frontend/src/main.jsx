@@ -12,15 +12,15 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <App />
-        {/* Los avisos heredan el canto vivo y la tipografía del sistema; los
-            colores los sigue poniendo sonner con `richColors`. */}
+        {/* Los avisos heredan la tipografía del sistema; el radio y el material
+            se los pone index.css, porque la hoja de sonner gana a las clases de
+            utilidad. Los colores los sigue poniendo sonner con `richColors`. */}
         <Toaster
           position="top-right"
           richColors
           closeButton
           toastOptions={{
             classNames: {
-              toast: 'rounded-none border shadow-none',
               title: 'text-sm font-semibold',
               description: 'font-sans',
             },

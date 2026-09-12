@@ -164,10 +164,10 @@ function AgendaPage() {
                     setFecha(dia.fecha);
                   }}
                   className={cn(
-                    'flex aspect-square flex-col items-center justify-center gap-0.5 border-2 p-1',
-                    'transition-colors duration-100',
+                    'flex aspect-square flex-col items-center justify-center gap-0.5 rounded-md border p-1',
+                    'transition-colors',
                     !dia.laborable && 'border-linea bg-secondary text-muted-foreground',
-                    dia.laborable && 'border-trazo bg-card',
+                    dia.laborable && 'bg-card',
                     dia.laborable &&
                       dia.disponibles === 0 &&
                       'border-destructive bg-destructive-suave text-destructive',

@@ -175,6 +175,11 @@ const configuracionActualizar = [
     .withMessage('El intervalo debe estar entre 5 y 120 minutos.'),
   body('hora_recordatorios').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/)
     .withMessage('La hora de los recordatorios debe tener el formato HH:MM.'),
+  // Llegan como lista de números ISO: 1 es lunes y 7, domingo.
+  body('dias_laborables').optional().isArray({ min: 1 })
+    .withMessage('Debe marcar al menos un día de atención.'),
+  body('dias_laborables.*').optional().isInt({ min: 1, max: 7 })
+    .withMessage('Los días de atención deben ser números del 1 (lunes) al 7 (domingo).'),
   validar,
 ];
 

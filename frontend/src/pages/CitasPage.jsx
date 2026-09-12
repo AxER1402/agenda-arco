@@ -86,7 +86,7 @@ function CitasPage() {
 
       {/* Los filtros van en su propio panel: quedan agrupados y separados de la
           tabla de resultados. */}
-      <div className="flex flex-wrap items-end gap-4 border-2 border-trazo bg-card p-4">
+      <div className="flex flex-wrap items-end gap-4 rounded-xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-2">
           <Label htmlFor="periodo-fecha">Fecha de referencia</Label>
           <Input

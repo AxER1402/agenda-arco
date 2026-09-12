@@ -1,158 +1,241 @@
 @import 'tailwindcss';
 
 /* ---------------------------------------------------------------------------
-   Sistema de diseño (shadcn/ui sobre Tailwind v4).
+   Sistema de diseño — shadcn/ui.
 
    Los componentes de src/components/ui/ NO tienen colores fijos: usan estos
-   tokens. Cambiar la identidad visual del sistema completo se hace aquí.
+   tokens, con los mismos nombres y la misma escala que la librería. Cambiar la
+   identidad visual del sistema completo se hace aquí.
 
-   Identidad: neo-brutalismo plano. Trazo negro sólido de 2 px, rellenos de
-   color pleno y canto vivo. Sin sombras, sin degradados y sin relieve: lo que
-   ordena la pantalla es el contorno negro y el contraste entre bloques.
+   Identidad: superficies planas, borde de un pixel, sombra mínima y **canto
+   vivo**. Lo que ordena la pantalla es el borde y el espacio, no el color.
 
-   El reparto de color:
+   El reparto de color, que es lo que distingue a shadcn de un tema cualquiera:
 
-     blanco   — el fondo: lienzo, tarjetas, tablas y diálogos.
-     negro    — todo el trazo, los titulares y los bloques macizos.
-     agua     — cabeceras de módulo y de tabla, insignias neutras. Es el color
-                que se ve repartido por la interfaz.
-     sol      — la acción principal y la sección activa. Nada más.
+     blanco    — la superficie de trabajo: tarjetas, tablas y diálogos. Ya no
+                 es el fondo de todo; el lienzo y el armazón son grises.
+     pizarra   — el que más se ve. Es la barra lateral en macizo, el texto
+                 corrido, la acción principal y el tinte de todos los grises del
+                 tema: el lienzo, la franja superior y los bordes salen de
+                 mezclarlo con blanco. Es lo que le da a la pantalla el punto
+                 azulado en vez de dejarla en blanco y negro.
+     grafito   — los titulares. Es el tono más hondo y solo hace de tinta, así
+                 que un titular pesa más que el texto sin cambiar de tamaño.
 
-   El morado tinta queda reservado a dos sitios y no debe salir de ahí: la
-   barra lateral y el panel de la pantalla de acceso.
+     salvia y jade — el acento, y **solo** el acento. Aparecen en tres sitios
+                 contados: la sección abierta de la barra, el aro de foco y los
+                 enlaces. Nada más lleva color de marca; si empieza a aparecer
+                 en más sitios, el tema deja de parecerse a shadcn.
+
+   Los colores de estado (rojo, verde, ámbar) son funcionales y no cuentan como
+   acento: solo salen cuando hay algo que avisar.
 --------------------------------------------------------------------------- */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   /* ---- Paleta de marca --------------------------------------------------
-     Todo lo demás se deriva de aquí.                                        */
-  --negro: #000000; /* trazo, titulares y bloques macizos */
-  --tinta: #272343; /* solo barra lateral y panel de acceso */
-  --sol: #ffd803; /* acción principal y resaltado */
-  --papel: #fffffe; /* fondo y superficies */
-  --menta: #e3f6f5; /* secundario */
-  --agua: #bae8e8; /* terciario */
+     Los cinco colores del sistema. Todo lo demás se deriva de aquí.         */
+  --nieve: #ffffff; /* el fondo de todo */
+  --grafito: #232226; /* texto y acción principal */
+  --pizarra: #253342; /* texto secundario y raíz de los grises */
+  --salvia: #5e9188; /* acento */
+  --jade: #3e5954; /* acento, su versión legible sobre blanco */
 
-  /* Canto vivo en todo el sistema. */
+  /* Neutros derivados del pizarra. Son los grises del tema: el relleno suave,
+     el borde y el texto de apoyo. Salen de mezclar pizarra con blanco, que es
+     lo que les da el punto frío.
+
+     Van deliberadamente hondos y con bastante pizarra dentro. Con la escala de
+     grises de shadcn —que arranca casi en blanco y es neutra— la pantalla se
+     iba a blanco y no tenía color ninguno. Aquí cada escalón lleva su parte de
+     azul, así que los grises se leen como un tono y no como ausencia de él.  */
+  --neutro-50: #e7edf1;
+  --neutro-100: #dae2e9;
+  --neutro-200: #c4d0da;
+  --neutro-300: #a7b6c3;
+  --neutro-500: #4a5765;
+
+  /* Acento en su versión translúcida, para el relleno de la sección abierta. */
+  --acento-suave: rgba(94, 145, 136, 0.12);
+
+  /* Canto vivo en todo el sistema. La escala de shadcn se mantiene —los
+     componentes siguen pidiendo `rounded-md`, `rounded-xl`…— pero todos los
+     escalones se resuelven a cero, así que nada hay que tocar en los
+     componentes y volver atrás es cambiar este único valor.                  */
   --radius: 0rem;
 
-  /* ---- Tokens semánticos ----------------------------------------------- */
-  --background: var(--papel);
-  --foreground: #1a1a1a;
-  --titular: var(--negro);
+  /* ---- Tokens semánticos ------------------------------------------------ */
+  --background: var(--nieve);
+  /* El texto corrido va en pizarra, no en el casi negro: sobre blanco da
+     12,9:1 —de sobra— y tiñe de azul toda la lectura, que es de donde sale casi
+     todo el color de la interfaz.                                            */
+  --foreground: var(--pizarra);
+  /* Los titulares sí van en el tono más hondo. Es lo único que los separa del
+     texto además del tamaño.                                                 */
+  --titular: var(--grafito);
 
-  --card: var(--papel);
-  --card-foreground: #1a1a1a;
+  --card: var(--nieve);
+  --card-foreground: var(--pizarra);
 
-  /* El lienzo sobre el que van las tarjetas. Es blanco: el trabajo se lee
-     mejor sobre papel y las líneas ya ordenan la página. Va aparte de
-     `--background` para poder teñirlo en oscuro sin tocar el resto.        */
-  --lienzo: var(--papel);
-  --barra: var(--tinta);
-  --barra-foreground: var(--papel);
-  --barra-suave: var(--agua);
-  --barra-linea: rgba(255, 255, 254, 0.14);
+  --popover: var(--nieve);
+  --popover-foreground: var(--pizarra);
 
-  --popover: var(--papel);
-  --popover-foreground: #1a1a1a;
+  /* El lienzo de la aplicación. Un gris que se ve, para que las tarjetas
+     blancas se recorten contra él de verdad.                                */
+  --lienzo: var(--neutro-50);
 
-  --primary: var(--sol);
-  --primary-foreground: var(--negro);
-  /* Amarillo un punto más hondo para la pulsación: el bloque responde sin
-     invertirse entero.                                                     */
-  --primary-hover: #f0ca00;
+  /* La acción principal es pizarra: sigue siendo un tono hondo del tema y no
+     el color de marca —que es lo que pide shadcn—, pero con color dentro. Con
+     blanco encima da 12,9:1.                                                 */
+  --primary: var(--pizarra);
+  --primary-foreground: var(--nieve);
+  --primary-hover: #32445a;
 
-  /* Gris muy claro para lo que se rellena por dentro: campos de formulario y
-     estados de hover. Es el fondo de trabajo, y por eso no lleva color.    */
-  --secondary: #f4f4f5;
-  --secondary-foreground: var(--negro);
+  --secondary: var(--neutro-100);
+  --secondary-foreground: var(--pizarra);
 
-  --muted: #f4f4f5;
-  --muted-foreground: #5c5c66;
+  --muted: var(--neutro-100);
+  --muted-foreground: var(--neutro-500);
 
-  /* El agua de la marca: cabeceras de módulo y de tabla, insignias neutras y
-     el texto secundario de la barra lateral. Es el color que reparte la
-     interfaz, siempre sobre bloques acotados y nunca como fondo de página. */
-  --accent: var(--agua);
-  --accent-foreground: var(--negro);
+  /* `accent` en shadcn no es el color de marca: es el gris del hover. El color
+     de marca de esta aplicación vive en `--marca`, más abajo.               */
+  --accent: var(--neutro-100);
+  --accent-foreground: var(--pizarra);
+  --accent-hover: var(--neutro-200);
 
-  /* Cada color de estado va en trío: el tono fuerte (legible como texto y
-     como borde), el texto que se pone encima del relleno sólido, y un relleno
-     pastel para insignias y avisos.                                         */
-  --destructive: #c9184a;
-  --destructive-foreground: #fffffe;
-  --destructive-suave: #ffe3ec;
+  /* ---- El acento --------------------------------------------------------
+     Los dos únicos tokens que llevan color de marca. `--marca` es el jade, que
+     sobre blanco da 7,6:1 y se puede leer; `--marca-suave` es el relleno de la
+     sección abierta de la barra.                                            */
+  --marca: var(--jade);
+  --marca-suave: var(--acento-suave);
 
-  --success: #12876a;
-  --success-foreground: #fffffe;
-  --success-suave: #d6f4e9;
+  /* ---- La barra lateral (tokens de sidebar de shadcn) -------------------
+     Va en pizarra macizo: es el único bloque de color pleno de la aplicación y
+     lo que sostiene toda la pantalla. Sobre él, el logotipo se usa sin el
+     filtro que lleva en el resto —ahí sí es la superficie oscura para la que
+     se diseñó—, así que `Logotipo` va con `sobreOscuro`.                     */
+  --sidebar: var(--pizarra);
+  --sidebar-foreground: #e8edf2;
+  --sidebar-muted: #a3b1c0;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-accent: rgba(255, 255, 255, 0.07);
+  --sidebar-accent-foreground: #e8edf2;
 
-  --warning: #a15c07;
-  --warning-foreground: #fffffe;
-  --warning-suave: #ffedcc;
+  /* La sección abierta. El jade de `--marca` se apaga sobre el pizarra, así que
+     aquí el acento sube al salvia claro, que es lo único de la paleta que canta
+     sobre ese fondo.                                                          */
+  --sidebar-activo: rgba(94, 145, 136, 0.34);
+  --sidebar-activo-foreground: #a8ccc4;
 
-  /* El trazo negro es lo que sostiene todo el diseño: 2 px, sólido, en cada
-     tarjeta, tabla, campo y bloque. `--linea` es su versión diluida para las
-     divisiones internas (filas de tabla), donde un trazo pleno haría reja.  */
-  --trazo: var(--negro);
-  --border: var(--negro);
-  --linea: rgba(0, 0, 0, 0.14);
-  --input: var(--negro);
-  --ring: var(--negro);
+  /* La franja superior se queda en el gris del lienzo, un punto más honda. No
+     acompaña a la barra lateral al pizarra a propósito: en móvil lleva el
+     logotipo, y ahí sí va filtrado para fondo claro.                          */
+  --franja: var(--neutro-100);
+  --franja-borde: var(--neutro-200);
+
+  /* Cada color de estado va en trío: el tono fuerte (legible como texto y como
+     borde), el texto que se pone encima del relleno sólido, y un relleno suave
+     para insignias y avisos. El tono fuerte llega a 4,5:1 sobre su propio
+     relleno: la insignia va en cuerpo 11 y ahí no vale quedarse corto.      */
+  --destructive: #b3123a;
+  --destructive-foreground: #ffffff;
+  --destructive-suave: #fdf2f5;
+
+  --success: #0c6b52;
+  --success-foreground: #ffffff;
+  --success-suave: #eff8f4;
+
+  --warning: #8a5109;
+  --warning-foreground: #ffffff;
+  --warning-suave: #fdf4e7;
+
+  --border: var(--neutro-200);
+  /* Las divisiones internas de una tabla, un punto más claras que el borde de
+     fuera: si fueran iguales, treinta filas harían reja.                    */
+  --linea: var(--neutro-100);
+  --input: var(--neutro-200);
+  --ring: var(--salvia);
+
+  /* ---- El velo de los diálogos -----------------------------------------
+     Cuando se abre un formulario, lo de detrás no se tapa: se desenfoca. El
+     tinte es muy flojo a propósito —lo que dice que la página está fuera de
+     juego es el desenfoque, no la oscuridad—, y así la pantalla sigue viéndose
+     entera por debajo.                                                       */
+  --velo: rgba(37, 51, 66, 0.22);
+  --velo-desenfoque: blur(14px) saturate(140%);
+
+  /* El propio diálogo va casi opaco: es todo texto menudo y campos, y sobre una
+     lámina fina no se leería. Lo justo para que se note que es una superficie
+     y no un recorte de papel.                                                */
+  --superficie-flotante: rgba(255, 255, 255, 0.9);
 }
 
 .dark {
-  --background: #141414;
-  --foreground: #e5e5e5;
-  --titular: #fffffe;
+  --background: var(--grafito);
+  --foreground: #f2f3f4;
+  --titular: #f2f3f4;
 
-  --card: #141414;
-  --card-foreground: #e5e5e5;
+  --card: #2a292e;
+  --card-foreground: #f2f3f4;
 
-  /* En oscuro se invierte la relación: el lienzo se hunde por debajo de la
-     tarjeta, que es la que tiene que salir a flote.                        */
-  --lienzo: #0a0a0a;
-  --barra: #232244;
-  --barra-foreground: #e6eaf7;
-  --barra-suave: #949cc4;
-  --barra-linea: rgba(255, 255, 254, 0.12);
+  --popover: #2a292e;
+  --popover-foreground: #f2f3f4;
 
-  --popover: #1c1c1c;
-  --popover-foreground: #e5e5e5;
+  --lienzo: #1a191d;
 
-  --primary: var(--sol);
-  --primary-foreground: var(--negro);
-  --primary-hover: #f0ca00;
+  /* En oscuro se invierte: la acción principal pasa a ser clara, con el texto
+     en grafito. Es lo mismo que hace shadcn.                                */
+  --primary: #f2f3f4;
+  --primary-foreground: var(--grafito);
+  --primary-hover: #dcdde0;
 
-  --secondary: #262626;
-  --secondary-foreground: #f5f5f5;
+  --secondary: #34333a;
+  --secondary-foreground: #f2f3f4;
 
-  --muted: #262626;
-  --muted-foreground: #a3a3a3;
+  --muted: #34333a;
+  --muted-foreground: #a1a5ac;
 
-  --accent: #2f4f4f;
-  --accent-foreground: #eafafa;
+  --accent: #34333a;
+  --accent-foreground: #f2f3f4;
+  --accent-hover: #3f3e46;
 
-  --destructive: #ff6b93;
+  /* Sobre fondo oscuro el jade se apaga; el acento pasa al salvia. */
+  --marca: var(--salvia);
+  --marca-suave: rgba(94, 145, 136, 0.2);
+
+  --sidebar: #1c2733;
+  --sidebar-foreground: #e8edf2;
+  --sidebar-muted: #93a2b1;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-accent: rgba(255, 255, 255, 0.07);
+  --sidebar-accent-foreground: #e8edf2;
+  --sidebar-activo: rgba(94, 145, 136, 0.28);
+  --sidebar-activo-foreground: #a8ccc4;
+
+  --franja: #1f1e22;
+  --franja-borde: #34333a;
+
+  --destructive: #ff8ba4;
   --destructive-foreground: #2a0a16;
-  --destructive-suave: #3d1f2e;
+  --destructive-suave: #3a2029;
 
-  --success: #4fd1a5;
+  --success: #64d8b0;
   --success-foreground: #06251c;
-  --success-suave: #17352d;
+  --success-suave: #16302a;
 
   --warning: #f2b04a;
   --warning-foreground: #2b1a00;
-  --warning-suave: #382c15;
+  --warning-suave: #352a18;
 
-  /* El trazo se invierte con el tema: lo que en claro es negro pleno, aquí es
-     blanco pleno. El contorno sigue siendo lo que sostiene el diseño.       */
-  --trazo: #fffffe;
-  --border: #fffffe;
-  --linea: rgba(255, 255, 254, 0.18);
-  --input: #fffffe;
-  --ring: #fffffe;
+  --border: #34333a;
+  --linea: #2e2d33;
+  --input: #3f3e46;
+  --ring: var(--salvia);
+
+  --velo: rgba(0, 0, 0, 0.4);
+  --superficie-flotante: rgba(42, 41, 46, 0.92);
 }
 
 @theme inline {
@@ -162,10 +245,6 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-lienzo: var(--lienzo);
-  --color-barra: var(--barra);
-  --color-barra-foreground: var(--barra-foreground);
-  --color-barra-suave: var(--barra-suave);
-  --color-barra-linea: var(--barra-linea);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -177,6 +256,24 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-hover: var(--accent-hover);
+
+  --color-marca: var(--marca);
+  --color-marca-suave: var(--marca-suave);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-activo: var(--sidebar-activo);
+  --color-sidebar-activo-foreground: var(--sidebar-activo-foreground);
+  --color-franja: var(--franja);
+  --color-franja-borde: var(--franja-borde);
+  --color-velo: var(--velo);
+  --color-superficie-flotante: var(--superficie-flotante);
+
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-suave: var(--destructive-suave);
@@ -189,45 +286,46 @@
   --color-border: var(--border);
   --color-linea: var(--linea);
   --color-input: var(--input);
-  --color-trazo: var(--trazo);
   --color-ring: var(--ring);
 
-  /* Paleta de marca en crudo. Los tokens semánticos de arriba se invierten con
-     el tema; estos no. Son para los bloques que son identidad y deben verse
-     igual siempre, como el panel de la pantalla de acceso. */
-  --color-negro: var(--negro);
-  --color-tinta: var(--tinta);
-  --color-papel: var(--papel);
-  --color-agua: var(--agua);
-  --color-menta: var(--menta);
-  --color-sol: var(--sol);
+  /* Paleta de marca en crudo, para los pocos bloques que son identidad y no
+     deben invertirse con el tema. */
+  --color-nieve: var(--nieve);
+  --color-grafito: var(--grafito);
+  --color-pizarra: var(--pizarra);
+  --color-salvia: var(--salvia);
+  --color-jade: var(--jade);
 
-  /* Canto vivo: cualquier `rounded-*` heredado se resuelve a cero. */
-  --radius-sm: 0rem;
-  --radius-md: 0rem;
-  --radius-lg: 0rem;
-  --radius-xl: 0rem;
-  --radius-2xl: 0rem;
-  --radius-3xl: 0rem;
-  --radius-full: 0rem;
+  /* La escala de radios, toda a cero. `full` se declara a propósito: es una
+     utilidad propia de Tailwind y, si no se sobrescribe aquí, un `rounded-full`
+     heredado seguiría dibujando círculos.                                     */
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-full: var(--radius);
 
-  /* Una sola familia para todo. La redondeada anterior (Baloo 2) era la que
-     más infantilizaba la pantalla: los titulares se distinguen ahora por
-     tamaño, peso y espaciado, no por cambiar de letra. `--font-display` se
-     mantiene como token para no tener que tocar cada `font-display`. */
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
-  --font-display: var(--font-sans);
+  /* Dos familias, con un reparto estricto:
+       Inter              — todo lo que se lee y se rellena: tablas,
+                            formularios, avisos. Es la que mejor aguanta el
+                            cuerpo pequeño y las cifras.
+       Plus Jakarta Sans  — titulares y cifras de panel. Tiene más carácter y a
+                            tamaño grande da la voz; en cuerpo pequeño cansaría.
+     Las dos son de la misma familia visual —geométricas, de eje vertical—, así
+     que conviven sin que se note el salto. */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', var(--font-sans);
 
-  /* Diseño plano: las escalas de sombra de Tailwind se anulan para que ningún
-     `shadow-*` heredado reintroduzca relieve. */
-  --shadow-2xs: none;
-  --shadow-xs: none;
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-  --shadow-xl: none;
-  --shadow-2xl: none;
+  /* Las sombras de shadcn: casi nada. Una tarjeta se separa del lienzo por el
+     borde, no por flotar. */
+  --shadow-2xs: 0 1px 0 rgba(37, 51, 66, 0.04);
+  --shadow-xs: 0 1px 2px rgba(37, 51, 66, 0.05);
+  --shadow-sm: 0 1px 2px rgba(37, 51, 66, 0.05), 0 1px 3px rgba(37, 51, 66, 0.06);
+  --shadow-md: 0 2px 4px -1px rgba(37, 51, 66, 0.05), 0 4px 8px -2px rgba(37, 51, 66, 0.08);
+  --shadow-lg: 0 4px 8px -2px rgba(37, 51, 66, 0.06), 0 12px 20px -6px rgba(37, 51, 66, 0.1);
+  --shadow-xl: 0 8px 16px -6px rgba(37, 51, 66, 0.08), 0 20px 32px -12px rgba(37, 51, 66, 0.14);
+  --shadow-2xl: 0 24px 48px -16px rgba(37, 51, 66, 0.22);
 }
 
 @layer base {
@@ -236,15 +334,17 @@
   }
 
   body {
-    background-color: var(--background);
+    background-color: var(--lienzo);
     color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
-  /* Todo titular va en tinta y con el mismo peso. Las páginas solo eligen el
-     tamaño; la familia y el peso ya vienen decididos desde aquí. */
+  /* Los titulares van en Plus Jakarta Sans y en el mismo color que el texto:
+     lo que los distingue es la familia, el tamaño y el espaciado cerrado, no el
+     color. Un titular de color es lo que hace que un tema parezca «de
+     plantilla». */
   h1,
   h2,
   h3,
@@ -252,8 +352,11 @@
   h5 {
     font-family: var(--font-display);
     color: var(--titular);
-    font-weight: 600;
-    letter-spacing: -0.015em;
+    /* Peso medio, no semibold. Plus Jakarta Sans tiene bastante carácter de por
+       sí y a 600 los titulares se ponían macizos; a 500 el trazo se afina y la
+       jerarquía la sigue marcando el tamaño. */
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
 
   /* Las cifras se alinean en columna en tablas y contadores. */
@@ -262,33 +365,71 @@
   time {
     font-variant-numeric: tabular-nums;
   }
-
-  ::selection {
-    background-color: var(--sol);
-    color: var(--negro);
-  }
 }
 
 @layer components {
-  /* Cifra de panel: se sostiene sola con el tabular y el espaciado cerrado,
-     sin necesidad de engordarla. */
+  /* Cifra de panel: se sostiene sola con el tabular y el espaciado cerrado, sin
+     necesidad de engordarla. */
   .cifra {
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.035em;
     line-height: 1;
     color: var(--titular);
   }
 
-  /* Etiqueta menuda en versalitas: sirve de contrapeso a las cifras y marca
-     la jerarquía sin añadir más peso visual. */
+  /* Etiqueta menuda de apoyo. No va en versalitas: es texto pequeño en el gris
+     secundario, que es lo que usan las tarjetas de panel de shadcn. Va en Inter
+     porque es texto de lectura, no titular. */
   .rotulo {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 0.8125rem;
+    font-weight: 400;
     color: var(--muted-foreground);
+  }
+
+  /* -------------------------------------------------------------------------
+     El velo y la superficie de lo que flota: diálogos y menús.
+
+     Es lo único del sistema que usa desenfoque. Un formulario modal tapa la
+     pantalla entera, y desenfocar en vez de oscurecer deja ver que el trabajo
+     sigue ahí debajo —dónde estabas, qué fila abriste— sin que compita con el
+     formulario.
+
+     `-webkit-backdrop-filter` sigue haciendo falta para Safari.
+  ------------------------------------------------------------------------- */
+  .velo {
+    background-color: var(--velo);
+    -webkit-backdrop-filter: var(--velo-desenfoque);
+    backdrop-filter: var(--velo-desenfoque);
+  }
+
+  .superficie-flotante {
+    background-color: var(--superficie-flotante);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  /* -------------------------------------------------------------------------
+     El logotipo.
+
+     Es de trazo cian claro sobre transparente: está hecho para fondo oscuro y
+     sobre blanco se queda en 2,3:1. Como la barra lateral de shadcn es clara y
+     el logotipo va sin placa detrás, el filtro le baja el brillo hasta un verde
+     azulado que sí se lee sobre claro.
+
+     `brightness` multiplica los tres canales, así que oscurece también el halo
+     sin volverlo gris; `saturate` le devuelve el color que esa bajada le quita.
+     El archivo no se toca: si algún día llega un logotipo pensado para fondo
+     claro, se borra esta clase y ya está.
+  ------------------------------------------------------------------------- */
+  .logotipo-sobre-claro {
+    filter: brightness(0.42) saturate(1.7);
+  }
+
+  /* En oscuro el logotipo va tal cual viene, que es para lo que se diseñó. */
+  .dark .logotipo-sobre-claro {
+    filter: none;
   }
 }
 
@@ -297,18 +438,37 @@
 
    La librería inyecta su hoja de estilos en el <head> al montarse: va sin capa
    y con selectores de dos atributos, así que gana tanto a `@layer base` como a
-   las clases de utilidad. Por eso el `rounded-none` que se le pasa en main.jsx
-   no le quitaba el redondeo, ni el `shadow-none` la sombra: era el único
-   relieve que quedaba en toda la aplicación. Estas reglas van fuera de
-   `@layer` a propósito, que es la única forma de ganarle.
+   las clases de utilidad. Por eso el radio no se le puede poner desde
+   `toastOptions`. Esta regla va fuera de `@layer` a propósito, que es la única
+   forma de ganarle.
 --------------------------------------------------------------------------- */
 html [data-sonner-toast][data-styled='true'] {
-  box-shadow: none;
-  border-radius: 0;
+  border-radius: var(--radius-lg);
 }
 
 html [data-sonner-toast] [data-close-button] {
-  border-radius: 0;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   Quien pida menos transparencia recibe superficies opacas: el desenfoque se
+   retira y el velo se cierra. Es una preferencia del sistema operativo y la
+   piden, entre otros, quienes necesitan más contraste para leer.
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-transparency: reduce) {
+  .velo,
+  .superficie-flotante {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .velo {
+    background-color: rgba(37, 51, 66, 0.6);
+  }
+
+  .superficie-flotante {
+    background-color: var(--background);
+  }
 }
 
 /* Quien haya pedido menos animación no ve ninguna. */

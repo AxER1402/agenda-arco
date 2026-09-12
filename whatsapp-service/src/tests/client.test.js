@@ -134,10 +134,18 @@ describe('whatsapp/client', () => {
       expect(instancia.destroy).toHaveBeenCalled();
     });
 
-    it('no hace nada si no hay ningún cliente en marcha', () => {
+    /**
+     * Sin cliente en marcha el botón de Configuración sigue teniendo trabajo:
+     * las credenciales guardadas continúan en disco y el arranque siguiente las
+     * restauraría, con lo que el servicio nunca saldría del estado roto.
+     */
+    it('arranca pidiendo un código aunque no hubiera ningún cliente en marcha', async () => {
+      __simular.sesionSinVincular();
+
       const resultado = whatsappClient.desvincular();
 
-      expect(resultado).toMatchObject({ desvinculada: false, estabaVinculada: false });
+      expect(resultado).toMatchObject({ desvinculada: true, estabaVinculada: false });
+      expect(await esperarA(() => whatsappClient.getQr() !== null)).toBe(true);
     });
   });
 

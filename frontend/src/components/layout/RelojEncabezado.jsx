@@ -35,15 +35,17 @@ function RelojEncabezado({ className }) {
     return () => clearInterval(temporizador);
   }, []);
 
+  // La fecha va delante y la hora detrás, los dos en la misma línea. Apilados
+  // obligaban a la barra superior a tener dos renglones de alto, que era lo que
+  // la engordaba.
   return (
-    <div className={cn('flex flex-col items-end leading-none', className)}>
-      <time
-        dateTime={ahora.toISOString()}
-        className="cifra text-base font-semibold text-titular sm:text-lg"
-      >
+    <div className={cn('flex items-baseline gap-3 leading-none', className)}>
+      <span className="hidden text-sm text-muted-foreground sm:block">
+        {FECHA.format(ahora)}
+      </span>
+      <time dateTime={ahora.toISOString()} className="cifra text-sm text-titular">
         {HORA.format(ahora).toUpperCase()}
       </time>
-      <span className="rotulo mt-1 hidden sm:block">{FECHA.format(ahora)}</span>
     </div>
   );
 }

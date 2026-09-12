@@ -10,7 +10,7 @@ function EnConstruccionPage({ titulo, fase }) {
   return (
     <Card className="mx-auto max-w-md text-center">
       <CardHeader className="items-center">
-        <span className="mb-3 flex size-12 items-center justify-center border-2 border-trazo bg-accent text-accent-foreground">
+        <span className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Construction className="size-6" aria-hidden="true" />
         </span>
         <CardTitle className="text-xl">{titulo}</CardTitle>

@@ -1,36 +1,29 @@
 import { cn } from '@/lib/utils';
 
 /**
- * Cabecera de módulo: la franja de agua que abre cada sección.
+ * Cabecera de módulo: el titular de la página, su descripción y las acciones.
  *
- * Es la pieza que reparte el color en el interior de la aplicación: la franja
- * en agua y el bloque del icono en tinta. Todo lo que viene debajo —tarjetas y
- * tablas— es papel, así que el color queda acotado a la apertura de la página
- * y no compite con los datos.
+ * Sin franja de color ni bloque de icono. En shadcn la cabecera de una página
+ * no es una pieza con fondo propio: es texto y botones sobre el lienzo, y lo
+ * que la separa del contenido es el espacio. El icono se conserva porque
+ * identifica la sección de un vistazo, pero va suelto y en el gris secundario,
+ * no dentro de un cuadrado de color.
  *
- * La descripción se recibe como nodo y se pinta aquí: sobre el agua, el gris
- * de `text-muted-foreground` que usaban las páginas se quedaba corto de
- * contraste.
+ * La descripción se recibe como nodo y se pinta aquí, en el gris secundario del
+ * tema, para que todas las páginas la den igual.
  */
 function EncabezadoModulo({ icono: Icono, titulo, descripcion, acciones, className }) {
   return (
-    <header
-      className={cn(
-        'flex flex-wrap items-center justify-between gap-4 border-2 border-trazo bg-accent px-5 py-5 sm:px-6',
-        className,
-      )}
-    >
-      <div className="flex min-w-0 items-center gap-4">
+    <header className={cn('flex flex-wrap items-start justify-between gap-4', className)}>
+      <div className="flex min-w-0 items-start gap-3">
         {Icono && (
-          <span className="hidden size-12 shrink-0 items-center justify-center bg-negro text-papel sm:flex">
-            <Icono className="size-6" aria-hidden="true" />
-          </span>
+          <Icono className="mt-1 hidden size-7 shrink-0 text-muted-foreground sm:block" aria-hidden="true" />
         )}
 
         <div className="min-w-0">
-          <h1 className="text-2xl leading-none sm:text-3xl">{titulo}</h1>
+          <h1 className="text-2xl leading-tight sm:text-3xl">{titulo}</h1>
           {descripcion && (
-            <div className="mt-2 max-w-prose text-sm leading-relaxed text-accent-foreground/85">
+            <div className="mt-1.5 max-w-prose text-sm leading-relaxed text-muted-foreground">
               {descripcion}
             </div>
           )}
@@ -43,15 +36,16 @@ function EncabezadoModulo({ icono: Icono, titulo, descripcion, acciones, classNa
 }
 
 /**
- * Titular de sección con una marca amarilla estrecha a la izquierda.
+ * Titular de sección: el que abre cada bloque de una página larga.
  *
- * Reaparece en cada bloque de una página larga: es la única gota de sol del
- * contenido, y por eso se mantiene fina.
+ * Va desnudo, sin marca de color a la izquierda. Esa barrita era el único sitio
+ * donde el acento salía dentro del contenido, y con canto vivo se leía como una
+ * raya suelta antes del texto en vez de como un adorno. Lo que separa un bloque
+ * del anterior es el espacio.
  */
 function TituloSeccion({ children, className, ...props }) {
   return (
-    <h2 className={cn('flex items-center gap-2.5 text-xl', className)} {...props}>
-      <span className="h-5 w-1.5 shrink-0 bg-primary" aria-hidden="true" />
+    <h2 className={cn('text-xl', className)} {...props}>
       {children}
     </h2>
   );

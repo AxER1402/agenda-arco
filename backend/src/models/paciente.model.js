@@ -1,7 +1,7 @@
 /**
  * Acceso a datos de pacientes.
  */
-const { query, queryOne } = require('../config/database');
+const { query, queryOne, withTransaction } = require('../config/database');
 
 const CAMPOS = `
   id, nombre_completo, telefono, dpi, tiene_whatsapp, notas, activo, creado_en, actualizado_en
@@ -148,6 +148,40 @@ async function eliminar(id) {
   return Number(resultado?.affectedRows ?? 0) > 0;
 }
 
+/** Cuántas citas y órdenes cuelgan del paciente. Se usa para avisar y para el
+ *  mensaje de lo que se acaba de borrar. */
+async function contarHistorial(id) {
+  const fila = await queryOne(
+    `SELECT
+       (SELECT COUNT(*) FROM citas   WHERE paciente_id = :id) AS citas,
+       (SELECT COUNT(*) FROM ordenes WHERE paciente_id = :id) AS ordenes`,
+    { id },
+  );
+
+  return { citas: Number(fila?.citas ?? 0), ordenes: Number(fila?.ordenes ?? 0) };
+}
+
+/**
+ * Borrado del paciente y de todo lo que cuelga de él.
+ *
+ * Las claves foráneas de `citas` y `ordenes` son RESTRICT, así que hay que
+ * bajarlas en orden y en una sola transacción: o desaparece todo, o no
+ * desaparece nada. Los exámenes de cada cita y de cada orden, y el recordatorio
+ * de cada cita, se van solos (CASCADE).
+ */
+async function eliminarConHistorial(id) {
+  return withTransaction(async (conexion) => {
+    const [citas] = await conexion.execute('DELETE FROM citas WHERE paciente_id = :id', { id });
+    const [ordenes] = await conexion.execute('DELETE FROM ordenes WHERE paciente_id = :id', { id });
+    await conexion.execute('DELETE FROM pacientes WHERE id = :id', { id });
+
+    return {
+      citas: Number(citas?.affectedRows ?? 0),
+      ordenes: Number(ordenes?.affectedRows ?? 0),
+    };
+  });
+}
+
 module.exports = {
   buscarPorId,
   buscar,
@@ -156,6 +190,8 @@ module.exports = {
   crear,
   actualizar,
   eliminar,
+  eliminarConHistorial,
+  contarHistorial,
   registrarResultadoWhatsapp,
   tieneCitas,
 };

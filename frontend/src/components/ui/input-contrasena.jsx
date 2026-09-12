@@ -13,6 +13,9 @@ import { cn } from '@/lib/utils';
  *
  * Empieza siempre oculta y solo se muestra si se pide expresamente.
  *
+ * El botón va dentro del campo, con la misma forma que un `Button` de variante
+ * `ghost`: el control sigue siendo uno solo.
+ *
  * @param {object} props Los mismos que `Input`; `className` se aplica al campo.
  */
 function InputContrasena({ className, ...props }) {
@@ -22,11 +25,7 @@ function InputContrasena({ className, ...props }) {
 
   return (
     <div className="relative">
-      <Input
-        {...props}
-        type={visible ? 'text' : 'password'}
-        className={cn('pr-12', className)}
-      />
+      <Input {...props} type={visible ? 'text' : 'password'} className={cn('pr-11', className)} />
 
       {/* Entra en el orden de tabulación: quien no use ratón también tiene que
           poder comprobar lo que escribió. */}
@@ -35,10 +34,10 @@ function InputContrasena({ className, ...props }) {
         onClick={() => setVisible((mostrada) => !mostrada)}
         aria-pressed={visible}
         className={cn(
-          'absolute right-0 top-0 flex h-11 w-11 items-center justify-center',
-          'border-l-2 border-trazo text-titular',
-          'transition-colors duration-100 hover:bg-primary',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+          'absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center',
+          'rounded-md text-muted-foreground outline-none',
+          'transition-colors hover:bg-accent hover:text-accent-foreground',
+          'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
         )}
       >
         <Icono className="size-4" aria-hidden="true" />

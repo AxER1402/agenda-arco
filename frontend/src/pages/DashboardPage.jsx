@@ -33,7 +33,7 @@ import {
  * versalitas, cifra grande, y el detalle de vuelta a cuerpo pequeño. Se lee el
  * número desde lejos y el resto solo si hace falta.
  *
- * Los tres llevan el mismo bloque de agua en el icono, no uno de cada color:
+ * Los tres llevan el mismo bloque de bruma en el icono, no uno de cada color:
  * tres tarjetas de tonos distintos en fila hacían del panel un mosaico. Lo que
  * distingue a cada una es el dato.
  */
@@ -43,7 +43,7 @@ function Indicador({ titulo, valor, detalle, icono: Icono, variante }) {
       <CardHeader className="gap-3 pb-3">
         <div className="flex items-start justify-between gap-3">
           <CardDescription className="rotulo pt-1.5">{titulo}</CardDescription>
-          <span className="flex size-10 shrink-0 items-center justify-center border-2 border-trazo bg-accent text-accent-foreground">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
             <Icono className="size-5" aria-hidden="true" />
           </span>
         </div>
@@ -97,19 +97,14 @@ function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      {/* El panel es la primera pantalla del turno: el saludo va en un bloque
-          negro macizo para que se note que se ha entrado, con el nombre
-          recortado en amarillo. Sin el tamaño de cartel que tenía antes: la
-          fecha y el resumen tienen que caber junto a los datos del día. */}
-      <header className="border-2 border-trazo bg-negro px-6 py-6 text-papel sm:px-8">
-        <p className="rotulo mb-2 text-agua">{fechaLarga(resumen?.fecha)}</p>
-        <h1 className="text-2xl leading-tight text-papel sm:text-3xl">
-          Hola,{' '}
-          <span className="bg-primary px-2 text-primary-foreground [box-decoration-break:clone]">
-            {usuario?.nombre_completo}
-          </span>
+      {/* El panel es la primera pantalla del turno. El saludo va como titular
+          de página, no como bloque de color: lo que lo destaca es el tamaño. */}
+      <header>
+        <p className="text-sm text-muted-foreground">{fechaLarga(resumen?.fecha)}</p>
+        <h1 className="mt-1 text-2xl leading-tight sm:text-3xl">
+          Hola, {usuario?.nombre_completo}
         </h1>
-        <p className="mt-2 max-w-prose text-sm text-agua">
+        <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">
           Este es el resumen del día. Todo lo que está agendado, en un vistazo.
         </p>
       </header>

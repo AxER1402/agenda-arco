@@ -85,6 +85,17 @@ async function actualizar(id, cambios) {
   return buscarPorId(id);
 }
 
+/**
+ * Borrado definitivo de la fila.
+ *
+ * Las órdenes y las citas apuntan a `usuarios` con ON DELETE SET NULL, así que
+ * el historial se conserva; lo que se pierde es saber quién lo registró.
+ */
+async function eliminar(id) {
+  await query('DELETE FROM usuarios WHERE id = :id', { id });
+  return { id: Number(id), eliminado: true };
+}
+
 async function registrarAcceso(id) {
   await query('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = :id', { id });
 }
@@ -114,6 +125,7 @@ module.exports = {
   listar,
   crear,
   actualizar,
+  eliminar,
   registrarAcceso,
   contarAdministradoresActivos,
   buscarRolPorCodigo,

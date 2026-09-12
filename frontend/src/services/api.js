@@ -26,21 +26,45 @@ api.interceptors.request.use((config) => {
 });
 
 /**
+ * El cuerpo del error, ya como objeto.
+ *
+ * Las descargas (los reportes) piden `responseType: 'blob'`, y entonces axios
+ * entrega también el error como Blob. Sin desenvolverlo, un 422 con su motivo
+ * en español acabaría mostrándose como «No fue posible conectar con el
+ * servidor», que es justo lo contrario de lo que ha pasado.
+ */
+async function cuerpoDelError(respuesta) {
+  const datos = respuesta?.data;
+
+  if (typeof Blob !== 'undefined' && datos instanceof Blob) {
+    try {
+      return JSON.parse(await datos.text());
+    } catch {
+      return null;
+    }
+  }
+
+  return datos;
+}
+
+/**
  * Normaliza los errores: los componentes reciben siempre un Error con un
  * mensaje en español listo para mostrar.
  */
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const cuerpo = await cuerpoDelError(error.response);
+
     const mensaje =
-      error.response?.data?.error?.mensaje ??
+      cuerpo?.error?.mensaje ??
       (error.code === 'ECONNABORTED'
         ? 'El servidor tardó demasiado en responder.'
         : 'No fue posible conectar con el servidor.');
 
     const normalizado = new Error(mensaje);
     normalizado.status = error.response?.status ?? 0;
-    normalizado.detalles = error.response?.data?.error?.detalles;
+    normalizado.detalles = cuerpo?.error?.detalles;
 
     return Promise.reject(normalizado);
   },

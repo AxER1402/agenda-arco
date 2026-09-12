@@ -47,6 +47,19 @@ async function desactivar(req, res, next) {
   }
 }
 
+/** DELETE /api/usuarios/:id/definitivo — borrado sin vuelta atrás. */
+async function eliminar(req, res, next) {
+  try {
+    const resultado = await usuarioService.eliminar(req.params.id, {
+      idUsuarioSolicitante: req.usuario.id,
+      contrasena: req.body.contrasena,
+    });
+    res.status(200).json(resultado);
+  } catch (error) {
+    next(error);
+  }
+}
+
 /** PATCH /api/usuarios/:id/contrasena */
 async function restablecerContrasena(req, res, next) {
   try {
@@ -75,6 +88,7 @@ module.exports = {
   crear,
   actualizar,
   desactivar,
+  eliminar,
   restablecerContrasena,
   listarRoles,
 };

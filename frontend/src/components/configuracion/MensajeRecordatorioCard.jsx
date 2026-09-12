@@ -188,7 +188,7 @@ function MensajeRecordatorioCard() {
                     type="button"
                     title={descripcion}
                     onClick={() => insertarMarcador(nombre)}
-                    className="border-2 border-trazo bg-secondary px-2 py-1 font-mono text-xs transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="rounded-md border bg-secondary px-2 py-1 font-mono text-xs outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     {`{${nombre}}`}
                   </button>
@@ -252,12 +252,12 @@ function MensajeRecordatorioCard() {
           <div className="flex flex-col gap-2">
             <p className="text-xs font-medium">Vista previa</p>
 
-            <div className="flex flex-col gap-2 border-2 border-trazo bg-secondary p-3">
+            <div className="flex flex-col gap-2 rounded-lg border bg-secondary p-3">
               {imagen && (
                 <img
                   src={imagen}
                   alt="Imagen que acompaña al recordatorio"
-                  className="max-h-56 w-full border-2 border-trazo object-contain"
+                  className="max-h-56 w-full rounded-md border object-contain"
                 />
               )}
 

@@ -4,36 +4,38 @@ import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 /**
- * Botones planos de canto vivo. Sin sombra ni desplazamiento: lo que distingue
- * una acción de una superficie es el relleno.
+ * Botón de shadcn, sin adaptar.
  *
- * La respuesta a la pulsación es un cambio de tono, no una inversión de relleno
- * y texto: el botón se oscurece un punto y nada más. Son 100 ms y no mueve nada
- * de sitio, así que en una tabla densa la fila no baila bajo el cursor.
+ * Las variantes y los tamaños son los de la librería. La única diferencia es
+ * que el hover de `default` va a `--primary-hover` en lugar de a `primary/90`:
+ * el token da el mismo gesto en los dos temas, mientras que el alfa sobre un
+ * lienzo gris deja ver el fondo a través del botón.
+ *
+ * La acción principal es el casi negro del tema, no el color de marca. Es la
+ * decisión que más define el aspecto de shadcn y por eso se respeta tal cual.
  */
 const buttonVariants = cva(
   [
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none border-2',
-    'font-semibold transition-colors duration-100 ease-out',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-    'disabled:pointer-events-none disabled:opacity-45',
-    '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium outline-none transition-all [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+    'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+    'aria-invalid:border-destructive aria-invalid:ring-destructive/20',
+    'disabled:pointer-events-none disabled:opacity-50',
   ],
   {
     variants: {
       variant: {
-        default: 'border-trazo bg-primary text-primary-foreground hover:bg-primary-hover',
+        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary-hover',
         destructive:
-          'border-trazo bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        outline: 'border-trazo bg-card text-titular hover:bg-secondary',
-        secondary: 'border-trazo bg-accent text-accent-foreground hover:bg-menta',
-        ghost: 'border-transparent text-foreground hover:border-trazo hover:bg-secondary hover:text-titular',
-        link: 'border-transparent text-titular underline decoration-primary decoration-2 underline-offset-4 hover:decoration-titular',
+          'bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/40',
+        outline: 'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground',
+        secondary: 'bg-secondary text-secondary-foreground shadow-xs hover:bg-accent-hover',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        link: 'text-marca underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-10 px-5 text-sm',
-        sm: 'h-8 px-3 text-xs',
-        lg: 'h-12 px-7 text-base',
+        default: 'h-10 px-4 py-2 has-[>svg]:px-3',
+        sm: 'h-9 gap-1.5 rounded-md px-3',
+        lg: 'h-11 rounded-md px-6',
         icon: 'size-10',
       },
     },
