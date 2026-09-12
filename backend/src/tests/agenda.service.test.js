@@ -215,7 +215,13 @@ describe('disponibilidad.sugerirFechasParaOrden', () => {
     const sugerencias = await disponibilidadService.sugerirFechasParaOrden(orden(vencimiento));
 
     expect(sugerencias.map((s) => s.fecha)).not.toContain(vencimiento);
-    expect(sugerencias[0].fecha).toBe(fechas.sumarDias(vencimiento, -1));
+
+    // El día anterior al vencimiento puede caer en domingo según cuándo se
+    // ejecute la prueba, así que se espera el laborable más cercano hacia atrás.
+    let esperada = fechas.sumarDias(vencimiento, -1);
+    while (fechas.diaDeLaSemana(esperada) === 7) esperada = fechas.sumarDias(esperada, -1);
+
+    expect(sugerencias[0].fecha).toBe(esperada);
   });
 
   it('devuelve una lista vacía si la orden ya venció', async () => {
