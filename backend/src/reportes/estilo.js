@@ -5,14 +5,23 @@
  * reporte impreso que no se parece a la pantalla de la que salió no parece del
  * mismo sistema. Se repiten aquí en crudo porque el backend no puede leer la
  * hoja de estilos del frontend; si cambia la identidad, cambian los dos sitios.
+ *
+ * El reparto es el de la pantalla: el bloque macizo va en pizarra —el color de
+ * la barra lateral—, los titulares en grafito, el texto corrido en pizarra y
+ * todos los grises salen de mezclar ese pizarra con blanco. El salvia claro es
+ * el acento y solo aparece sobre el bloque macizo, igual que en la barra.
+ *
+ * Los nombres son los del papel, no los de la marca: quien lea `pdf.js` quiere
+ * saber qué papel pinta, no qué tono de verde es.
  */
 const COLORES = {
-  tinta: '0B132B', // trazo, titulares y la cabecera maciza
-  marino: '1C2541',
-  pizarra: '3A506B', // texto de apoyo
-  turquesa: '5BC0BE',
-  bruma: 'DDF0EF', // fondo de las cabeceras de tabla
-  linea: 'C9D2E0', // divisiones internas, la versión diluida del trazo
+  armazon: '253342', // el bloque macizo de la cabecera; el pizarra de la barra
+  titular: '232226', // titulares de sección y cifras; el grafito de la pantalla
+  texto: '253342', // el texto corrido de las celdas
+  apoyo: '4A5765', // rótulos, notas y pies
+  acento: 'A8CCC4', // salvia claro. SOLO sobre el armazón: sobre papel no contrasta
+  bruma: 'DAE2E9', // fondo de las cabeceras de tabla
+  linea: 'C4D0DA', // bordes y divisiones internas
   papel: 'FFFFFF',
 };
 

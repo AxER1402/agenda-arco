@@ -77,7 +77,7 @@ function ExamenesPage() {
         }
       />
 
-      <div className="border-2 border-trazo bg-card p-4">
+      <div className="rounded-xl border bg-card p-4 shadow-sm">
         <div className="relative max-w-sm">
           <Search
             className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"

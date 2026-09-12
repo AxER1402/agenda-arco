@@ -291,11 +291,11 @@ function ConfiguracionPage() {
                       <label
                         key={dia.numero}
                         className={cn(
-                          'flex cursor-pointer items-center gap-2 border-2 px-3 py-2 text-sm',
-                          'transition-colors duration-100',
+                          'flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                          'transition-colors',
                           atiende
-                            ? 'border-trazo bg-accent font-semibold text-accent-foreground'
-                            : 'border-linea bg-card text-muted-foreground hover:border-trazo',
+                            ? 'border-transparent bg-accent font-semibold text-accent-foreground'
+                            : 'bg-secondary text-muted-foreground hover:border-ring hover:text-titular',
                         )}
                       >
                         <input
@@ -399,7 +399,7 @@ function ConfiguracionPage() {
                     <img
                       src={qr.imagen}
                       alt="Código QR para vincular la cuenta de WhatsApp del laboratorio"
-                      className="size-64 border-2 border-trazo bg-white p-2"
+                      className="size-64 rounded-lg border bg-white p-2"
                       width={320}
                       height={320}
                     />

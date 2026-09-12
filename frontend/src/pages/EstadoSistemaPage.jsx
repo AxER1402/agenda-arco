@@ -23,7 +23,7 @@ function IndicadorServicio({ icono: Icono, nombre, descripcion, estado }) {
     <Card>
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center border-2 border-trazo bg-accent text-accent-foreground">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
             <Icono className="size-5" aria-hidden="true" />
           </span>
           <div>
@@ -46,14 +46,12 @@ function EstadoSistemaPage() {
   const { estado, cargando, error, recargar } = useEstadoSistema();
 
   return (
-    <main className="min-h-screen bg-lienzo px-6 py-12">
+    <main className="min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header className="border-2 border-trazo bg-abismo px-6 py-6 text-papel">
-          <p className="rotulo text-turquesa">Laboratorio Clínico Biológico</p>
-          <h1 className="mt-2 text-2xl leading-tight text-papel sm:text-3xl">
-            El Arco Laboratorios
-          </h1>
-          <p className="mt-2 text-sm text-turquesa">
+        <header>
+          <p className="text-sm text-muted-foreground">Laboratorio Clínico Biológico</p>
+          <h1 className="mt-1 text-2xl leading-tight sm:text-3xl">El Arco Laboratorios</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
             Sistema de gestión de citas. Instalación base verificada.
           </p>
         </header>

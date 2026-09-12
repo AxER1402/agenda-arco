@@ -34,12 +34,17 @@ const SIN_BORDES = {
   insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
 };
 
-/** El trazo de la interfaz, traducido a lo que entiende Word (octavos de punto). */
+/**
+ * El borde de la interfaz, traducido a lo que entiende Word (octavos de punto).
+ * El marco de fuera y las divisiones de dentro van del mismo color y solo se
+ * distinguen por el grosor, igual que en pantalla: un trazo pleno en cada fila
+ * convertiría una tabla de treinta citas en una reja.
+ */
 const BORDES_TABLA = {
-  top: { style: BorderStyle.SINGLE, size: 8, color: COLOR.tinta },
-  bottom: { style: BorderStyle.SINGLE, size: 8, color: COLOR.tinta },
-  left: { style: BorderStyle.SINGLE, size: 8, color: COLOR.tinta },
-  right: { style: BorderStyle.SINGLE, size: 8, color: COLOR.tinta },
+  top: { style: BorderStyle.SINGLE, size: 4, color: COLOR.linea },
+  bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR.linea },
+  left: { style: BorderStyle.SINGLE, size: 4, color: COLOR.linea },
+  right: { style: BorderStyle.SINGLE, size: 4, color: COLOR.linea },
   insideHorizontal: { style: BorderStyle.SINGLE, size: 2, color: COLOR.linea },
   insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
 };
@@ -58,7 +63,7 @@ function celda(hijos, { fondo, ancho, alineacion } = {}) {
 }
 
 function texto(contenido, opciones = {}) {
-  const { negrita, tamano = 18, color = COLOR.tinta, alineacion, mayusculas, espaciado } = opciones;
+  const { negrita, tamano = 18, color = COLOR.texto, alineacion, mayusculas, espaciado } = opciones;
 
   return new Paragraph({
     alignment: alineacion === 'derecha' ? AlignmentType.RIGHT : AlignmentType.LEFT,
@@ -76,7 +81,7 @@ function texto(contenido, opciones = {}) {
   });
 }
 
-/** Cabecera maciza en tinta, como la del PDF y la de la pantalla. */
+/** Cabecera maciza en pizarra, como la del PDF y la barra lateral de la pantalla. */
 function encabezado(documento) {
   return new Table({
     width: anchoTotal,
@@ -85,13 +90,13 @@ function encabezado(documento) {
       new TableRow({
         children: [
           new TableCell({
-            shading: { fill: COLOR.tinta },
+            shading: { fill: COLOR.armazon },
             margins: { top: 180, bottom: 180, left: 180, right: 180 },
             children: [
               texto(documento.titulo, { negrita: true, tamano: 30, color: COLOR.papel }),
               texto(`${documento.laboratorio} · ${documento.periodo}`, {
                 tamano: 18,
-                color: COLOR.turquesa,
+                color: COLOR.acento,
                 espaciado: { before: 80 },
               }),
             ],
@@ -114,7 +119,7 @@ function indicadores(seccion) {
       width: anchoTotal,
       borders: {
         ...BORDES_TABLA,
-        insideVertical: { style: BorderStyle.SINGLE, size: 8, color: COLOR.tinta },
+        insideVertical: { style: BorderStyle.SINGLE, size: 4, color: COLOR.linea },
       },
       rows: [
         new TableRow({
@@ -123,12 +128,17 @@ function indicadores(seccion) {
               [
                 texto(dato.etiqueta, {
                   tamano: 14,
-                  color: COLOR.pizarra,
+                  color: COLOR.apoyo,
                   mayusculas: true,
                 }),
-                texto(dato.valor, { negrita: true, tamano: 32, espaciado: { before: 40 } }),
+                texto(dato.valor, {
+                  negrita: true,
+                  tamano: 32,
+                  color: COLOR.titular,
+                  espaciado: { before: 40 },
+                }),
                 ...(dato.detalle
-                  ? [texto(dato.detalle, { tamano: 13, color: COLOR.pizarra })]
+                  ? [texto(dato.detalle, { tamano: 13, color: COLOR.apoyo })]
                   : []),
               ],
               { ancho },
@@ -150,7 +160,13 @@ function tabla(seccion) {
         heading: HeadingLevel.HEADING_2,
         spacing: { after: 120 },
         children: [
-          new TextRun({ text: seccion.titulo, bold: true, size: 24, color: COLOR.tinta, font: 'Calibri' }),
+          new TextRun({
+            text: seccion.titulo,
+            bold: true,
+            size: 24,
+            color: COLOR.titular,
+            font: 'Calibri',
+          }),
         ],
       }),
     );
@@ -159,7 +175,7 @@ function tabla(seccion) {
   const filas = seccion.filas ?? [];
 
   if (filas.length === 0) {
-    partes.push(texto(seccion.vacia ?? 'Sin datos.', { tamano: 18, color: COLOR.pizarra }));
+    partes.push(texto(seccion.vacia ?? 'Sin datos.', { tamano: 18, color: COLOR.apoyo }));
     partes.push(new Paragraph({ text: '', spacing: { after: 240 } }));
     return partes;
   }
@@ -170,10 +186,17 @@ function tabla(seccion) {
     // Al partirse la tabla entre dos páginas, Word repite esta fila arriba.
     tableHeader: true,
     children: seccion.columnas.map((columna) =>
-      celda([texto(columna.titulo, { negrita: true, tamano: 16, alineacion: columna.alineacion })], {
-        fondo: COLOR.bruma,
-        ancho: (columna.ancho / suma) * 100,
-      }),
+      celda(
+        [
+          texto(columna.titulo, {
+            negrita: true,
+            tamano: 16,
+            color: COLOR.titular,
+            alineacion: columna.alineacion,
+          }),
+        ],
+        { fondo: COLOR.bruma, ancho: (columna.ancho / suma) * 100 },
+      ),
     ),
   });
 
@@ -205,7 +228,7 @@ async function renderizar(documento) {
     if (seccion.tipo === 'indicadores') cuerpo.push(...indicadores(seccion));
     else if (seccion.tipo === 'tabla') cuerpo.push(...tabla(seccion));
     else if (seccion.tipo === 'nota') {
-      cuerpo.push(texto(seccion.texto, { tamano: 16, color: COLOR.pizarra }));
+      cuerpo.push(texto(seccion.texto, { tamano: 16, color: COLOR.apoyo }));
     }
   });
 
@@ -234,7 +257,7 @@ async function renderizar(documento) {
             children: [
               texto(`${documento.laboratorio} · Generado el ${documento.generado.fecha}${quien}`, {
                 tamano: 14,
-                color: COLOR.pizarra,
+                color: COLOR.apoyo,
               }),
             ],
           }),

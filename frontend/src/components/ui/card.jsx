@@ -1,13 +1,13 @@
 import { cn } from '@/lib/utils';
 
 /**
- * La tarjeta comparte el blanco del fondo: lo único que la delimita es el
- * trazo gris de 2 px. Sin sombra y sin esquinas redondeadas.
+ * Tarjeta de shadcn: fondo de la tarjeta, borde de un pixel, canto `xl` y una
+ * sombra mínima. Lo que la separa del lienzo es el borde, no la elevación.
  */
 function Card({ className, ...props }) {
   return (
     <div
-      className={cn('rounded-none border-2 border-border bg-card text-card-foreground', className)}
+      className={cn('rounded-xl border bg-card text-card-foreground shadow-sm', className)}
       {...props}
     />
   );

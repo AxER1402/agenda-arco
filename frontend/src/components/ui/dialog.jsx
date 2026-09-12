@@ -19,26 +19,32 @@ const DialogClose = DialogPrimitive.Close;
  * navegador sí puede subir el campo con foco dentro del área que se desplaza.
  *
  * Ese desplazamiento vive en un envoltorio interior, no en el propio diálogo:
- * así el cuadro de cierre se queda clavado en el canto superior derecho en vez
- * de irse hacia arriba en cuanto el formulario es largo, que en móvil dejaba
- * la única salida fuera de la pantalla.
+ * así el botón de cierre se queda clavado en el canto superior derecho en vez
+ * de irse hacia arriba en cuanto el formulario es largo, que en móvil dejaba la
+ * única salida fuera de la pantalla.
  *
  * Las alturas van en `dvh` y no en `vh` porque en el navegador del teléfono la
  * barra de direcciones entra y sale: con `vh` el pie del formulario quedaba
  * debajo de ella.
+ *
+ * A pantalla completa va sin radio ni borde —el canto redondeado contra el
+ * borde del teléfono se ve como un error—, y desde `sm` recupera los de la
+ * librería.
  */
 function DialogContent({ className, children, ...props }) {
   return (
     <DialogPrimitive.Portal>
-      {/* Velo oscuro traslúcido: sin sombra en el modal, es lo único que lo
-          separa de la página de atrás. */}
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-abismo/50" />
+      {/* El fondo no se tapa: se desenfoca. Lo que dice que la página está
+          fuera de juego es el desenfoque, no la oscuridad, así que el tinte es
+          muy flojo y el trabajo sigue viéndose entero por debajo. */}
+      <DialogPrimitive.Overlay className="velo fixed inset-0 z-50" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed z-50 flex flex-col rounded-none border-0 border-trazo bg-card',
+          'superficie-flotante fixed z-50 flex flex-col shadow-lg',
           'inset-0 w-full',
           'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-lg',
-          'sm:max-h-[calc(100dvh-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:border-2',
+          'sm:max-h-[calc(100dvh-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2',
+          'sm:rounded-xl sm:border',
           className,
         )}
         {...props}
@@ -49,14 +55,13 @@ function DialogContent({ className, children, ...props }) {
           {children}
         </div>
 
-        {/* Pegado al canto superior derecho, sin margen: el cuadrado de cierre
-            forma parte del marco. */}
+        {/* Botón de cierre en la esquina, como el de shadcn: sin relleno hasta
+            que se pasa por encima. */}
         <DialogPrimitive.Close
           className={cn(
-            'absolute right-0 top-0 flex size-11 items-center justify-center sm:size-10',
-            'border-b-2 border-l-2 border-trazo bg-secondary text-titular',
-            'transition-colors duration-100 hover:bg-primary',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+            'absolute right-4 top-4 flex size-8 items-center justify-center',
+            'rounded-sm text-muted-foreground opacity-70 outline-none transition-opacity',
+            'hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50',
           )}
         >
           <X className="size-4" aria-hidden="true" />
@@ -89,7 +94,7 @@ function DialogFooter({ className, ...props }) {
 }
 
 function DialogTitle({ className, ...props }) {
-  return <DialogPrimitive.Title className={cn('text-2xl leading-tight', className)} {...props} />;
+  return <DialogPrimitive.Title className={cn('text-lg font-semibold leading-none', className)} {...props} />;
 }
 
 function DialogDescription({ className, ...props }) {

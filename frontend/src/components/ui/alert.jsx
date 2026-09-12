@@ -3,18 +3,21 @@ import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 /**
- * Cada variante usa el relleno pastel del color y su tono fuerte como trazo y
- * como texto. Un aviso no grita: lo distingue el color, no el contraste.
+ * Aviso de shadcn, con las variantes de estado del sistema.
+ *
+ * El `default` es el de la librería: fondo de tarjeta y borde, sin color. Los
+ * tres de estado llevan relleno claro y el texto en el tono fuerte, que es lo
+ * que los hace distinguibles de un vistazo sin que griten.
  */
 const alertVariants = cva(
-  'relative w-full rounded-none border-2 px-4 py-3 text-sm leading-relaxed [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-3.5 [&>svg]:size-4 [&>svg~*]:pl-7',
+  'relative w-full rounded-lg border px-4 py-3 text-sm leading-relaxed [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-3.5 [&>svg]:size-4 [&>svg~*]:pl-7',
   {
     variants: {
       variant: {
-        default: 'border-trazo bg-secondary text-foreground',
-        destructive: 'border-destructive bg-destructive-suave text-destructive',
-        warning: 'border-warning bg-warning-suave text-warning',
-        success: 'border-success bg-success-suave text-success',
+        default: 'bg-card text-card-foreground',
+        destructive: 'border-destructive/20 bg-destructive-suave text-destructive',
+        warning: 'border-warning/20 bg-warning-suave text-warning',
+        success: 'border-success/20 bg-success-suave text-success',
       },
     },
     defaultVariants: { variant: 'default' },

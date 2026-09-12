@@ -18,10 +18,20 @@ const CAPACIDADES = [
 ];
 
 /**
- * Acceso partido en dos mitades: identidad a la izquierda, formulario a la
+ * Acceso partido por la mitad: identidad a la izquierda, formulario a la
  * derecha.
  *
- * El panel de marca se retira por debajo de `lg`: en un teléfono le robaría al
+ * Las dos mitades son exactamente la mitad —`w-1/2`—, sin la asimetría que
+ * tenía antes. El panel de marca es la única superficie honda de todo el
+ * sistema: aquí el grafito hace de identidad y, de paso, es lo que deja que el
+ * logotipo se vea tal cual se diseñó, sin el filtro que lleva en el resto de la
+ * aplicación.
+ *
+ * El formulario va desnudo sobre el fondo: sin tarjeta, sin borde y sin sombra.
+ * En esta pantalla no hay nada más con lo que pueda confundirse, así que un
+ * marco alrededor solo añadiría una línea que no separa nada.
+ *
+ * El panel se retira por debajo de `lg`: en un teléfono le robaría al
  * formulario la pantalla que necesita. Por eso la marca se repite arriba del
  * formulario, visible solo mientras el panel no está.
  */
@@ -59,43 +69,40 @@ function LoginPage() {
           diga: repetirlo en un lector de pantalla solo alarga el camino. */}
       <section
         aria-hidden="true"
-        className="hidden w-1/2 flex-col justify-between border-r-2 border-trazo bg-marino px-12 py-14 text-papel lg:flex xl:w-[55%]"
+        className="hidden w-1/2 flex-col justify-between bg-grafito px-12 py-14 text-nieve lg:flex"
       >
-        <Logotipo alt="" className="h-28 max-w-96" />
+        <Logotipo sobreOscuro alt="" className="h-28 max-w-96" />
 
         <div className="max-w-lg">
-          <p className="text-4xl font-semibold leading-[1.1] xl:text-5xl">
+          <p className="font-display text-4xl font-normal leading-[1.15] tracking-[-0.02em] xl:text-5xl">
             La agenda del laboratorio, en un solo lugar.
           </p>
 
-          <ul className="mt-10 flex flex-col gap-5">
+          <ul className="mt-10 flex flex-col gap-4">
             {CAPACIDADES.map(({ icono: Icono, texto }) => (
-              <li key={texto} className="flex items-center gap-4">
-                <span className="flex size-10 shrink-0 items-center justify-center border-2 border-turquesa/40 text-turquesa">
-                  <Icono className="size-5" />
-                </span>
-                <span className="text-[0.9375rem] text-turquesa">{texto}</span>
+              <li key={texto} className="flex items-center gap-3 text-[0.9375rem] text-nieve/75">
+                <Icono className="size-5 shrink-0 text-salvia" />
+                {texto}
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="text-xs text-turquesa/70">
+        <p className="text-xs text-nieve/50">
           Acceso exclusivo del personal. Las cuentas las crea el administrador.
         </p>
       </section>
 
-      <div className="flex w-full flex-col justify-center px-4 py-12 sm:px-10 lg:w-1/2 xl:w-[45%]">
+      <div className="flex w-full flex-col justify-center bg-background px-4 py-12 sm:px-10 lg:w-1/2">
         <div className="mx-auto w-full max-w-sm">
           {/* La marca solo mientras el panel de la izquierda no está. */}
           <div className="mb-8 flex justify-center lg:hidden">
-            <Logotipo sobreClaro className="h-20 max-w-72" />
+            <Logotipo className="h-20 max-w-64" />
           </div>
 
           <h1 className="text-3xl leading-none">Ingresar</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Use sus credenciales para entrar a la{' '}
-            <strong className="font-semibold text-titular">gestión de citas</strong>.
+            Use sus credenciales para entrar a la gestión de citas.
           </p>
 
           <form className="mt-8 flex flex-col gap-5" onSubmit={manejarEnvio} noValidate>

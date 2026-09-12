@@ -369,7 +369,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
               </div>
 
               {seleccionado ? (
-                <div className="flex flex-wrap items-center justify-between gap-2 border-2 border-trazo bg-secondary px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-secondary px-3 py-2">
                   <p className="text-sm">
                     Paciente ya registrado: <strong>{seleccionado.nombre_completo}</strong>
                   </p>
@@ -380,7 +380,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                   )}
                 </div>
               ) : coincidencias.length > 1 ? (
-                <div className="flex flex-col gap-2 border-2 border-trazo p-3">
+                <div className="flex flex-col gap-2 rounded-lg border p-3">
                   <p className="text-sm font-medium">
                     Hay {coincidencias.length} pacientes con ese teléfono. ¿Cuál es?
                   </p>
@@ -528,7 +528,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                   </Button>
                 </div>
 
-                <div className="grid max-h-44 gap-1 overflow-y-auto border-2 border-trazo p-2 sm:grid-cols-2">
+                <div className="grid max-h-44 gap-1 overflow-y-auto rounded-lg border p-2 sm:grid-cols-2">
                   {examenes.length === 0 ? (
                     <p className="p-2 text-sm text-muted-foreground">
                       Todavía no hay exámenes en el catálogo.
