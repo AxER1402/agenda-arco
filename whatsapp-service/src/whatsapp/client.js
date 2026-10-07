@@ -426,6 +426,12 @@ function partirDataUri(dataUri) {
 }
 
 /**
+ * Error de WhatsApp Web al armar un mensaje con adjunto: salta antes de que el
+ * mensaje se envíe, así que reintentar sin la imagen no lo duplica.
+ */
+const ERROR_DE_ADJUNTO = /must include an id property/i;
+
+/**
  * Envía un mensaje, con una imagen adjunta si se indica.
  *
  * Con imagen se manda un solo mensaje —la foto con el texto como pie— y no dos:
@@ -470,19 +476,40 @@ async function enviarMensaje(telefono, mensaje, imagen = null) {
       };
     }
 
-    // sendSeen: false porque marcar el chat como leído antes de enviar —lo que
-    // la librería hace por defecto— revienta con las versiones actuales de
-    // WhatsApp Web ("Data passed to getter must include an id property") y
-    // tumba el envío entero. Al laboratorio no le hace falta marcar nada leído.
+    // Al laboratorio no le hace falta marcar el chat como leído, y es un paso
+    // más que puede romperse con cada cambio de WhatsApp Web.
     const opciones = { sendSeen: false };
 
-    const resultado = adjunto
-      ? await client.sendMessage(
+    if (adjunto) {
+      try {
+        const resultado = await client.sendMessage(
           numeroId._serialized,
           new MessageMedia(adjunto.mimetype, adjunto.base64, 'recordatorio'),
           { ...opciones, caption: mensaje },
-        )
-      : await client.sendMessage(numeroId._serialized, mensaje, opciones);
+        );
+
+        return { enviado: true, idMensaje: resultado?.id?._serialized ?? null };
+      } catch (error) {
+        // Los cambios de WhatsApp Web suelen romper primero el envío de
+        // adjuntos (el texto sigue funcionando). El aviso importa más que la
+        // imagen: si la imagen es lo que falla, el recordatorio sale sin ella.
+        // Solo con este error, que salta antes de que el mensaje salga; con
+        // cualquier otro podría haberse enviado y se duplicaría.
+        if (!ERROR_DE_ADJUNTO.test(error.message)) throw error;
+
+        console.warn('[whatsapp] no se pudo adjuntar la imagen; se envía solo el texto:', error.message);
+
+        const resultado = await client.sendMessage(numeroId._serialized, mensaje, opciones);
+
+        return {
+          enviado: true,
+          idMensaje: resultado?.id?._serialized ?? null,
+          sinImagen: true,
+        };
+      }
+    }
+
+    const resultado = await client.sendMessage(numeroId._serialized, mensaje, opciones);
 
     return {
       enviado: true,

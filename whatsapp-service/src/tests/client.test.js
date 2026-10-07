@@ -264,6 +264,38 @@ describe('whatsapp/client', () => {
       expect(resultado.detalle).toContain('conexión perdida');
     });
 
+    it('si WhatsApp Web rechaza la imagen, envía el recordatorio solo con texto', async () => {
+      const instancia = whatsappClient.initialize();
+      instancia.sendMessage.mockImplementationOnce(async () => {
+        throw new Error("Data passed to getter must include an id property (it's how we memoize)");
+      });
+
+      const resultado = await whatsappClient.enviarMensaje(
+        '23232323',
+        'Hola',
+        'data:image/png;base64,iVBORw0KGgo=',
+      );
+
+      expect(resultado).toMatchObject({ enviado: true, sinImagen: true });
+      expect(__simular.mensajesEnviados()).toEqual([
+        { chatId: '50223232323@c.us', mensaje: 'Hola', media: null },
+      ]);
+    });
+
+    it('no reintenta sin imagen ante otros errores, para no duplicar el mensaje', async () => {
+      __simular.errorDeEnvio('conexión perdida');
+      const instancia = whatsappClient.initialize();
+
+      const resultado = await whatsappClient.enviarMensaje(
+        '23232323',
+        'Hola',
+        'data:image/png;base64,iVBORw0KGgo=',
+      );
+
+      expect(resultado).toMatchObject({ enviado: false, motivo: 'ERROR_ENVIO' });
+      expect(instancia.sendMessage).toHaveBeenCalledTimes(1);
+    });
+
     it('informa SERVICIO_NO_LISTO si la sesión no está vinculada', async () => {
       const resultado = await whatsappClient.enviarMensaje('23232323', 'Hola');
 

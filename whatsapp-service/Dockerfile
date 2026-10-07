@@ -32,6 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY package*.json ./
+# El postinstall parchea whatsapp-web.js: el script tiene que estar antes de
+# instalar.
+COPY scripts ./scripts
 
 # --- Desarrollo -------------------------------------------------------------
 FROM base AS development
