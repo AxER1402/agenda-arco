@@ -327,7 +327,9 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
   return (
     <>
       <Dialog open={abierto} onOpenChange={(valor) => !valor && onCerrar()}>
-        <DialogContent className="sm:max-w-2xl">
+        {/* Es el formulario más largo del sistema: un clic fuera o un Escape
+            no pueden tirar lo que ya se escribió. Se sale con Cancelar o la X. */}
+        <DialogContent className="sm:max-w-2xl" soloCierreExplicito>
           <DialogHeader>
             <DialogTitle>Nueva cita</DialogTitle>
             <DialogDescription>

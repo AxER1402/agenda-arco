@@ -30,8 +30,19 @@ const DialogClose = DialogPrimitive.Close;
  * A pantalla completa va sin radio ni borde —el canto redondeado contra el
  * borde del teléfono se ve como un error—, y desde `sm` recupera los de la
  * librería.
+ *
+ * Con `soloCierreExplicito` el diálogo no se cierra al pulsar fuera ni con
+ * Escape: solo con su botón de cancelar o con la X. Es para los formularios
+ * largos, donde un clic perdido junto al borde tiraba todo lo escrito.
  */
-function DialogContent({ className, children, ...props }) {
+function DialogContent({
+  className,
+  children,
+  soloCierreExplicito = false,
+  onInteractOutside,
+  onEscapeKeyDown,
+  ...props
+}) {
   return (
     <DialogPrimitive.Portal>
       {/* El fondo no se tapa: se desenfoca. Lo que dice que la página está
@@ -47,6 +58,14 @@ function DialogContent({ className, children, ...props }) {
           'sm:rounded-xl sm:border',
           className,
         )}
+        onInteractOutside={(evento) => {
+          if (soloCierreExplicito) evento.preventDefault();
+          onInteractOutside?.(evento);
+        }}
+        onEscapeKeyDown={(evento) => {
+          if (soloCierreExplicito) evento.preventDefault();
+          onEscapeKeyDown?.(evento);
+        }}
         {...props}
       >
         {/* El relleno de abajo respeta la franja del gesto de inicio en los

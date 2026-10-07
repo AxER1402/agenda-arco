@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import RecepcionCitaDialog from '@/components/citas/RecepcionCitaDialog';
@@ -347,5 +347,26 @@ describe('Envío', () => {
 
     expect(await screen.findByText('No se pudo programar la cita')).toBeInTheDocument();
     expect(screen.getByText(/alcanzó el límite de 40 pacientes/)).toBeInTheDocument();
+  });
+});
+
+describe('Cierre del formulario', () => {
+  it('no se cierra al pulsar fuera ni con Escape, solo con Cancelar o la X', async () => {
+    const onCerrar = jest.fn();
+    renderizar({ onCerrar });
+
+    await userEvent.type(screen.getByLabelText(/Teléfono/), '55599999');
+
+    fireEvent.pointerDown(document.body);
+    await userEvent.keyboard('{Escape}');
+
+    expect(onCerrar).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/Teléfono/)).toHaveValue('55599999');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(onCerrar).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+    expect(onCerrar).toHaveBeenCalledTimes(2);
   });
 });
