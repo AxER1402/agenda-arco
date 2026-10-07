@@ -6,6 +6,9 @@ node_modules/
 .env.local
 .env.*.local
 
+# Documentos de entrega (Word, PDF, Excel y diagramas): no son parte del código
+documentos/
+
 # Builds
 dist/
 build/
