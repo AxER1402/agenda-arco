@@ -41,11 +41,28 @@ PAC004|backend|paciente.service|DPI|Validación del DPI: normalización, opciona
 PAC005|backend|paciente.service|WhatsApp|Cambiar el teléfono olvida lo que se sabía del WhatsApp|Caja blanca — unitaria (regla de consistencia)
 PAC006|frontend|PacienteFormDialog|valida el teléfono en el cliente|acepta el teléfono válido|exige el nombre completo|El formulario valida antes de llamar al servidor|Caja negra — funcional (validación de entrada)
 PAC007|frontend|PacienteFormDialog|precarga los datos al editar|muestra el aviso de teléfono repetido|Precarga al editar y aviso del servidor en pantalla|Caja negra — funcional (integración)
+PAC008|backend|paciente.service|búsqueda|Búsqueda de pacientes, con paginación y sin los inactivos|Caja blanca — unitaria (positiva y valores límite)
 CIT001|backend|recepcion.service|registra paciente, orden y cita de una sola vez|calcula el vencimiento de la orden|Recepción completa: paciente, orden y cita de una vez|Caja blanca — de integración entre servicios
 CIT002|backend|recepcion.service|rechaza una cita posterior al vencimiento|último día de vigencia|no avisa nada raro|No se agenda tras el vencimiento; se sugieren fechas|Caja gris — valores límite sobre regla de negocio
 CIT003|backend|recepcion.service|rechaza el día lleno|rechaza una fecha de recepción futura|rechaza si no se indica ningún examen|Día lleno: se rechaza sin escribir nada|Caja blanca — unitaria (orden de validaciones)
 CIT004|backend|recepcion.service|Deshacer si la cita falla al final|Si la cita falla al final, se deshace lo creado|Caja blanca — unitaria (compensación ante error)
 CIT005|backend|recepcion.service|Confirmación de WhatsApp en el mostrador|Guardar si el número tiene WhatsApp, incluido «sin preguntar»|Caja negra — partición de equivalencia
+CIT006|backend|cita.service|Reprogramación de citas|Reagendar una cita cancelada|Reprogramar una cita sin salir de la vigencia ni del cupo|Caja gris — regla de negocio
+CIT007|frontend|AccionesCita|Cancelar|Cancelar una cita desde la pantalla, con o sin motivo|Caja negra — funcional (interfaz)
+CIT008|backend|cita.service|Estados de la cita|Cambios de estado de la cita: permitidos y prohibidos|Caja negra — transición de estados
+CIT009|backend|cita.service|Historial de citas del paciente|Historial de citas de un paciente|Caja blanca — unitaria (positiva y negativa)
+USU001|backend|usuario.service|rechaza un rol inexistente|Alta de usuario con un rol inexistente|Caja blanca — unitaria (negativa)
+USU002|backend|usuario.service|usuario.service.actualizar|Edición de usuarios sin quedarse sin administrador activo|Caja gris — regla de negocio
+USU003|backend|usuario.service|usuario.service.desactivar|Baja lógica de otro usuario, nunca de uno mismo|Caja blanca — unitaria (positiva y negativa)
+USU004|backend|usuario.service|usuario.service.eliminar|Borrado definitivo con confirmación de identidad|Caja blanca — unitaria (orden de validaciones)
+USU005|backend|usuario.service|crea el usuario con la contraseña cifrada|rechaza un nombre de acceso que ya existe|Alta correcta de un usuario y rechazo de un nombre repetido|Caja blanca — unitaria (positiva y negativa)
+AGE001|backend|agenda.service|la vista de mes cubre el mes completo|genera la estructura de todos los días|marca los domingos como no laborables|La agenda mensual se arma sola, con los días no laborables marcados|Caja blanca — unitaria
+AGE002|backend|agenda.service|la vista de día cubre un solo día|coloca cada cita en su día|calcula los espacios disponibles de cada día|devuelve capacidad, ocupación y espacios disponibles|Consulta de la agenda del día, con su ocupación|Caja blanca — unitaria
+AGE003|backend|api.routes|GET /api/agenda|PATCH /api/agenda/configuracion|Gestión de la agenda por la API: vistas y límite diario según el rol|Caja negra — de integración (rutas HTTP)
+AGE004|backend|agenda.service|disponibilidad.horasDisponibles|disponibilidad.sugerirFechas|Disponibilidad: horas libres y fechas con cupo|Caja gris — regla de negocio
+REC001|backend|recordatorio.service|generarMensaje|hora de envío configurable|prepararParaFecha|Preparación del recordatorio: mensaje, día y hora de envío|Caja blanca — unitaria
+REC002|backend|recordatorio.service|envío de recordatorios|enviarPendientes|enviarParaCita|Envío por WhatsApp y registro de su resultado|Caja gris — regla de negocio
+REC003|whatsapp-service|message.service|message.service|Validación y entrega del mensaje en el servicio de WhatsApp|Caja negra — partición de equivalencia y valores límite
 DATOS
 }
 
@@ -113,7 +130,7 @@ while IFS= read -r linea; do
   if [ "$proyecto" = "frontend" ]; then
     (cd "$RAIZ/frontend" && BABEL_ENV=test npx jest "$archivo" -t "$patron" --verbose)
   else
-    (cd "$RAIZ/backend" && npx jest "$archivo" -t "$patron" --verbose)
+    (cd "$RAIZ/$proyecto" && npx jest "$archivo" -t "$patron" --verbose)
   fi
 
   [ $? -ne 0 ] && salida_global=1

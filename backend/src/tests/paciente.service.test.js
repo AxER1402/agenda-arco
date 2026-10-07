@@ -139,6 +139,37 @@ describe('búsqueda', () => {
 
     expect(pacienteModel.buscar.mock.calls[0][0].limite).toBe(100);
   });
+
+  it('pasa al modelo lo que se escribió y deja fuera a los inactivos', async () => {
+    pacienteModel.buscar.mockResolvedValue({
+      pacientes: [{ id: 1, nombre_completo: 'Ana López' }],
+      total: 1,
+    });
+
+    const { pacientes } = await pacienteService.buscar({ termino: 'Ana' });
+
+    expect(pacientes).toHaveLength(1);
+    expect(pacienteModel.buscar).toHaveBeenCalledWith(
+      expect.objectContaining({ termino: 'Ana', incluirInactivos: false }),
+    );
+  });
+
+  it('incluye a los inactivos solo cuando se pide', async () => {
+    pacienteModel.buscar.mockResolvedValue({ pacientes: [], total: 0 });
+
+    await pacienteService.buscar({ termino: '5555', incluirInactivos: true });
+
+    expect(pacienteModel.buscar.mock.calls[0][0].incluirInactivos).toBe(true);
+  });
+
+  it('vuelve a la primera página si la pedida no es válida', async () => {
+    pacienteModel.buscar.mockResolvedValue({ pacientes: [], total: 0 });
+
+    const { paginacion } = await pacienteService.buscar({ pagina: 'abc' });
+
+    expect(paginacion.pagina).toBe(1);
+    expect(pacienteModel.buscar.mock.calls[0][0].desplazamiento).toBe(0);
+  });
 });
 
 describe('baja lógica', () => {
