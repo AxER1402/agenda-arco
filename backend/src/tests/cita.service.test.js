@@ -609,3 +609,40 @@ describe('Estados de la cita', () => {
     expect(citaModel.actualizar.mock.calls[0][1].notas).toContain('El paciente no puede asistir');
   });
 });
+
+describe('Historial de citas del paciente', () => {
+  it('devuelve todas sus citas, de la más reciente a la más antigua', async () => {
+    const historial = [
+      citaCreada({ id: 102, fecha: MANANA }),
+      citaCreada({ id: 101, fecha: AYER, estado: 'ATENDIDA', estado_nombre: 'Atendida' }),
+      citaCreada({ id: 100, fecha: fechas.sumarDias(HOY, -30), estado: 'CANCELADA' }),
+    ];
+    citaModel.listarPorPaciente.mockResolvedValue(historial);
+
+    const citas = await citaService.historialDePaciente(1);
+
+    expect(citaModel.listarPorPaciente).toHaveBeenCalledWith(1);
+    expect(citas.map((c) => c.id)).toEqual([102, 101, 100]);
+  });
+
+  it('incluye las canceladas y las atendidas: el historial no se filtra', async () => {
+    citaModel.listarPorPaciente.mockResolvedValue([
+      citaCreada({ estado: 'CANCELADA' }),
+      citaCreada({ estado: 'ATENDIDA' }),
+    ]);
+
+    const citas = await citaService.historialDePaciente(1);
+
+    expect(citas.map((c) => c.estado)).toEqual(['CANCELADA', 'ATENDIDA']);
+  });
+
+  it('responde 404 si el paciente no existe y no consulta sus citas', async () => {
+    pacienteModel.buscarPorId.mockResolvedValue(null);
+
+    await expect(citaService.historialDePaciente(999)).rejects.toMatchObject({
+      statusCode: 404,
+    });
+
+    expect(citaModel.listarPorPaciente).not.toHaveBeenCalled();
+  });
+});

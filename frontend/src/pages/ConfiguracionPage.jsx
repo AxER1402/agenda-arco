@@ -170,9 +170,17 @@ function ConfiguracionPage() {
       const preparacion = await prepararRecordatorios();
       const envio = await enviarRecordatoriosPendientes();
 
-      toast.success(
-        `Preparados: ${preparacion.preparados}. Enviados: ${envio.enviados}. Fallidos: ${envio.fallidos}.`,
-      );
+      if (envio.ya_en_curso) {
+        toast.info('Ya hay un envío de recordatorios en marcha; espera a que termine.');
+      } else if (envio.total === 0) {
+        toast.success(`Preparados: ${preparacion.preparados}. No hay recordatorios por enviar.`);
+      } else {
+        // Salen uno por minuto para que WhatsApp no los tome por automatizados.
+        toast.success(
+          `Preparados: ${preparacion.preparados}. Enviando ${envio.total}, uno por minuto` +
+            (envio.minutos_estimados > 0 ? ` (unos ${envio.minutos_estimados} min).` : '.'),
+        );
+      }
     } catch (error) {
       toast.error(error.message);
     }

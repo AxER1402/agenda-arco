@@ -88,6 +88,41 @@ describe('usuario.service.crear', () => {
       }),
     ).rejects.toMatchObject({ statusCode: 400 });
   });
+
+  it('crea el usuario con la contraseña cifrada y el rol resuelto', async () => {
+    usuarioModel.existeUsuario.mockResolvedValue(false);
+    usuarioModel.buscarRolPorCodigo.mockResolvedValue({ id: 2, codigo: ROLES.PERSONAL_CITAS });
+    usuarioModel.crear.mockImplementation(async (datos) => ({ id: 8, ...datos }));
+
+    const creado = await usuarioService.crear({
+      nombreCompleto: 'Ana López',
+      usuario: 'ana.lopez',
+      contrasena: 'ClaveSegura2026',
+      rol: ROLES.PERSONAL_CITAS,
+    });
+
+    const datos = usuarioModel.crear.mock.calls[0][0];
+    expect(creado.id).toBe(8);
+    expect(datos).toMatchObject({ nombreCompleto: 'Ana López', usuario: 'ana.lopez', rolId: 2 });
+    // Se guarda el hash, nunca la contraseña tal como se escribió.
+    expect(datos.passwordHash).not.toBe('ClaveSegura2026');
+    expect(datos.passwordHash).toMatch(/^\$2[aby]\$/);
+  });
+
+  it('rechaza un nombre de acceso que ya existe', async () => {
+    usuarioModel.existeUsuario.mockResolvedValue(true);
+
+    await expect(
+      usuarioService.crear({
+        nombreCompleto: 'Otra Ana',
+        usuario: 'ana.lopez',
+        contrasena: 'ClaveSegura2026',
+        rol: ROLES.PERSONAL_CITAS,
+      }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(usuarioModel.crear).not.toHaveBeenCalled();
+  });
 });
 
 describe('usuario.service.eliminar', () => {

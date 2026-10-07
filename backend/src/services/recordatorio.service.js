@@ -177,26 +177,91 @@ async function enviar(recordatorio, { imagen } = {}) {
   );
 }
 
-/** Procesa todos los recordatorios pendientes cuya hora ya llegó. */
-async function enviarPendientes() {
-  const pendientes = await recordatorioModel.listarPendientes({
-    hasta: `${fechas.hoy()} 23:59:59`,
-  });
+/**
+ * Pausa entre un recordatorio y el siguiente (1 minuto por defecto).
+ *
+ * El envío va por un cliente no oficial de WhatsApp: una ráfaga de mensajes
+ * idénticos desde el mismo número es justo lo que WhatsApp detecta como
+ * automatizado, y puede bloquear la cuenta durante horas. Espaciarlos hace que
+ * la tanda parezca escrita a mano. Se lee en cada tanda para que las pruebas
+ * puedan dejarla en 0.
+ */
+function pausaEntreEnvios() {
+  const valor = Number(process.env.RECORDATORIOS_PAUSA_MS);
+  return Number.isFinite(valor) && valor >= 0 ? valor : 60_000;
+}
 
+const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
+
+/** La tanda en marcha, si la hay: nunca deben correr dos a la vez. */
+let envioEnCurso = null;
+
+async function enviarTanda(pendientes) {
   const resumen = { total: pendientes.length, enviados: 0, fallidos: 0 };
 
   // La imagen es la misma para toda la tanda: se lee una vez.
   const imagen = await configuracionService.obtener(
     configuracionService.CLAVES.IMAGEN_RECORDATORIO,
   );
+  const pausa = pausaEntreEnvios();
 
-  for (const pendiente of pendientes) {
-    const actualizado = await enviar(pendiente, { imagen });
-    if (actualizado.estado === 'ENVIADO') resumen.enviados += 1;
-    else resumen.fallidos += 1;
+  for (const [indice, pendiente] of pendientes.entries()) {
+    if (indice > 0 && pausa > 0) await esperar(pausa);
+
+    try {
+      const actualizado = await enviar(pendiente, { imagen });
+      if (actualizado.estado === 'ENVIADO') resumen.enviados += 1;
+      else resumen.fallidos += 1;
+    } catch (error) {
+      // Un error con un paciente no debe dejar sin aviso al resto de la tanda.
+      console.error(`[recordatorios] no se pudo enviar el ${pendiente.id}:`, error.message);
+      resumen.fallidos += 1;
+    }
   }
 
   return resumen;
+}
+
+/**
+ * Arranca el envío de los pendientes cuya hora ya llegó, uno por minuto.
+ *
+ * Devuelve en el acto cuántos hay y si ya había una tanda corriendo; `fin` es
+ * la promesa que se resuelve con el resumen cuando sale el último. Si ya hay
+ * una tanda en marcha no se lanza otra: se mandarían los mismos dos veces.
+ */
+async function lanzarEnvioPendientes() {
+  if (envioEnCurso) return { ...envioEnCurso.info, ya_en_curso: true };
+
+  const pendientes = await recordatorioModel.listarPendientes({
+    hasta: `${fechas.hoy()} 23:59:59`,
+  });
+
+  // Se comprueba otra vez: otra llamada pudo arrancar mientras se leía la lista.
+  if (envioEnCurso) return { ...envioEnCurso.info, ya_en_curso: true };
+
+  const pausa = pausaEntreEnvios();
+  const fin = enviarTanda(pendientes).finally(() => {
+    envioEnCurso = null;
+  });
+  const info = {
+    total: pendientes.length,
+    pausa_segundos: Math.round(pausa / 1000),
+    minutos_estimados: Math.ceil((Math.max(pendientes.length - 1, 0) * pausa) / 60_000),
+    fin,
+  };
+
+  envioEnCurso = { info };
+
+  return { ...info, ya_en_curso: false };
+}
+
+/**
+ * Procesa todos los recordatorios pendientes cuya hora ya llegó y espera a que
+ * salga el último. Si ya había una tanda corriendo, espera a esa.
+ */
+async function enviarPendientes() {
+  const { fin } = await lanzarEnvioPendientes();
+  return fin;
 }
 
 /**
@@ -394,6 +459,7 @@ module.exports = {
   prepararParaFecha,
   enviar,
   enviarPendientes,
+  lanzarEnvioPendientes,
   enviarParaCita,
   reprogramarParaCita,
   procesarRecordatoriosDiarios,
