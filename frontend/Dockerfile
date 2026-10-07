@@ -14,7 +14,9 @@ CMD ["npm", "run", "dev"]
 # --- Compilación de la SPA --------------------------------------------------
 FROM base AS build
 ENV NODE_ENV=production
-RUN npm ci
+# Vite y el resto de herramientas de compilación son devDependencies, y con
+# NODE_ENV=production npm ci las salta: hay que pedirlas expresamente.
+RUN npm ci --include=dev
 COPY . .
 # La URL de la API se incrusta en el bundle en tiempo de compilación.
 ARG VITE_API_URL=http://localhost:3000/api
