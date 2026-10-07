@@ -604,6 +604,67 @@ describe('enviarPendientes', () => {
   });
 });
 
+describe('pausa entre envíos', () => {
+  const PAUSA_EN_PRUEBAS = process.env.RECORDATORIOS_PAUSA_MS;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    process.env.RECORDATORIOS_PAUSA_MS = '60000';
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    process.env.RECORDATORIOS_PAUSA_MS = PAUSA_EN_PRUEBAS;
+  });
+
+  /** Una ráfaga desde el mismo número es lo que WhatsApp toma por un bot. */
+  it('deja un minuto entre un paciente y el siguiente', async () => {
+    recordatorioModel.listarPendientes.mockResolvedValue([
+      recordatorioDePrueba({ id: 1 }),
+      recordatorioDePrueba({ id: 2 }),
+      recordatorioDePrueba({ id: 3 }),
+    ]);
+    whatsappClient.enviarMensaje.mockResolvedValue({ enviado: true });
+
+    const envio = recordatorioService.enviarPendientes();
+
+    // El primero sale sin esperar.
+    await jest.advanceTimersByTimeAsync(0);
+    expect(whatsappClient.enviarMensaje).toHaveBeenCalledTimes(1);
+
+    await jest.advanceTimersByTimeAsync(59_999);
+    expect(whatsappClient.enviarMensaje).toHaveBeenCalledTimes(1);
+
+    await jest.advanceTimersByTimeAsync(1);
+    expect(whatsappClient.enviarMensaje).toHaveBeenCalledTimes(2);
+
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(await envio).toEqual({ total: 3, enviados: 3, fallidos: 0 });
+  });
+
+  it('no arranca una segunda tanda mientras la primera sigue en marcha', async () => {
+    recordatorioModel.listarPendientes.mockResolvedValue([
+      recordatorioDePrueba({ id: 1 }),
+      recordatorioDePrueba({ id: 2 }),
+    ]);
+    whatsappClient.enviarMensaje.mockResolvedValue({ enviado: true });
+
+    const primera = await recordatorioService.lanzarEnvioPendientes();
+    const segunda = await recordatorioService.lanzarEnvioPendientes();
+
+    expect(primera).toEqual(
+      expect.objectContaining({ total: 2, minutos_estimados: 1, ya_en_curso: false }),
+    );
+    expect(segunda.ya_en_curso).toBe(true);
+
+    await jest.advanceTimersByTimeAsync(60_000);
+    await primera.fin;
+
+    expect(whatsappClient.enviarMensaje).toHaveBeenCalledTimes(2);
+    expect(recordatorioModel.listarPendientes).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('reintentar', () => {
   it('vuelve a intentar un recordatorio fallido', async () => {
     recordatorioModel.buscarPorId.mockResolvedValue(

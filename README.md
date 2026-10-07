@@ -227,9 +227,17 @@ fije el laboratorio** en Configuración → *Hora de los recordatorios* (08:00 p
 defecto, hora de Guatemala). Al guardarla, el proceso programado se remonta en
 caliente: no hace falta reiniciar el backend ni tocar variables de entorno.
 
+Salen **de uno en uno, con un minuto entre paciente y paciente**: el envío va
+por un cliente no oficial de WhatsApp, y una ráfaga de mensajes iguales desde el
+mismo número es lo que WhatsApp toma por automatizado y castiga bloqueando la
+cuenta unas horas. Con 30 citas, la tanda dura una media hora. Nunca corren dos
+tandas a la vez, y la pausa se puede cambiar con `RECORDATORIOS_PAUSA_MS`.
+
 Además se pueden lanzar a mano de dos maneras:
 
-- **Todos los de mañana**, desde Configuración.
+- **Todos los de mañana**, desde Configuración. La petición responde en cuanto
+  arranca la tanda (`202`) y los avisos siguen saliendo, uno por minuto, en
+  segundo plano; el resultado de cada uno queda en el historial.
 - **El de una cita concreta**, desde su menú de acciones en Citas o Agenda
   (`POST /api/recordatorios/cita/:citaId`). Sale en el momento, sin esperar a la
   hora programada; sirve cuando se agenda para el día siguiente ya entrada la

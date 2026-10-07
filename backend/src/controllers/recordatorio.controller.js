@@ -29,10 +29,19 @@ async function preparar(req, res, next) {
   }
 }
 
-/** POST /api/recordatorios/enviar — ejecuta el envío de los pendientes. */
+/**
+ * POST /api/recordatorios/enviar — arranca el envío de los pendientes.
+ *
+ * Sale uno por minuto, así que la tanda puede durar media hora: se responde en
+ * cuanto empieza (202) y el resultado de cada uno queda en el historial.
+ */
 async function enviarPendientes(req, res, next) {
   try {
-    res.status(200).json(await recordatorioService.enviarPendientes());
+    const { fin, ...envio } = await recordatorioService.lanzarEnvioPendientes();
+
+    fin.catch((error) => console.error('[recordatorios] la tanda manual falló:', error.message));
+
+    res.status(202).json(envio);
   } catch (error) {
     next(error);
   }
