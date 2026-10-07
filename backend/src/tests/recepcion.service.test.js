@@ -267,6 +267,32 @@ describe('Validaciones antes de escribir', () => {
     expect(pacienteModel.crear).not.toHaveBeenCalled();
   });
 
+  it('rechaza una cita que cae el día de la cita del IGSS o después', async () => {
+    const citaIgss = fechas.sumarDias(HOY, 20);
+
+    const error = await recepcionService
+      .recibir(datosBase({ fechaCitaIgss: citaIgss, fecha: citaIgss }))
+      .catch((e) => e);
+
+    expect(error.statusCode).toBe(422);
+    expect(error.details.motivo).toBe('DESPUES_DE_CITA_IGSS');
+    expect(error.details.fecha_limite).toBe(fechas.sumarDias(citaIgss, -1));
+    error.details.fechas_sugeridas.forEach(({ fecha }) => {
+      expect(fechas.comparar(fecha, citaIgss)).toBeLessThan(0);
+    });
+    expect(pacienteModel.crear).not.toHaveBeenCalled();
+  });
+
+  it('guarda la fecha de la cita del IGSS en la orden', async () => {
+    const citaIgss = fechas.sumarDias(HOY, 20);
+
+    await recepcionService.recibir(datosBase({ fechaCitaIgss: citaIgss }));
+
+    expect(ordenModel.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ fechaCitaIgss: citaIgss }),
+    );
+  });
+
   it('rechaza el día lleno sin haber creado nada', async () => {
     citaModel.contarOcupacion.mockResolvedValue(LIMITE_DIARIO);
 

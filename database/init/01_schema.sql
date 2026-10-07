@@ -93,6 +93,8 @@ CREATE TABLE ordenes (
   numero_orden      VARCHAR(50)   NULL,
   fecha_entrega     DATE          NOT NULL,
   fecha_vencimiento DATE          NOT NULL,
+  -- Cita del paciente en el IGSS: la del laboratorio tiene que ser antes.
+  fecha_cita_igss   DATE          NULL,
   observaciones     VARCHAR(255)  NULL,
   creado_por        INT UNSIGNED  NULL,
   creado_en         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,

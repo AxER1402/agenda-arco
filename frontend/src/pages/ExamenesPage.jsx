@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlaskConical, Pencil, Power, Search } from 'lucide-react';
+import { FlaskConical, Pencil, Power, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DialogoConfirmacion from '@/components/DialogoConfirmacion';
@@ -17,20 +17,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useAuth } from '@/context/AuthContext';
 import { useTerminoRetrasado } from '@/hooks/useTerminoRetrasado';
-import { desactivarExamen, listarExamenes } from '@/services/catalogo.service';
+import { actualizarExamen, eliminarExamen, listarExamenes } from '@/services/catalogo.service';
 
 /**
  * Catálogo de exámenes.
  *
- * Cualquiera puede agregar uno —si un paciente llega con un examen que no está
- * en la lista, no puede quedarse sin cita—, pero modificar o desactivar lo que
- * ya existe es del administrador, que es quien responde por el catálogo.
+ * Lo mantiene todo el personal: quien atiende al paciente es quien se encuentra
+ * con el examen que falta o el nombre mal escrito. Un examen que ya está en
+ * alguna cita u orden no se puede eliminar —se perdería ese historial—; se
+ * desactiva para que deje de ofrecerse, y se puede volver a activar.
  */
 function ExamenesPage() {
-  const { esAdministrador } = useAuth();
-
   const [termino, setTermino] = useState('');
   const terminoRetrasado = useTerminoRetrasado(termino);
 
@@ -38,19 +36,20 @@ function ExamenesPage() {
   const [cargando, setCargando] = useState(true);
   const [dialogo, setDialogo] = useState({ abierto: false, examen: null });
   const [desactivando, setDesactivando] = useState(null);
+  const [eliminando, setEliminando] = useState(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
       setExamenes(
-        await listarExamenes({ termino: terminoRetrasado, incluirInactivos: esAdministrador }),
+        await listarExamenes({ termino: terminoRetrasado, incluirInactivos: true }),
       );
     } catch (error) {
       toast.error(error.message);
     } finally {
       setCargando(false);
     }
-  }, [terminoRetrasado, esAdministrador]);
+  }, [terminoRetrasado]);
 
   useEffect(() => {
     cargar();
@@ -58,8 +57,24 @@ function ExamenesPage() {
 
   /** El error sube al diálogo, que lo muestra sin cerrarse. */
   async function desactivar() {
-    await desactivarExamen(desactivando.id);
+    await actualizarExamen(desactivando.id, { activo: false });
     toast.success('Examen desactivado.');
+    cargar();
+  }
+
+  async function activar(examen) {
+    try {
+      await actualizarExamen(examen.id, { activo: true });
+      toast.success('Examen activado.');
+      cargar();
+    } catch (error) {
+      toast.error(error.message);
+    }
+  }
+
+  async function eliminar() {
+    await eliminarExamen(eliminando.id);
+    toast.success('Examen eliminado.');
     cargar();
   }
 
@@ -99,12 +114,12 @@ function ExamenesPage() {
             <TableHead>Código IGSS</TableHead>
             <TableHead>Nombre</TableHead>
             <TableHead>Descripción</TableHead>
-            {esAdministrador && <TableHead className="text-right">Acciones</TableHead>}
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {examenes.length === 0 ? (
-            <TableEmpty colSpan={esAdministrador ? 4 : 3}>
+            <TableEmpty colSpan={4}>
               {cargando
                 ? 'Cargando...'
                 : termino
@@ -125,33 +140,53 @@ function ExamenesPage() {
                 <TableCell>{examen.nombre}</TableCell>
                 <TableCell className="text-muted-foreground">{examen.descripcion}</TableCell>
 
-                {esAdministrador && (
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
+                <TableCell>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Editar"
+                      onClick={() => setDialogo({ abierto: true, examen })}
+                    >
+                      <Pencil aria-hidden="true" />
+                      <span className="sr-only">Editar {examen.nombre}</span>
+                    </Button>
+
+                    {examen.activo ? (
                       <Button
                         size="icon"
                         variant="ghost"
-                        title="Editar"
-                        onClick={() => setDialogo({ abierto: true, examen })}
+                        title="Desactivar"
+                        onClick={() => setDesactivando(examen)}
                       >
-                        <Pencil aria-hidden="true" />
-                        <span className="sr-only">Editar {examen.nombre}</span>
+                        <Power aria-hidden="true" />
+                        <span className="sr-only">Desactivar {examen.nombre}</span>
                       </Button>
+                    ) : (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Activar"
+                        className="text-primary"
+                        onClick={() => activar(examen)}
+                      >
+                        <Power aria-hidden="true" />
+                        <span className="sr-only">Activar {examen.nombre}</span>
+                      </Button>
+                    )}
 
-                      {Boolean(examen.activo) && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          title="Desactivar"
-                          onClick={() => setDesactivando(examen)}
-                        >
-                          <Power aria-hidden="true" />
-                          <span className="sr-only">Desactivar {examen.nombre}</span>
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Eliminar"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setEliminando(examen)}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      <span className="sr-only">Eliminar {examen.nombre}</span>
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))
           )}
@@ -172,6 +207,16 @@ function ExamenesPage() {
         titulo={`¿Desactivar "${desactivando?.nombre}"?`}
         descripcion="Dejará de poder asignarse a citas nuevas. Las citas que ya lo tienen no cambian, y puede volver a activarlo cuando quiera."
         textoConfirmar="Desactivar"
+      />
+
+      <DialogoConfirmacion
+        abierto={Boolean(eliminando)}
+        onCerrar={() => setEliminando(null)}
+        onConfirmar={eliminar}
+        titulo={`¿Eliminar "${eliminando?.nombre}"?`}
+        descripcion="Se borra del catálogo para siempre. Si ya está asignado a alguna cita u orden no se podrá eliminar: en ese caso desactívelo."
+        textoConfirmar="Eliminar"
+        destructivo
       />
     </div>
   );

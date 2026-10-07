@@ -404,6 +404,40 @@ describe('Reprogramación de citas', () => {
   });
 });
 
+describe('Editar los exámenes de una cita', () => {
+  const examenModel = require('../models/examen.model');
+
+  beforeEach(() => {
+    citaModel.buscarPorId.mockResolvedValue(citaCreada());
+    citaModel.actualizar.mockImplementation(async (id, cambios) => citaCreada(cambios));
+  });
+
+  it('acepta los de la orden sin tocarla', async () => {
+    await citaService.actualizar(100, { examenes: [2] });
+
+    expect(citaModel.actualizar).toHaveBeenCalledWith(100, { examenes: [2] }, null);
+    expect(ordenModel.actualizar).not.toHaveBeenCalled();
+  });
+
+  it('agrega a la orden un examen que no traía', async () => {
+    examenModel.listarPorIds.mockResolvedValue([{ id: 7, nombre: 'Orina', activo: 1 }]);
+
+    await citaService.actualizar(100, { examenes: [1, 7] });
+
+    expect(ordenModel.actualizar).toHaveBeenCalledWith(10, { examenes: [1, 2, 7] });
+    expect(citaModel.actualizar).toHaveBeenCalledWith(100, { examenes: [1, 7] }, null);
+  });
+
+  it('rechaza un examen nuevo que está inactivo', async () => {
+    examenModel.listarPorIds.mockResolvedValue([{ id: 7, nombre: 'Orina', activo: 0 }]);
+
+    await expect(citaService.actualizar(100, { examenes: [7] })).rejects.toMatchObject({
+      statusCode: 400,
+    });
+    expect(citaModel.actualizar).not.toHaveBeenCalled();
+  });
+});
+
 describe('Reagendar una cita cancelada', () => {
   /** Una cancelada no ocupa cupo: es lo que cambia al reactivarla. */
   function citaCancelada(cambios = {}) {

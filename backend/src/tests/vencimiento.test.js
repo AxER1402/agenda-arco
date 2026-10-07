@@ -86,6 +86,61 @@ describe('fechaDentroDeVigencia — ejemplo del requisito 13', () => {
   });
 });
 
+/**
+ * El ejemplo del laboratorio: orden entregada el 1 de octubre, vence el 1 de
+ * enero. Si la cita del IGSS es antes —1 de diciembre— manda ella; si es
+ * después —1 de febrero— manda el vencimiento.
+ */
+describe('fechaLimiteCita', () => {
+  const { fechaLimiteCita } = ordenService;
+  const VENCE = calcularVencimiento('2026-10-01', 3);
+
+  it('sin cita del IGSS, el límite es el vencimiento', () => {
+    expect(VENCE).toBe('2027-01-01');
+    expect(fechaLimiteCita({ fecha_vencimiento: VENCE })).toEqual({
+      fecha: '2027-01-01',
+      motivo: 'VENCIMIENTO',
+    });
+  });
+
+  it('con la cita del IGSS antes del vencimiento, el límite es su víspera', () => {
+    expect(fechaLimiteCita({ fecha_vencimiento: VENCE, fecha_cita_igss: '2026-12-01' })).toEqual({
+      fecha: '2026-11-30',
+      motivo: 'CITA_IGSS',
+    });
+  });
+
+  it('con la cita del IGSS después del vencimiento, sigue mandando el vencimiento', () => {
+    expect(fechaLimiteCita({ fecha_vencimiento: VENCE, fecha_cita_igss: '2027-02-01' })).toEqual({
+      fecha: '2027-01-01',
+      motivo: 'VENCIMIENTO',
+    });
+  });
+
+  it('con la cita del IGSS el día siguiente al vencimiento, el vencimiento sigue valiendo', () => {
+    expect(
+      fechaLimiteCita({ fecha_vencimiento: VENCE, fecha_cita_igss: '2027-01-02' }).motivo,
+    ).toBe('VENCIMIENTO');
+  });
+});
+
+describe('normalizarCitaIgss', () => {
+  const { normalizarCitaIgss } = ordenService;
+
+  it('acepta una fecha posterior a la entrega', () => {
+    expect(normalizarCitaIgss('2026-12-01', '2026-10-01')).toBe('2026-12-01');
+  });
+
+  it('deja en null una fecha vacía y en undefined una que no se mandó', () => {
+    expect(normalizarCitaIgss('', '2026-10-01')).toBeNull();
+    expect(normalizarCitaIgss(undefined, '2026-10-01')).toBeUndefined();
+  });
+
+  it('rechaza una cita del IGSS anterior a la entrega de la orden', () => {
+    expect(() => normalizarCitaIgss('2026-09-30', '2026-10-01')).toThrow(/anterior/);
+  });
+});
+
 describe('diasParaVencer', () => {
   it('cuenta los días que faltan', () => {
     expect(diasParaVencer('2026-11-10', '2026-11-01')).toBe(9);

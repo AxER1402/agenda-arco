@@ -23,6 +23,7 @@ docker compose exec -T database mysql -u root -p"$DB_ROOT_PASSWORD" el_arco \
 | Migración | Qué cambia |
 | --- | --- |
 | `2026-08-11_dpi_paciente.sql` | Agrega el DPI (opcional, 13 dígitos) al paciente. |
+| `2026-10-07_fecha_cita_igss.sql` | Agrega a la orden la fecha de la cita del paciente en el IGSS. |
 | `2026-08-11_hora_recordatorios.sql` | Hora configurable del envío de recordatorios. |
 | `2026-08-11_plantilla_recordatorio.sql` | Mensaje del recordatorio editable y con imagen opcional. `configuracion.valor` pasa a `MEDIUMTEXT`. |
 

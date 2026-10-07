@@ -107,15 +107,20 @@ async function sugerirFechas({
 /**
  * Sugerencias para una orden concreta.
  *
- * Nunca propone una fecha posterior al vencimiento, porque sería una fecha que
- * el sistema volvería a rechazar. Se ofrecen las más cercanas al vencimiento
+ * Nunca propone una fecha posterior al límite de la orden —el vencimiento, o la
+ * víspera de la cita del IGSS si cae antes—, porque sería una fecha que el
+ * sistema volvería a rechazar. Se ofrecen las más cercanas a ese límite
  * primero: es lo que pidió el laboratorio, para agotar la vigencia de la orden
  * antes que los días próximos.
  */
 async function sugerirFechasParaOrden(orden, { cantidad = 3, excluirFechas = [] } = {}) {
+  // Se importa aquí: orden.service es quien define el límite y así no se
+  // arrastra todo su árbol de dependencias al cargar este módulo.
+  const { fechaLimiteCita } = require('./orden.service');
+
   return sugerirFechas({
     desde: fechas.hoy(),
-    hasta: orden.fecha_vencimiento,
+    hasta: fechaLimiteCita(orden).fecha,
     cantidad,
     excluirFechas,
     preferencia: 'CERCA_DEL_VENCIMIENTO',

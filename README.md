@@ -143,8 +143,10 @@ Las crea `database/init/03_usuarios_demo.sql` al inicializar la base.
    edición de datos. El administrador puede además **eliminar** una ficha, que
    se lleva por delante sus citas y sus órdenes; es para el duplicado o el
    registro hecho sobre la persona equivocada, no para dar de baja a nadie.
-7. **Exámenes**: catálogo de lo que se puede asignar a una cita. Cualquiera
-   puede agregar uno; editarlos y desactivarlos es del administrador.
+7. **Exámenes**: catálogo de lo que se puede asignar a una cita. Todo el
+   personal puede agregarlos, editarlos, desactivarlos y eliminarlos. Eliminar
+   solo se permite con exámenes que ninguna cita ni orden usa; los demás se
+   desactivan para que dejen de ofrecerse.
 8. **Reportes**: se elige un periodo y se descarga en **PDF** —listo para
    imprimir— o en **Word** —para editarlo antes de entregarlo—. Son dos:
    el **listado de citas** del periodo (fecha, hora, paciente, teléfono,
@@ -353,9 +355,26 @@ Al rechazar, la API responde `422` con el motivo y hasta tres fechas sugeridas
 que están dentro de la vigencia y tienen cupo. Si no queda ninguna, se avisa de
 que el paciente necesita una orden nueva.
 
+### Cita del IGSS
+
+Si el paciente ya tiene cita en el IGSS (campo **Fecha cita IGSS** de la
+recepción, opcional), los resultados tienen que estar para ese día. El último
+día posible para la cita del laboratorio pasa a ser la **víspera** de la cita
+del IGSS, pero solo cuando cae antes del vencimiento:
+
+```text
+Recibida el 01/10, vence el 01/01
+Cita IGSS 01/12  →  la del laboratorio, a más tardar el 30/11
+Cita IGSS 01/02  →  manda el vencimiento: a más tardar el 01/01
+```
+
+Las sugerencias, el calendario y la validación usan ese límite. Una fecha
+posterior se rechaza con `422` y motivo `DESPUES_DE_CITA_IGSS`.
+
 ### Qué fecha se propone
 
-Las sugerencias se cuentan **desde el vencimiento hacia atrás**: se ofrece
+Las sugerencias se cuentan **desde el vencimiento —o la víspera de la cita del
+IGSS— hacia atrás**: se ofrece
 primero el último día en que la orden todavía vale y que tenga cupo. Así se
 aprovecha la vigencia completa en lugar de llenar los días próximos.
 
@@ -420,9 +439,10 @@ Todos los endpoints responden JSON. Los errores usan el formato
 | DELETE | `/api/pacientes/:id/definitivo` (borra también sus citas y órdenes; exige `contrasena` en el cuerpo) | Administrador |
 | GET/POST | `/api/examenes` | Autenticado |
 | GET | `/api/examenes/:id` | Autenticado |
-| PATCH/DELETE | `/api/examenes/:id` | Administrador |
+| PATCH | `/api/examenes/:id` (incluye `activo` para desactivar) | Autenticado |
+| DELETE | `/api/examenes/:id` (borrado definitivo; 409 si está en uso) | Autenticado |
 | GET/POST | `/api/ordenes` | Autenticado |
-| GET | `/api/ordenes/vencimiento?fechaEntrega=` | Autenticado |
+| GET | `/api/ordenes/vencimiento?fechaEntrega=&fechaCitaIgss=` (la segunda es opcional) | Autenticado |
 | GET | `/api/ordenes/por-vencer?dias=` | Autenticado |
 | GET/PATCH | `/api/ordenes/:id` | Autenticado |
 | POST | `/api/citas/recepcion` (paciente + orden + cita) | Autenticado |

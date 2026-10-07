@@ -6,8 +6,8 @@ import CampoFormulario from '@/components/CampoFormulario';
 import EncabezadoModulo from '@/components/layout/EncabezadoModulo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { SelectNativo } from '@/components/ui/select-nativo';
+import { SelectorFecha } from '@/components/ui/selector-fecha';
+import { Select } from '@/components/ui/select';
 import { descargarReporte } from '@/services/reporte.service';
 import { hoyISO } from '@/lib/formato';
 
@@ -124,9 +124,8 @@ function ReportesPage() {
               error={rangoInvertido ? 'La fecha inicial no puede ser posterior a la final.' : undefined}
             >
               {(props) => (
-                <Input
+                <SelectorFecha
                   {...props}
-                  type="date"
                   max={periodo.hasta || undefined}
                   value={periodo.desde}
                   onChange={cambiarPeriodo('desde')}
@@ -136,9 +135,8 @@ function ReportesPage() {
 
             <CampoFormulario id="reporte-hasta" etiqueta="Hasta">
               {(props) => (
-                <Input
+                <SelectorFecha
                   {...props}
-                  type="date"
                   min={periodo.desde || undefined}
                   value={periodo.hasta}
                   onChange={cambiarPeriodo('hasta')}
@@ -166,7 +164,7 @@ function ReportesPage() {
               ayuda="Solo afecta a este reporte."
             >
               {(props) => (
-                <SelectNativo
+                <Select
                   {...props}
                   value={estado}
                   onChange={(evento) => setEstado(evento.target.value)}
@@ -176,7 +174,7 @@ function ReportesPage() {
                       {texto}
                     </option>
                   ))}
-                </SelectNativo>
+                </Select>
               )}
             </CampoFormulario>
           </div>

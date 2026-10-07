@@ -74,4 +74,28 @@ async function actualizar(id, cambios) {
   return buscarPorId(id);
 }
 
-module.exports = { buscarPorId, buscarPorCodigo, listar, listarPorIds, crear, actualizar };
+/** Cuántas citas y órdenes tienen asignado el examen. */
+async function contarUsos(id) {
+  const fila = await queryOne(
+    `SELECT (SELECT COUNT(*) FROM cita_examenes WHERE examen_id = :id) AS citas,
+            (SELECT COUNT(*) FROM orden_examenes WHERE examen_id = :id) AS ordenes`,
+    { id },
+  );
+
+  return { citas: Number(fila?.citas ?? 0), ordenes: Number(fila?.ordenes ?? 0) };
+}
+
+async function eliminar(id) {
+  await query('DELETE FROM examenes WHERE id = :id', { id });
+}
+
+module.exports = {
+  buscarPorId,
+  buscarPorCodigo,
+  listar,
+  listarPorIds,
+  contarUsos,
+  crear,
+  actualizar,
+  eliminar,
+};

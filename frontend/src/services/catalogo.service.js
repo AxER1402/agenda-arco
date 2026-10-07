@@ -17,9 +17,9 @@ export async function actualizarExamen(id, cambios) {
   return data;
 }
 
-export async function desactivarExamen(id) {
-  const { data } = await api.delete(`/examenes/${id}`);
-  return data;
+/** Borra el examen; el backend lo rechaza si ya está en alguna cita u orden. */
+export async function eliminarExamen(id) {
+  await api.delete(`/examenes/${id}`);
 }
 
 // --- Órdenes del IGSS ------------------------------------------------------
@@ -35,14 +35,17 @@ export async function listarOrdenesPorVencer(dias = 30) {
 }
 
 /**
- * Consulta al backend el vencimiento de una orden recibida en esa fecha, junto
- * con las fechas con cupo más cercanas a él.
+ * Consulta al backend el vencimiento de una orden recibida en esa fecha, el
+ * último día posible para la cita —el vencimiento, o la víspera de la cita del
+ * IGSS si cae antes— y las fechas con cupo más cercanas a ese día.
  *
  * El cálculo no se replica aquí: la regla de los tres meses vive en un solo
  * lugar (requisito 12).
  */
-export async function calcularVencimiento(fechaEntrega) {
-  const { data } = await api.get('/ordenes/vencimiento', { params: { fechaEntrega } });
+export async function calcularVencimiento(fechaEntrega, fechaCitaIgss = '') {
+  const { data } = await api.get('/ordenes/vencimiento', {
+    params: { fechaEntrega, ...(fechaCitaIgss ? { fechaCitaIgss } : {}) },
+  });
   return data;
 }
 

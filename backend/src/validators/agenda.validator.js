@@ -50,6 +50,8 @@ const ordenCrear = [
   body('examenes.*').isInt({ min: 1 }).withMessage('Los exámenes seleccionados no son válidos.'),
   body('numeroOrden').optional({ values: 'falsy' }).trim().isLength({ max: 50 })
     .withMessage('El número de orden no puede exceder 50 caracteres.'),
+  body('fechaCitaIgss').optional({ values: 'falsy' }).custom(esFechaValida)
+    .withMessage('La fecha de la cita del IGSS debe tener el formato AAAA-MM-DD.'),
   body('observaciones').optional({ values: 'falsy' }).trim().isLength({ max: 255 })
     .withMessage('Las observaciones no pueden exceder 255 caracteres.'),
   validar,
@@ -58,6 +60,8 @@ const ordenCrear = [
 const ordenActualizar = [
   reglaId,
   reglaFecha(body('fechaEntrega').optional(), 'La fecha de entrega'),
+  body('fechaCitaIgss').optional({ values: 'null' }).custom((valor) => valor === '' || esFechaValida(valor))
+    .withMessage('La fecha de la cita del IGSS debe tener el formato AAAA-MM-DD.'),
   body('examenes').optional().isArray({ min: 1 })
     .withMessage('Debe seleccionar al menos un examen.'),
   body('examenes.*').optional().isInt({ min: 1 })
@@ -69,6 +73,8 @@ const ordenActualizar = [
 
 const ordenVencimiento = [
   reglaFecha(query('fechaEntrega'), 'La fecha de entrega'),
+  query('fechaCitaIgss').optional({ values: 'falsy' }).custom(esFechaValida)
+    .withMessage('La fecha de la cita del IGSS debe tener el formato AAAA-MM-DD.'),
   validar,
 ];
 
@@ -116,8 +122,8 @@ const citaRecepcion = [
     .withMessage('La hora debe tener el formato HH:MM.'),
   body('examenes').isArray({ min: 1 }).withMessage('Debe seleccionar al menos un examen.'),
   body('examenes.*').isInt({ min: 1 }).withMessage('Los exámenes seleccionados no son válidos.'),
-  body('numeroOrden').optional({ values: 'falsy' }).trim().isLength({ max: 50 })
-    .withMessage('El número de orden no puede exceder 50 caracteres.'),
+  body('fechaCitaIgss').optional({ values: 'falsy' }).custom(esFechaValida)
+    .withMessage('La fecha de la cita del IGSS debe tener el formato AAAA-MM-DD.'),
   body('notas').optional({ values: 'falsy' }).trim().isLength({ max: 255 })
     .withMessage('Las notas no pueden exceder 255 caracteres.'),
   validar,

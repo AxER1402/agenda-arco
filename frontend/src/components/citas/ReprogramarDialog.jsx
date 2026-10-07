@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { SelectorFecha } from '@/components/ui/selector-fecha';
 import { actualizarCita } from '@/services/cita.service';
 import { fechaLarga, hoyISO } from '@/lib/formato';
 
@@ -67,6 +68,9 @@ function ReprogramarDialog({ abierto, onCerrar, cita, onGuardada }) {
           <DialogTitle>{cancelada ? 'Reagendar cita cancelada' : 'Reprogramar cita'}</DialogTitle>
           <DialogDescription>
             {cita?.paciente_nombre} — la orden vence el {fechaLarga(cita?.fecha_vencimiento)}
+            {cita?.fecha_cita_igss &&
+              cita.fecha_limite !== cita.fecha_vencimiento &&
+              ` y tiene cita en el IGSS el ${fechaLarga(cita.fecha_cita_igss)}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -81,11 +85,10 @@ function ReprogramarDialog({ abierto, onCerrar, cita, onGuardada }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <CampoFormulario id="reprogramar-fecha" etiqueta="Nueva fecha" requerido>
               {(props) => (
-                <Input
+                <SelectorFecha
                   {...props}
-                  type="date"
                   min={hoyISO()}
-                  max={cita?.fecha_vencimiento}
+                  max={cita?.fecha_limite ?? cita?.fecha_vencimiento}
                   value={valores.fecha}
                   onChange={(evento) =>
                     setValores((previo) => ({ ...previo, fecha: evento.target.value }))

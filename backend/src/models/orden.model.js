@@ -4,7 +4,7 @@
 const { query, queryOne, withTransaction } = require('../config/database');
 
 const CAMPOS = `
-  o.id, o.paciente_id, o.numero_orden, o.fecha_entrega, o.fecha_vencimiento,
+  o.id, o.paciente_id, o.numero_orden, o.fecha_entrega, o.fecha_vencimiento, o.fecha_cita_igss,
   o.observaciones, o.creado_por, o.creado_en
 `;
 
@@ -85,13 +85,32 @@ async function listarPorVencer({ desde, hasta }) {
  * Crea la orden y su relación con los exámenes dentro de una transacción:
  * una orden sin exámenes sería un registro inservible.
  */
-async function crear({ pacienteId, numeroOrden, fechaEntrega, fechaVencimiento, observaciones, examenes, creadoPor }) {
+async function crear({
+  pacienteId,
+  numeroOrden = null,
+  fechaEntrega,
+  fechaVencimiento,
+  fechaCitaIgss = null,
+  observaciones,
+  examenes,
+  creadoPor,
+}) {
   const id = await withTransaction(async (conexion) => {
     const [resultado] = await conexion.execute(
       `INSERT INTO ordenes
-         (paciente_id, numero_orden, fecha_entrega, fecha_vencimiento, observaciones, creado_por)
-       VALUES (:pacienteId, :numeroOrden, :fechaEntrega, :fechaVencimiento, :observaciones, :creadoPor)`,
-      { pacienteId, numeroOrden, fechaEntrega, fechaVencimiento, observaciones, creadoPor },
+         (paciente_id, numero_orden, fecha_entrega, fecha_vencimiento, fecha_cita_igss,
+          observaciones, creado_por)
+       VALUES (:pacienteId, :numeroOrden, :fechaEntrega, :fechaVencimiento, :fechaCitaIgss,
+               :observaciones, :creadoPor)`,
+      {
+        pacienteId,
+        numeroOrden,
+        fechaEntrega,
+        fechaVencimiento,
+        fechaCitaIgss,
+        observaciones,
+        creadoPor,
+      },
     );
 
     for (const examenId of examenes) {
@@ -107,7 +126,10 @@ async function crear({ pacienteId, numeroOrden, fechaEntrega, fechaVencimiento, 
   return buscarPorId(id);
 }
 
-async function actualizar(id, { numeroOrden, fechaEntrega, fechaVencimiento, observaciones, examenes }) {
+async function actualizar(
+  id,
+  { numeroOrden, fechaEntrega, fechaVencimiento, fechaCitaIgss, observaciones, examenes },
+) {
   await withTransaction(async (conexion) => {
     const asignaciones = [];
     const parametros = { id };
@@ -120,6 +142,10 @@ async function actualizar(id, { numeroOrden, fechaEntrega, fechaVencimiento, obs
       asignaciones.push('fecha_entrega = :fechaEntrega, fecha_vencimiento = :fechaVencimiento');
       parametros.fechaEntrega = fechaEntrega;
       parametros.fechaVencimiento = fechaVencimiento;
+    }
+    if (fechaCitaIgss !== undefined) {
+      asignaciones.push('fecha_cita_igss = :fechaCitaIgss');
+      parametros.fechaCitaIgss = fechaCitaIgss;
     }
     if (observaciones !== undefined) {
       asignaciones.push('observaciones = :observaciones');

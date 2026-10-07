@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { SelectNativo } from '@/components/ui/select-nativo';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { crearPaciente, actualizarPaciente } from '@/services/paciente.service';
 import {
@@ -184,7 +184,7 @@ function PacienteFormDialog({ abierto, onCerrar, paciente = null, onGuardado }) 
             ayuda="Si no tiene, habrá que llamarle en lugar de mandarle el recordatorio."
           >
             {(props) => (
-              <SelectNativo
+              <Select
                 {...props}
                 value={valores.tieneWhatsapp}
                 onChange={cambiar('tieneWhatsapp')}
@@ -194,7 +194,7 @@ function PacienteFormDialog({ abierto, onCerrar, paciente = null, onGuardado }) 
                     {texto}
                   </option>
                 ))}
-              </SelectNativo>
+              </Select>
             )}
           </CampoFormulario>
 

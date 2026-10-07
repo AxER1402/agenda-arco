@@ -71,6 +71,7 @@ function normalizarWhatsappGuardado(paciente) {
  * @param {number} [datos.pacienteId] Paciente ya registrado.
  * @param {object} [datos.paciente] Datos para registrarlo, si es nuevo.
  * @param {string} datos.fechaRecepcion Fecha en que el IGSS entregó la orden.
+ * @param {string} [datos.fechaCitaIgss] Cita del paciente en el IGSS, si la sabe.
  * @param {number[]} datos.examenes Exámenes que trae el paciente.
  * @param {string} datos.fecha Día de la cita.
  * @param {string} datos.hora Hora de la cita.
@@ -81,7 +82,7 @@ async function recibir(
     paciente,
     tieneWhatsapp,
     fechaRecepcion,
-    numeroOrden,
+    fechaCitaIgss,
     examenes,
     fecha,
     hora,
@@ -105,11 +106,15 @@ async function recibir(
 
   const meses = await ordenService.mesesDeVigencia();
   const fechaVencimiento = ordenService.calcularVencimiento(recepcion, meses);
+  const citaIgss = ordenService.normalizarCitaIgss(fechaCitaIgss, recepcion) ?? null;
 
   // 2. La fecha de la cita se valida contra la orden que TODAVÍA no existe:
-  //    vigencia, día laborable y cupo. Si falla, la respuesta ya trae fechas
-  //    alternativas y no se ha escrito nada.
-  await citaService.validarFecha({ fecha, orden: { fecha_vencimiento: fechaVencimiento } });
+  //    vigencia, cita del IGSS, día laborable y cupo. Si falla, la respuesta ya
+  //    trae fechas alternativas y no se ha escrito nada.
+  await citaService.validarFecha({
+    fecha,
+    orden: { fecha_vencimiento: fechaVencimiento, fecha_cita_igss: citaIgss },
+  });
 
   const existente = destinatario.pacienteId
     ? await pacienteService.obtener(destinatario.pacienteId)
@@ -150,8 +155,8 @@ async function recibir(
     const { orden, avisos: avisosOrden } = await ordenService.crear(
       {
         pacienteId: pacienteFinal.id,
-        numeroOrden,
         fechaEntrega: recepcion,
+        fechaCitaIgss: citaIgss,
         examenes: examenesValidados,
         observaciones,
       },

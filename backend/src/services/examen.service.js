@@ -68,9 +68,25 @@ async function validarSeleccion(ids) {
   return unicos;
 }
 
-async function desactivar(id) {
-  await obtener(id);
-  return examenModel.actualizar(id, { activo: false });
+/**
+ * Borra un examen del catálogo.
+ *
+ * Solo si nadie lo usa: si ya está en alguna cita u orden, borrarlo dejaría
+ * esas citas sin saber qué se hizo —y la base lo impide de todos modos—. En
+ * ese caso lo que corresponde es desactivarlo.
+ */
+async function eliminar(id) {
+  const examen = await obtener(id);
+  const { citas, ordenes } = await examenModel.contarUsos(id);
+
+  if (citas > 0 || ordenes > 0) {
+    throw AppError.conflict(
+      `"${examen.nombre}" ya está asignado a ${citas} cita(s) y ${ordenes} orden(es), así que `
+        + 'no se puede eliminar sin perder ese historial. Desactívelo para que no se asigne más.',
+    );
+  }
+
+  await examenModel.eliminar(id);
 }
 
-module.exports = { listar, obtener, crear, actualizar, validarSeleccion, desactivar };
+module.exports = { listar, obtener, crear, actualizar, validarSeleccion, eliminar };

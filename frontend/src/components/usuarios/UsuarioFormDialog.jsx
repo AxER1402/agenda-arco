@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { InputContrasena } from '@/components/ui/input-contrasena';
-import { SelectNativo } from '@/components/ui/select-nativo';
+import { Select } from '@/components/ui/select';
 import { actualizarUsuario, crearUsuario } from '@/services/usuario.service';
 
 const VACIO = {
@@ -177,13 +177,13 @@ function UsuarioFormDialog({ abierto, usuario = null, roles, onCerrar, onGuardad
 
           <CampoFormulario id="usuario-rol" etiqueta="Rol" error={errores.rol} requerido>
             {(props) => (
-              <SelectNativo {...props} value={valores.rol} onChange={cambiar('rol')}>
+              <Select {...props} value={valores.rol} onChange={cambiar('rol')}>
                 {roles.map((rol) => (
                   <option key={rol.id} value={rol.codigo}>
                     {rol.nombre}
                   </option>
                 ))}
-              </SelectNativo>
+              </Select>
             )}
           </CampoFormulario>
 
@@ -195,10 +195,10 @@ function UsuarioFormDialog({ abierto, usuario = null, roles, onCerrar, onGuardad
               ayuda="Un usuario inactivo no puede iniciar sesión, pero su nombre sigue en las citas que registró."
             >
               {(props) => (
-                <SelectNativo {...props} value={valores.activo} onChange={cambiar('activo')}>
+                <Select {...props} value={valores.activo} onChange={cambiar('activo')}>
                   <option value="true">Activo</option>
                   <option value="false">Inactivo</option>
-                </SelectNativo>
+                </Select>
               )}
             </CampoFormulario>
           )}

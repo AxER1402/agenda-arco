@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarClock, Plus, TriangleAlert, UserRoundPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,7 +16,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { SelectNativo } from '@/components/ui/select-nativo';
+import { SelectorFecha } from '@/components/ui/selector-fecha';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useTerminoRetrasado } from '@/hooks/useTerminoRetrasado';
 import { consultarDisponibilidad, recibirPaciente } from '@/services/cita.service';
@@ -46,8 +47,9 @@ const VACIO = {
   dpi: '',
   // '' = no se preguntó. El backend lo guarda como "desconocido".
   tieneWhatsapp: '',
-  numeroOrden: '',
   fechaRecepcion: hoyISO(),
+  // La cita que el paciente ya tiene en el IGSS, si la sabe.
+  fechaCitaIgss: '',
   fecha: '',
   hora: HORA_SUGERIDA,
   notas: '',
@@ -81,7 +83,9 @@ function whatsappComoTexto(paciente) {
  * La orden nace con la cita, con los exámenes que el paciente trae ese día.
  *
  * La fecha de cita se propone lo más cerca posible del vencimiento, que es como
- * trabaja el laboratorio, pero se puede cambiar por cualquier otra válida.
+ * trabaja el laboratorio, pero se puede cambiar por cualquier otra válida. Si
+ * el paciente ya tiene cita en el IGSS antes de que venza la orden, el límite
+ * pasa a ser la víspera de esa cita: los resultados tienen que estar para ella.
  */
 function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = null }) {
   const [valores, setValores] = useState(VACIO);
@@ -100,6 +104,8 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
 
   const [vencimiento, setVencimiento] = useState(null);
   const [disponibilidad, setDisponibilidad] = useState(null);
+  /** Si la fecha de la cita la eligió el usuario; si no, se repropone sola. */
+  const fechaElegida = useRef(false);
 
   const telefonoRetrasado = useTerminoRetrasado(valores.telefono, 400);
   const telefonoBuscable = useMemo(
@@ -127,6 +133,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
     setRechazo(null);
     setVencimiento(null);
     setDisponibilidad(null);
+    fechaElegida.current = false;
 
     listarExamenes()
       .then(setExamenes)
@@ -169,23 +176,24 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
 
     let cancelado = false;
 
-    calcularVencimiento(valores.fechaRecepcion)
+    calcularVencimiento(valores.fechaRecepcion, valores.fechaCitaIgss)
       .then((datos) => {
         if (cancelado) return;
         setVencimiento(datos);
 
-        // Se propone la fecha con cupo más cercana al vencimiento, pero solo
-        // mientras el usuario no haya elegido una a mano.
-        setValores((previo) =>
-          previo.fecha ? previo : { ...previo, fecha: datos.fechas_sugeridas?.[0]?.fecha ?? '' },
-        );
+        // Se propone la fecha con cupo más cercana al límite, pero solo
+        // mientras el usuario no haya elegido una a mano. Cambiar la fecha de
+        // recepción o la de la cita del IGSS vuelve a proponerla.
+        if (!fechaElegida.current) {
+          setValores((previo) => ({ ...previo, fecha: datos.fechas_sugeridas?.[0]?.fecha ?? '' }));
+        }
       })
       .catch(() => !cancelado && setVencimiento(null));
 
     return () => {
       cancelado = true;
     };
-  }, [abierto, valores.fechaRecepcion]);
+  }, [abierto, valores.fechaRecepcion, valores.fechaCitaIgss]);
 
   useEffect(() => {
     if (!valores.fecha) {
@@ -208,6 +216,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
 
   function cambiar(campo) {
     return (evento) => {
+      if (campo === 'fecha') fechaElegida.current = true;
       setValores((previo) => ({ ...previo, [campo]: evento.target.value }));
       setErrores((previo) => ({ ...previo, [campo]: undefined }));
       setRechazo(null);
@@ -284,8 +293,8 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
         ...(valores.tieneWhatsapp === ''
           ? {}
           : { tieneWhatsapp: valores.tieneWhatsapp === 'true' }),
-        numeroOrden: valores.numeroOrden,
         fechaRecepcion: valores.fechaRecepcion,
+        fechaCitaIgss: valores.fechaCitaIgss || undefined,
         examenes: seleccionados,
         fecha: valores.fecha,
         hora: valores.hora,
@@ -310,6 +319,10 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
   }
 
   const sugeridas = rechazo?.fechas_sugeridas ?? vencimiento?.fechas_sugeridas ?? [];
+
+  // La cita del IGSS es hoy o mañana: no queda ningún día antes de ella.
+  const sinTiempoAntesDelIgss =
+    vencimiento?.limitada_por === 'CITA_IGSS' && vencimiento.fecha_limite < hoyISO();
 
   return (
     <>
@@ -440,7 +453,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                   }
                 >
                   {(props) => (
-                    <SelectNativo
+                    <Select
                       {...props}
                       value={valores.tieneWhatsapp}
                       onChange={cambiar('tieneWhatsapp')}
@@ -450,7 +463,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                           {texto}
                         </option>
                       ))}
-                    </SelectNativo>
+                    </Select>
                   )}
                 </CampoFormulario>
               </div>
@@ -469,9 +482,8 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                   requerido
                 >
                   {(props) => (
-                    <Input
+                    <SelectorFecha
                       {...props}
-                      type="date"
                       max={hoyISO()}
                       value={valores.fechaRecepcion}
                       onChange={cambiar('fechaRecepcion')}
@@ -479,20 +491,27 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                   )}
                 </CampoFormulario>
 
-                <CampoFormulario id="recepcion-numero-orden" etiqueta="Número de orden">
+                <CampoFormulario
+                  id="recepcion-fecha-cita-igss"
+                  etiqueta="Fecha cita IGSS"
+                  ayuda="Opcional. La cita del laboratorio será antes de esa fecha"
+                >
                   {(props) => (
-                    <Input
+                    <SelectorFecha
                       {...props}
+                      min={valores.fechaRecepcion || undefined}
                       placeholder="Opcional"
-                      value={valores.numeroOrden}
-                      onChange={cambiar('numeroOrden')}
+                      value={valores.fechaCitaIgss}
+                      onChange={cambiar('fechaCitaIgss')}
                     />
                   )}
                 </CampoFormulario>
               </div>
 
               {vencimiento && (
-                <Alert variant={vencimiento.vencida ? 'destructive' : 'default'}>
+                <Alert
+                  variant={vencimiento.vencida || sinTiempoAntesDelIgss ? 'destructive' : 'default'}
+                >
                   <AlertDescription>
                     {vencimiento.vencida ? (
                       <>
@@ -506,6 +525,17 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                         <strong>{fechaLarga(vencimiento.fecha_vencimiento)}</strong> inclusive (
                         {vencimiento.meses_vigencia} meses desde la recepción). Ese mismo día
                         todavía vale; el siguiente ya no.
+                        {vencimiento.limitada_por === 'CITA_IGSS' && (
+                          <>
+                            {' '}
+                            Como tiene cita en el IGSS el{' '}
+                            <strong>{fechaLarga(vencimiento.fecha_cita_igss)}</strong>, la del
+                            laboratorio tiene que ser a más tardar el{' '}
+                            <strong>{fechaLarga(vencimiento.fecha_limite)}</strong>.
+                            {sinTiempoAntesDelIgss &&
+                              ' Ya no queda ningún día antes de esa cita: revise la fecha con el paciente.'}
+                          </>
+                        )}
                       </>
                     )}
                   </AlertDescription>
@@ -570,11 +600,10 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                   requerido
                 >
                   {(props) => (
-                    <Input
+                    <SelectorFecha
                       {...props}
-                      type="date"
                       min={hoyISO()}
-                      max={vencimiento?.fecha_vencimiento}
+                      max={vencimiento?.fecha_limite ?? vencimiento?.fecha_vencimiento}
                       value={valores.fecha}
                       onChange={cambiar('fecha')}
                     />
@@ -601,7 +630,9 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
               {sugeridas.length > 0 && (
                 <div>
                   <p className="mb-2 text-xs text-muted-foreground">
-                    Fechas con cupo más cercanas al vencimiento:
+                    {vencimiento?.limitada_por === 'CITA_IGSS'
+                      ? 'Fechas con cupo más cercanas a la cita del IGSS:'
+                      : 'Fechas con cupo más cercanas al vencimiento:'}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {sugeridas.map(({ fecha, disponibles }) => (
@@ -611,6 +642,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                         size="sm"
                         variant={valores.fecha === fecha ? 'secondary' : 'outline'}
                         onClick={() => {
+                          fechaElegida.current = true;
                           setValores((previo) => ({ ...previo, fecha }));
                           setRechazo(null);
                           setErrores((previo) => ({ ...previo, fecha: undefined }));

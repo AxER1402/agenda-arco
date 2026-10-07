@@ -10,6 +10,8 @@
  */
 const citaModel = require('../models/cita.model');
 const ordenService = require('./orden.service');
+const ordenModel = require('../models/orden.model');
+const examenService = require('./examen.service');
 const pacienteService = require('./paciente.service');
 const disponibilidadService = require('./disponibilidad.service');
 const authService = require('./auth.service');
@@ -97,6 +99,21 @@ async function validarFecha({ fecha, orden, excluirCita = null }) {
     );
   }
 
+  // 2b. Antes de la cita del IGSS: los resultados tienen que estar para ella.
+  const limite = ordenService.fechaLimiteCita(orden);
+
+  if (limite.motivo === 'CITA_IGSS' && fechas.comparar(fechaISO, limite.fecha) > 0) {
+    throw AppError.unprocessable(
+      `El paciente tiene cita en el IGSS el ${fechas.aFormatoLocal(orden.fecha_cita_igss)}: ` +
+        `la del laboratorio tiene que ser a más tardar el ${fechas.aFormatoLocal(limite.fecha)}.`,
+      {
+        motivo: 'DESPUES_DE_CITA_IGSS',
+        fecha_limite: limite.fecha,
+        fechas_sugeridas: await disponibilidadService.sugerirFechasParaOrden(orden),
+      },
+    );
+  }
+
   const parametros = await disponibilidadService.obtenerParametros();
 
   // 3. Día laborable.
@@ -169,6 +186,32 @@ function resolverExamenes(orden, seleccion) {
 
   if (ajeno !== undefined) {
     throw AppError.badRequest('Se seleccionó un examen que no pertenece a la orden.');
+  }
+
+  return elegidos;
+}
+
+/**
+ * Exámenes de una cita que se está editando.
+ *
+ * A diferencia del alta, aquí se admiten exámenes que la orden no tenía: al
+ * editar la cita se descubre el examen que se olvidó al recibirla, y el papel
+ * del IGSS es el mismo. Los nuevos se validan (que existan y estén activos) y
+ * se agregan también a la orden, para que cita y orden sigan cuadrando. Los que
+ * ya estaban en la orden se aceptan aunque luego se hayan desactivado.
+ */
+async function resolverExamenesAlEditar(orden, seleccion) {
+  if (seleccion === undefined || seleccion === null || seleccion.length === 0) {
+    return resolverExamenes(orden, seleccion);
+  }
+
+  const enOrden = orden.examenes.map((examen) => Number(examen.id));
+  const elegidos = [...new Set(seleccion.map((id) => Number.parseInt(id, 10)))];
+  const nuevos = elegidos.filter((id) => !enOrden.includes(id));
+
+  if (nuevos.length > 0) {
+    await examenService.validarSeleccion(nuevos);
+    await ordenModel.actualizar(orden.id, { examenes: [...enOrden, ...nuevos] });
   }
 
   return elegidos;
@@ -288,7 +331,7 @@ async function actualizar(id, { fecha, hora, examenes, notas }) {
 
   if (hora !== undefined) cambios.hora = normalizarHora(hora);
   if (notas !== undefined) cambios.notas = notas?.trim() || null;
-  if (examenes !== undefined) cambios.examenes = resolverExamenes(orden, examenes);
+  if (examenes !== undefined) cambios.examenes = await resolverExamenesAlEditar(orden, examenes);
 
   const actualizada = await citaModel.actualizar(id, cambios, verificarCupo);
 

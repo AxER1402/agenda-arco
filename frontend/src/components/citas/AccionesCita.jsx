@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarClock, Check, Eye, MessageCircle, RotateCcw, Trash2, UserX, X } from 'lucide-react';
+import { CalendarClock, Check, Eye, MessageCircle, Pencil, RotateCcw, Trash2, UserX, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DialogoConfirmacion from '@/components/DialogoConfirmacion';
@@ -42,7 +42,7 @@ const REPROGRAMABLES = ['PENDIENTE', 'CONFIRMADA', 'CANCELADA'];
 /** Solo tiene sentido recordar una cita que todavía va a ocurrir. */
 const RECORDABLES = ['PENDIENTE', 'CONFIRMADA'];
 
-function AccionesCita({ cita, onCambiada, onReprogramar, onEliminada, onNuevaCita }) {
+function AccionesCita({ cita, onCambiada, onReprogramar, onEditar, onEliminada, onNuevaCita }) {
   const [procesando, setProcesando] = useState(null);
   /** Qué espera confirmación: `null`, `'CANCELAR'` o `'ELIMINAR'`. */
   const [confirmando, setConfirmando] = useState(null);
@@ -57,6 +57,8 @@ function AccionesCita({ cita, onCambiada, onReprogramar, onEliminada, onNuevaCit
   const [principal, ...secundarias] = caducada ? [] : (ACCIONES[cita.estado] ?? []);
 
   const puedeReprogramar = Boolean(onReprogramar) && REPROGRAMABLES.includes(cita.estado);
+  // Mismo criterio que reprogramar: lo atendido o no asistido ya no se toca.
+  const puedeEditar = Boolean(onEditar) && REPROGRAMABLES.includes(cita.estado);
   const puedeRecordar = RECORDABLES.includes(cita.estado);
 
   /**
@@ -166,6 +168,12 @@ function AccionesCita({ cita, onCambiada, onReprogramar, onEliminada, onNuevaCit
             {texto}
           </OpcionMenu>
         ))}
+
+        {puedeEditar && (
+          <OpcionMenu icono={Pencil} onClick={() => onEditar(cita)}>
+            Editar exámenes y notas
+          </OpcionMenu>
+        )}
 
         {puedeReprogramar && (
           <OpcionMenu icono={CalendarClock} onClick={() => onReprogramar(cita)}>

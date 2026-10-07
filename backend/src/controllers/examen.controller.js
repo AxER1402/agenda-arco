@@ -37,13 +37,14 @@ async function actualizar(req, res, next) {
   }
 }
 
-/** DELETE /api/examenes/:id — baja lógica. */
-async function desactivar(req, res, next) {
+/** DELETE /api/examenes/:id — borrado definitivo de un examen sin usar. */
+async function eliminar(req, res, next) {
   try {
-    res.status(200).json(await examenService.desactivar(req.params.id));
+    await examenService.eliminar(req.params.id);
+    res.status(204).end();
   } catch (error) {
     next(error);
   }
 }
 
-module.exports = { listar, obtener, crear, actualizar, desactivar };
+module.exports = { listar, obtener, crear, actualizar, eliminar };

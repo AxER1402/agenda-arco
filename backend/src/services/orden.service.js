@@ -50,6 +50,52 @@ function fechaDentroDeVigencia(fechaCita, fechaVencimiento) {
   return fechas.comparar(fechaCita, fechaVencimiento) <= 0;
 }
 
+/**
+ * Último día en que se puede poner la cita del laboratorio.
+ *
+ * Es el vencimiento de la orden, salvo que el paciente ya tenga cita en el IGSS
+ * antes de esa fecha: los resultados tienen que estar para esa cita, así que
+ * el límite pasa a ser la víspera.
+ *
+ *   Entrega 01/10, vence 01/01, cita IGSS 01/12  →  límite 30/11 (CITA_IGSS)
+ *   Entrega 01/10, vence 01/01, cita IGSS 01/02  →  límite 01/01 (VENCIMIENTO)
+ *
+ * @param {{fecha_vencimiento: string, fecha_cita_igss?: string|null}} orden
+ * @returns {{fecha: string, motivo: 'VENCIMIENTO'|'CITA_IGSS'}}
+ */
+function fechaLimiteCita(orden) {
+  const vencimiento = fechas.aISO(orden.fecha_vencimiento);
+  const citaIgss = orden.fecha_cita_igss ? fechas.aISO(orden.fecha_cita_igss) : null;
+
+  if (citaIgss) {
+    const vispera = fechas.sumarDias(citaIgss, -1);
+    if (fechas.comparar(vispera, vencimiento) < 0) return { fecha: vispera, motivo: 'CITA_IGSS' };
+  }
+
+  return { fecha: vencimiento, motivo: 'VENCIMIENTO' };
+}
+
+/**
+ * Valida la fecha de la cita del IGSS que dice el paciente.
+ * @returns {string|null|undefined} 'YYYY-MM-DD', null si se dejó vacía, o
+ *   undefined si no se mandó.
+ */
+function normalizarCitaIgss(fechaCitaIgss, fechaEntrega) {
+  if (fechaCitaIgss === undefined) return undefined;
+  if (fechaCitaIgss === null || fechaCitaIgss === '') return null;
+
+  const iso = fechas.aISO(fechaCitaIgss);
+  if (!iso) throw AppError.badRequest('La fecha de la cita del IGSS no es una fecha válida.');
+
+  if (fechaEntrega && fechas.comparar(iso, fechaEntrega) < 0) {
+    throw AppError.badRequest(
+      'La cita del IGSS no puede ser anterior al día en que le entregaron la orden.',
+    );
+  }
+
+  return iso;
+}
+
 /** Días que faltan para que la orden venza (negativo si ya venció). */
 function diasParaVencer(fechaVencimiento, desde = fechas.hoy()) {
   return fechas.diferenciaEnDias(desde, fechaVencimiento);
@@ -86,7 +132,10 @@ async function listarPorVencer({ dias = 30 } = {}) {
   }));
 }
 
-async function crear({ pacienteId, numeroOrden, fechaEntrega, examenes, observaciones }, idUsuario) {
+async function crear(
+  { pacienteId, numeroOrden, fechaEntrega, fechaCitaIgss, examenes, observaciones },
+  idUsuario,
+) {
   await pacienteService.obtener(pacienteId);
 
   const entrega = fechas.aISO(fechaEntrega);
@@ -105,6 +154,7 @@ async function crear({ pacienteId, numeroOrden, fechaEntrega, examenes, observac
     numeroOrden: numeroOrden?.trim() || null,
     fechaEntrega: entrega,
     fechaVencimiento: vencimiento,
+    fechaCitaIgss: normalizarCitaIgss(fechaCitaIgss, entrega) ?? null,
     observaciones: observaciones?.trim() || null,
     examenes: examenesValidados,
     creadoPor: idUsuario ?? null,
@@ -123,7 +173,7 @@ async function crear({ pacienteId, numeroOrden, fechaEntrega, examenes, observac
   };
 }
 
-async function actualizar(id, { numeroOrden, fechaEntrega, examenes, observaciones }) {
+async function actualizar(id, { numeroOrden, fechaEntrega, fechaCitaIgss, examenes, observaciones }) {
   const existente = await obtener(id);
 
   const cambios = { numeroOrden, observaciones };
@@ -161,6 +211,10 @@ async function actualizar(id, { numeroOrden, fechaEntrega, examenes, observacion
   }
 
   if (numeroOrden !== undefined) cambios.numeroOrden = numeroOrden?.trim() || null;
+  cambios.fechaCitaIgss = normalizarCitaIgss(
+    fechaCitaIgss,
+    cambios.fechaEntrega ?? existente.fecha_entrega,
+  );
   if (observaciones !== undefined) cambios.observaciones = observaciones?.trim() || null;
 
   const actualizada = await ordenModel.actualizar(existente.id, cambios);
@@ -184,6 +238,8 @@ async function revisarCitasContraVencimiento(ordenId, fechaVencimiento) {
 module.exports = {
   calcularVencimiento,
   fechaDentroDeVigencia,
+  fechaLimiteCita,
+  normalizarCitaIgss,
   diasParaVencer,
   mesesDeVigencia,
   obtener,

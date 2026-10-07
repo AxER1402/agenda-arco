@@ -224,6 +224,37 @@ describe('disponibilidad.sugerirFechasParaOrden', () => {
     expect(sugerencias[0].fecha).toBe(esperada);
   });
 
+  it('con cita del IGSS antes del vencimiento, propone hasta su víspera', async () => {
+    const citaIgss = fechas.sumarDias(HOY, 20);
+
+    const sugerencias = await disponibilidadService.sugerirFechasParaOrden(
+      { fecha_vencimiento: fechas.sumarMeses(HOY, 3), fecha_cita_igss: citaIgss },
+      { cantidad: 3 },
+    );
+
+    expect(sugerencias).toHaveLength(3);
+    sugerencias.forEach(({ fecha }) => {
+      expect(fechas.comparar(fecha, citaIgss)).toBeLessThan(0);
+    });
+
+    let esperada = fechas.sumarDias(citaIgss, -1);
+    while (fechas.diaDeLaSemana(esperada) === 7) esperada = fechas.sumarDias(esperada, -1);
+    expect(sugerencias[0].fecha).toBe(esperada);
+  });
+
+  it('con cita del IGSS después del vencimiento, sigue proponiendo cerca del vencimiento', async () => {
+    const vencimiento = fechas.sumarDias(HOY, 30);
+
+    const sugerencias = await disponibilidadService.sugerirFechasParaOrden({
+      fecha_vencimiento: vencimiento,
+      fecha_cita_igss: fechas.sumarDias(vencimiento, 30),
+    });
+
+    let esperada = vencimiento;
+    while (fechas.diaDeLaSemana(esperada) === 7) esperada = fechas.sumarDias(esperada, -1);
+    expect(sugerencias[0].fecha).toBe(esperada);
+  });
+
   it('devuelve una lista vacía si la orden ya venció', async () => {
     const sugerencias = await disponibilidadService.sugerirFechasParaOrden(
       orden(fechas.sumarDias(HOY, -1)),

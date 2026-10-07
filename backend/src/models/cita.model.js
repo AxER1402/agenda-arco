@@ -8,7 +8,12 @@ const CAMPOS = `
   c.creado_por, c.creado_en, c.actualizado_en,
   p.nombre_completo AS paciente_nombre, p.telefono AS paciente_telefono,
   p.tiene_whatsapp AS paciente_tiene_whatsapp,
-  o.fecha_entrega, o.fecha_vencimiento, o.numero_orden,
+  o.fecha_entrega, o.fecha_vencimiento, o.numero_orden, o.fecha_cita_igss,
+  -- Último día en que se puede poner la cita: el vencimiento, o la víspera de
+  -- la cita del IGSS si cae antes. Es la misma regla que
+  -- ordenService.fechaLimiteCita; aquí sale ya calculada para cada fila.
+  LEAST(o.fecha_vencimiento,
+        COALESCE(o.fecha_cita_igss - INTERVAL 1 DAY, o.fecha_vencimiento)) AS fecha_limite,
   ec.codigo AS estado, ec.nombre AS estado_nombre, ec.es_final, ec.ocupa_cupo,
   r.id AS recordatorio_id, r.estado AS recordatorio_estado,
   r.enviado_en AS recordatorio_enviado_en, r.programado_para AS recordatorio_programado_para,

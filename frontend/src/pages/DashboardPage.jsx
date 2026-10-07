@@ -4,7 +4,9 @@ import { CalendarCheck, MessageCircle, PhoneCall, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import AccionesCita from '@/components/citas/AccionesCita';
+import EditarCitaDialog from '@/components/citas/EditarCitaDialog';
 import EstadoRecordatorio from '@/components/citas/EstadoRecordatorio';
+import ReprogramarDialog from '@/components/citas/ReprogramarDialog';
 import { TituloSeccion } from '@/components/layout/EncabezadoModulo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,6 +63,8 @@ function DashboardPage() {
   const [resumen, setResumen] = useState(null);
   const [recordatorios, setRecordatorios] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [reprogramando, setReprogramando] = useState(null);
+  const [editando, setEditando] = useState(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -175,7 +179,12 @@ function DashboardPage() {
                     <Badge variant={varianteEstado(cita.estado)}>{cita.estado_nombre}</Badge>
                   </TableCell>
                   <TableCell>
-                    <AccionesCita cita={cita} onCambiada={cargar} />
+                    <AccionesCita
+                      cita={cita}
+                      onCambiada={cargar}
+                      onReprogramar={setReprogramando}
+                      onEditar={setEditando}
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -235,7 +244,12 @@ function DashboardPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <AccionesCita cita={cita} onCambiada={cargar} />
+                    <AccionesCita
+                      cita={cita}
+                      onCambiada={cargar}
+                      onReprogramar={setReprogramando}
+                      onEditar={setEditando}
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -268,7 +282,12 @@ function DashboardPage() {
                     <Badge variant={varianteEstado(cita.estado)}>{cita.estado_nombre}</Badge>
                   </TableCell>
                   <TableCell>
-                    <AccionesCita cita={cita} onCambiada={cargar} />
+                    <AccionesCita
+                      cita={cita}
+                      onCambiada={cargar}
+                      onReprogramar={setReprogramando}
+                      onEditar={setEditando}
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -276,6 +295,20 @@ function DashboardPage() {
           </TableBody>
         </Table>
       </section>
+
+      <ReprogramarDialog
+        abierto={Boolean(reprogramando)}
+        cita={reprogramando}
+        onCerrar={() => setReprogramando(null)}
+        onGuardada={cargar}
+      />
+
+      <EditarCitaDialog
+        abierto={Boolean(editando)}
+        cita={editando}
+        onCerrar={() => setEditando(null)}
+        onGuardada={cargar}
+      />
     </div>
   );
 }

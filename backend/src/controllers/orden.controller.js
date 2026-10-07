@@ -51,25 +51,32 @@ async function actualizar(req, res, next) {
 }
 
 /**
- * GET /api/ordenes/vencimiento?fechaEntrega=YYYY-MM-DD
+ * GET /api/ordenes/vencimiento?fechaEntrega=YYYY-MM-DD[&fechaCitaIgss=YYYY-MM-DD]
  *
  * Permite al frontend mostrar la fecha de vencimiento mientras se escribe, sin
- * duplicar el cálculo: lo sigue haciendo el backend. Devuelve además las fechas
- * con cupo más cercanas al vencimiento, que es lo que se propone al agendar.
+ * duplicar el cálculo: lo sigue haciendo el backend. Devuelve además el último
+ * día posible para la cita —el vencimiento, o la víspera de la cita del IGSS si
+ * cae antes— y las fechas con cupo más cercanas a él, que es lo que se propone
+ * al agendar.
  */
 async function calcularVencimiento(req, res, next) {
   try {
     const meses = await ordenService.mesesDeVigencia();
     const fechaVencimiento = ordenService.calcularVencimiento(req.query.fechaEntrega, meses);
+    const fechaCitaIgss =
+      ordenService.normalizarCitaIgss(req.query.fechaCitaIgss, req.query.fechaEntrega) ?? null;
 
-    const fechasSugeridas = await disponibilidadService.sugerirFechasParaOrden({
-      fecha_vencimiento: fechaVencimiento,
-    });
+    const orden = { fecha_vencimiento: fechaVencimiento, fecha_cita_igss: fechaCitaIgss };
+    const limite = ordenService.fechaLimiteCita(orden);
+    const fechasSugeridas = await disponibilidadService.sugerirFechasParaOrden(orden);
 
     res.status(200).json({
       fecha_entrega: req.query.fechaEntrega,
       fecha_vencimiento: fechaVencimiento,
       meses_vigencia: meses,
+      fecha_cita_igss: fechaCitaIgss,
+      fecha_limite: limite.fecha,
+      limitada_por: limite.motivo,
       vencida: ordenService.diasParaVencer(fechaVencimiento) < 0,
       fechas_sugeridas: fechasSugeridas,
     });

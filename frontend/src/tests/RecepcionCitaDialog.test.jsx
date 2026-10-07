@@ -125,8 +125,39 @@ describe('Orden del IGSS dentro de la cita', () => {
     renderizar();
 
     await waitFor(() =>
-      expect(screen.getByLabelText(/Fecha de la cita/)).toHaveAttribute('max', '2026-11-11'),
+      expect(screen.getByLabelText(/Fecha de la cita/)).toHaveAttribute('data-max', '2026-11-11'),
     );
+  });
+
+  it('con cita del IGSS antes del vencimiento, propone y limita hasta su víspera', async () => {
+    catalogoService.calcularVencimiento.mockImplementation(async (fechaEntrega, fechaCitaIgss) =>
+      fechaCitaIgss
+        ? {
+            ...VENCIMIENTO,
+            fecha_cita_igss: '2026-10-20',
+            fecha_limite: '2026-10-19',
+            limitada_por: 'CITA_IGSS',
+            fechas_sugeridas: [{ fecha: '2026-10-19', disponibles: 25 }],
+          }
+        : { ...VENCIMIENTO, fecha_limite: '2026-11-11', limitada_por: 'VENCIMIENTO' },
+    );
+
+    renderizar();
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Fecha de la cita/)).toHaveValue('2026-11-11'),
+    );
+
+    // Con el calendario cerrado, la flecha pone una fecha en el campo.
+    screen.getByLabelText(/Fecha cita IGSS/).focus();
+    await userEvent.keyboard('{ArrowDown}');
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Fecha de la cita/)).toHaveValue('2026-10-19'),
+    );
+    expect(screen.getByLabelText(/Fecha de la cita/)).toHaveAttribute('data-max', '2026-10-19');
+    expect(screen.getByText(/más cercanas a la cita del IGSS/)).toBeInTheDocument();
+    expect(screen.getByText(/tiene cita en el IGSS/)).toBeInTheDocument();
   });
 
   it('impide agendar si la orden ya venció', async () => {
@@ -260,7 +291,8 @@ describe('Envío', () => {
     await screen.findByText(/Se puede recibir hasta el/);
     await llenarFormulario();
 
-    await userEvent.selectOptions(screen.getByLabelText(/tiene WhatsApp/), 'false');
+    await userEvent.click(screen.getByLabelText(/tiene WhatsApp/));
+    await userEvent.click(screen.getByRole('option', { name: 'No tiene' }));
     await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
 
     await waitFor(() =>
@@ -274,7 +306,8 @@ describe('Envío', () => {
     renderizar();
     await screen.findByText(/Se puede recibir hasta el/);
 
-    await userEvent.selectOptions(screen.getByLabelText(/tiene WhatsApp/), 'false');
+    await userEvent.click(screen.getByLabelText(/tiene WhatsApp/));
+    await userEvent.click(screen.getByRole('option', { name: 'No tiene' }));
 
     expect(await screen.findByText(/Habrá que llamarle/)).toBeInTheDocument();
   });
@@ -298,7 +331,7 @@ describe('Envío', () => {
     await userEvent.type(screen.getByLabelText(/Teléfono/), '55512345');
     await screen.findByText('Ana López');
 
-    expect(screen.getByLabelText(/tiene WhatsApp/)).toHaveValue('false');
+    expect(screen.getByLabelText(/tiene WhatsApp/)).toHaveTextContent('No tiene');
   });
 
   it('muestra el motivo cuando el backend rechaza la fecha', async () => {

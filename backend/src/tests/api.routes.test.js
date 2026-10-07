@@ -473,21 +473,42 @@ describe('Catálogo de exámenes', () => {
     expect(respuesta.status).toBe(201);
   });
 
-  it('el personal de citas no puede modificar el catálogo existente', async () => {
+  it('el personal de citas puede modificar y desactivar exámenes', async () => {
+    examenModel.buscarPorId.mockResolvedValue({ id: 9, codigo: 'X-1', nombre: 'Prueba', activo: 1 });
+    examenModel.actualizar.mockResolvedValue({ id: 9, codigo: 'X-1', nombre: 'Otro', activo: 0 });
+
     const respuesta = await request(app)
       .patch('/api/examenes/9')
       .set('Authorization', `Bearer ${tokenCitas}`)
-      .send({ nombre: 'Otro nombre' });
+      .send({ nombre: 'Otro', activo: false });
 
-    expect(respuesta.status).toBe(403);
+    expect(respuesta.status).toBe(200);
+    expect(examenModel.actualizar).toHaveBeenCalledWith('9', { activo: false, nombre: 'Otro' });
   });
 
-  it('el personal de citas no puede desactivar exámenes', async () => {
+  it('el personal de citas puede eliminar un examen que nadie usa', async () => {
+    examenModel.buscarPorId.mockResolvedValue({ id: 9, codigo: 'X-1', nombre: 'Prueba', activo: 1 });
+    examenModel.contarUsos.mockResolvedValue({ citas: 0, ordenes: 0 });
+
     const respuesta = await request(app)
       .delete('/api/examenes/9')
       .set('Authorization', `Bearer ${tokenCitas}`);
 
-    expect(respuesta.status).toBe(403);
+    expect(respuesta.status).toBe(204);
+    expect(examenModel.eliminar).toHaveBeenCalledWith('9');
+  });
+
+  it('no elimina un examen que ya está en citas u órdenes', async () => {
+    examenModel.buscarPorId.mockResolvedValue({ id: 9, codigo: 'X-1', nombre: 'Prueba', activo: 1 });
+    examenModel.contarUsos.mockResolvedValue({ citas: 3, ordenes: 1 });
+
+    const respuesta = await request(app)
+      .delete('/api/examenes/9')
+      .set('Authorization', `Bearer ${tokenCitas}`);
+
+    expect(respuesta.status).toBe(409);
+    expect(respuesta.body.error.mensaje).toMatch(/Desactívelo/);
+    expect(examenModel.eliminar).not.toHaveBeenCalled();
   });
 });
 

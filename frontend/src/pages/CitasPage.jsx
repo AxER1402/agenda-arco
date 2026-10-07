@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarPlus, ClipboardList } from 'lucide-react';
+import { CalendarPlus, ClipboardList, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import AccionesCita from '@/components/citas/AccionesCita';
+import EditarCitaDialog from '@/components/citas/EditarCitaDialog';
 import EstadoRecordatorio from '@/components/citas/EstadoRecordatorio';
 import RecepcionCitaDialog from '@/components/citas/RecepcionCitaDialog';
 import ReprogramarDialog from '@/components/citas/ReprogramarDialog';
@@ -11,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SelectNativo } from '@/components/ui/select-nativo';
+import { Select } from '@/components/ui/select';
+import { SelectorFecha } from '@/components/ui/selector-fecha';
 import {
   Table,
   TableBody,
@@ -22,6 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { listarEstadosCita, obtenerAgenda } from '@/services/cita.service';
+import { coincideCita } from '@/lib/busqueda';
 import {
   fechaLarga,
   hora12,
@@ -38,10 +41,12 @@ import {
 function CitasPage() {
   const [periodo, setPeriodo] = useState({ vista: 'semana', fecha: hoyISO() });
   const [estadoFiltro, setEstadoFiltro] = useState('');
+  const [termino, setTermino] = useState('');
   const [estados, setEstados] = useState([]);
   const [agenda, setAgenda] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [reprogramando, setReprogramando] = useState(null);
+  const [editando, setEditando] = useState(null);
   const [agendando, setAgendando] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -67,8 +72,10 @@ function CitasPage() {
 
   const citas = useMemo(() => {
     const todas = (agenda?.dias ?? []).flatMap((dia) => dia.citas);
-    return estadoFiltro ? todas.filter((cita) => cita.estado === estadoFiltro) : todas;
-  }, [agenda, estadoFiltro]);
+    return todas.filter(
+      (cita) => (!estadoFiltro || cita.estado === estadoFiltro) && coincideCita(cita, termino),
+    );
+  }, [agenda, estadoFiltro, termino]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -89,9 +96,8 @@ function CitasPage() {
       <div className="flex flex-wrap items-end gap-4 rounded-xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-2">
           <Label htmlFor="periodo-fecha">Fecha de referencia</Label>
-          <Input
+          <SelectorFecha
             id="periodo-fecha"
-            type="date"
             value={periodo.fecha}
             onChange={(evento) =>
               setPeriodo((previo) => ({ ...previo, fecha: evento.target.value }))
@@ -101,7 +107,7 @@ function CitasPage() {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="periodo-vista">Periodo</Label>
-          <SelectNativo
+          <Select
             id="periodo-vista"
             value={periodo.vista}
             onChange={(evento) =>
@@ -111,12 +117,12 @@ function CitasPage() {
             <option value="dia">Ese día</option>
             <option value="semana">Esa semana</option>
             <option value="mes">Ese mes</option>
-          </SelectNativo>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="filtro-estado">Estado</Label>
-          <SelectNativo
+          <Select
             id="filtro-estado"
             value={estadoFiltro}
             onChange={(evento) => setEstadoFiltro(evento.target.value)}
@@ -127,7 +133,24 @@ function CitasPage() {
                 {estado.nombre}
               </option>
             ))}
-          </SelectNativo>
+          </Select>
+        </div>
+
+        <div className="flex min-w-[16rem] flex-1 flex-col gap-2">
+          <Label htmlFor="buscar-citas">Buscar</Label>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              id="buscar-citas"
+              className="pl-11"
+              placeholder="Paciente, teléfono, examen u orden"
+              value={termino}
+              onChange={(evento) => setTermino(evento.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -147,7 +170,7 @@ function CitasPage() {
         <TableBody>
           {citas.length === 0 ? (
             <TableEmpty colSpan={8}>
-              {cargando ? 'Cargando...' : 'No hay citas que coincidan con los filtros.'}
+              {cargando ? 'Cargando...' : 'No hay citas que coincidan con los filtros o la búsqueda.'}
             </TableEmpty>
           ) : (
             citas.map((cita) => (
@@ -166,7 +189,12 @@ function CitasPage() {
                   <EstadoRecordatorio cita={cita} />
                 </TableCell>
                 <TableCell>
-                  <AccionesCita cita={cita} onCambiada={cargar} onReprogramar={setReprogramando} />
+                  <AccionesCita
+                    cita={cita}
+                    onCambiada={cargar}
+                    onReprogramar={setReprogramando}
+                    onEditar={setEditando}
+                  />
                 </TableCell>
               </TableRow>
             ))
@@ -184,6 +212,13 @@ function CitasPage() {
         abierto={Boolean(reprogramando)}
         cita={reprogramando}
         onCerrar={() => setReprogramando(null)}
+        onGuardada={cargar}
+      />
+
+      <EditarCitaDialog
+        abierto={Boolean(editando)}
+        cita={editando}
+        onCerrar={() => setEditando(null)}
         onGuardada={cargar}
       />
     </div>

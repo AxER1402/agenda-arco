@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
-import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import AccionesCita from '@/components/citas/AccionesCita';
+import EditarCitaDialog from '@/components/citas/EditarCitaDialog';
 import RecepcionCitaDialog from '@/components/citas/RecepcionCitaDialog';
 import ReprogramarDialog from '@/components/citas/ReprogramarDialog';
 import EncabezadoModulo, { TituloSeccion } from '@/components/layout/EncabezadoModulo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -19,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { obtenerAgenda } from '@/services/cita.service';
+import { coincideCita } from '@/lib/busqueda';
 import {
   fechaConDiaSemana,
   fechaLarga,
@@ -50,9 +53,11 @@ function desplazar(fechaISO, vista, direccion) {
 function AgendaPage() {
   const [vista, setVista] = useState('dia');
   const [fecha, setFecha] = useState(hoyISO());
+  const [termino, setTermino] = useState('');
   const [agenda, setAgenda] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [reprogramando, setReprogramando] = useState(null);
+  const [editando, setEditando] = useState(null);
   const [agendando, setAgendando] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -72,7 +77,15 @@ function AgendaPage() {
     cargar();
   }, [cargar]);
 
-  const diasConCitas = (agenda?.dias ?? []).filter((dia) => dia.citas.length > 0);
+  // La búsqueda filtra las citas del periodo cargado; la ocupación de cada día
+  // sigue contando todas, porque el cupo no depende de lo que se busque.
+  const diasConCitas = useMemo(
+    () =>
+      (agenda?.dias ?? [])
+        .map((dia) => ({ ...dia, citas: dia.citas.filter((cita) => coincideCita(cita, termino)) }))
+        .filter((dia) => dia.citas.length > 0),
+    [agenda, termino],
+  );
 
   return (
     <div className="flex flex-col gap-8">
@@ -132,6 +145,22 @@ function AgendaPage() {
           </>
         }
       />
+
+      <div className="rounded-xl border bg-card p-4 shadow-sm">
+        <div className="relative max-w-sm">
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            className="pl-11"
+            placeholder="Buscar paciente, teléfono, examen u orden"
+            aria-label="Buscar en la agenda"
+            value={termino}
+            onChange={(evento) => setTermino(evento.target.value)}
+          />
+        </div>
+      </div>
 
       {/* Vista de mes: cuadrícula de ocupación. */}
       {vista === 'mes' && agenda && (
@@ -194,7 +223,9 @@ function AgendaPage() {
       ) : diasConCitas.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
-            No hay citas programadas en este periodo.
+            {termino.trim()
+              ? 'Ninguna cita de este periodo coincide con la búsqueda.'
+              : 'No hay citas programadas en este periodo.'}
           </CardContent>
         </Card>
       ) : (
@@ -250,6 +281,7 @@ function AgendaPage() {
                           cita={cita}
                           onCambiada={cargar}
                           onReprogramar={setReprogramando}
+                          onEditar={setEditando}
                         />
                       </TableCell>
                     </TableRow>
@@ -271,6 +303,13 @@ function AgendaPage() {
         abierto={Boolean(reprogramando)}
         cita={reprogramando}
         onCerrar={() => setReprogramando(null)}
+        onGuardada={cargar}
+      />
+
+      <EditarCitaDialog
+        abierto={Boolean(editando)}
+        cita={editando}
+        onCerrar={() => setEditando(null)}
         onGuardada={cargar}
       />
     </div>
