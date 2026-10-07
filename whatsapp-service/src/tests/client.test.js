@@ -197,6 +197,22 @@ describe('whatsapp/client', () => {
     });
 
     /**
+     * Marcar el chat como leído antes de enviar falla en WhatsApp Web
+     * ("Data passed to getter must include an id property") y tumba el envío.
+     */
+    it('envía sin marcar el chat como leído, con o sin imagen', async () => {
+      const instancia = whatsappClient.initialize();
+
+      await whatsappClient.enviarMensaje('23232323', 'Hola');
+      await whatsappClient.enviarMensaje('23232323', 'Hola', 'data:image/png;base64,iVBORw0KGgo=');
+
+      expect(instancia.sendMessage).toHaveBeenCalledTimes(2);
+      instancia.sendMessage.mock.calls.forEach(([, , opciones]) => {
+        expect(opciones).toMatchObject({ sendSeen: false });
+      });
+    });
+
+    /**
      * Con imagen se manda un único mensaje —la foto con el texto como pie—,
      * no una foto suelta seguida de otro mensaje con la explicación.
      */

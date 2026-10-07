@@ -470,13 +470,19 @@ async function enviarMensaje(telefono, mensaje, imagen = null) {
       };
     }
 
+    // sendSeen: false porque marcar el chat como leído antes de enviar —lo que
+    // la librería hace por defecto— revienta con las versiones actuales de
+    // WhatsApp Web ("Data passed to getter must include an id property") y
+    // tumba el envío entero. Al laboratorio no le hace falta marcar nada leído.
+    const opciones = { sendSeen: false };
+
     const resultado = adjunto
       ? await client.sendMessage(
           numeroId._serialized,
           new MessageMedia(adjunto.mimetype, adjunto.base64, 'recordatorio'),
-          { caption: mensaje },
+          { ...opciones, caption: mensaje },
         )
-      : await client.sendMessage(numeroId._serialized, mensaje);
+      : await client.sendMessage(numeroId._serialized, mensaje, opciones);
 
     return {
       enviado: true,
