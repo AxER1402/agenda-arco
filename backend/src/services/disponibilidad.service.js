@@ -21,11 +21,23 @@ async function obtenerParametros() {
     horaApertura: configuracion[CLAVES.HORA_APERTURA],
     horaCierre: configuracion[CLAVES.HORA_CIERRE],
     intervaloMinutos: configuracion[CLAVES.INTERVALO_MINUTOS],
+    feriados: configuracion[CLAVES.DIAS_FERIADOS] ?? [],
   };
 }
 
-function esDiaLaborable(fechaISO, diasLaborables) {
-  return diasLaborables.includes(fechas.diaDeLaSemana(fechaISO));
+/**
+ * ¿Se atiende ese día? Hace falta que sea un día de la semana de atención y
+ * que no sea feriado.
+ *
+ * @param {string} fechaISO
+ * @param {number[]} diasLaborables
+ * @param {Array<{fecha: string, anual: boolean}>} [feriados]
+ */
+function esDiaLaborable(fechaISO, diasLaborables, feriados = []) {
+  return (
+    diasLaborables.includes(fechas.diaDeLaSemana(fechaISO)) &&
+    !configuracionService.feriadoEn(fechaISO, feriados)
+  );
 }
 
 /**
@@ -38,12 +50,13 @@ async function evaluarDia(fechaISO, { parametros = null } = {}) {
   const config = parametros ?? (await obtenerParametros());
   const ocupacion = await citaModel.contarOcupacion(fechaISO);
 
-  const laborable = esDiaLaborable(fechaISO, config.diasLaborables);
+  const laborable = esDiaLaborable(fechaISO, config.diasLaborables, config.feriados);
   const disponibles = Math.max(config.limiteDiario - ocupacion, 0);
 
   return {
     fecha: fechaISO,
     laborable,
+    feriado: configuracionService.feriadoEn(fechaISO, config.feriados)?.descripcion ?? null,
     limite: config.limiteDiario,
     ocupacion,
     disponibles,
@@ -95,7 +108,7 @@ async function sugerirFechas({
   for (let fecha = primera; dentroDeLaVentana(fecha); fecha = siguiente(fecha)) {
     if (sugerencias.length >= cantidad) break;
     if (excluidas.has(fecha)) continue;
-    if (!esDiaLaborable(fecha, parametros.diasLaborables)) continue;
+    if (!esDiaLaborable(fecha, parametros.diasLaborables, parametros.feriados)) continue;
 
     const disponibles = parametros.limiteDiario - (ocupaciones.get(fecha) ?? 0);
     if (disponibles > 0) sugerencias.push({ fecha, disponibles });
@@ -134,7 +147,7 @@ async function sugerirFechasParaOrden(orden, { cantidad = 3, excluirFechas = [] 
 async function horasDisponibles(fechaISO) {
   const parametros = await obtenerParametros();
 
-  if (!esDiaLaborable(fechaISO, parametros.diasLaborables)) return [];
+  if (!esDiaLaborable(fechaISO, parametros.diasLaborables, parametros.feriados)) return [];
 
   const citas = await citaModel.listarPorRango({
     desde: fechaISO,

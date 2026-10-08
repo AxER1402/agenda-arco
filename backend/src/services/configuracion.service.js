@@ -15,6 +15,8 @@ const CLAVES = {
   HORA_CIERRE: 'hora_cierre',
   INTERVALO_MINUTOS: 'intervalo_citas_minutos',
   HORA_RECORDATORIOS: 'hora_recordatorios',
+  HORA_CITA_PREDETERMINADA: 'hora_cita_predeterminada',
+  DIAS_FERIADOS: 'dias_feriados',
   NOMBRE_LABORATORIO: 'nombre_laboratorio',
   PLANTILLA_RECORDATORIO: 'plantilla_recordatorio',
   IMAGEN_RECORDATORIO: 'imagen_recordatorio',
@@ -34,6 +36,9 @@ const MARCADORES = {
   hora: 'Hora de la cita (HH:MM AM/PM).',
   examenes: 'Exámenes de la cita, separados por comas.',
   etiqueta_examenes: '«Examen» o «Exámenes», según cuántos haya.',
+  indicaciones:
+    'Indicaciones de los exámenes de la cita (p. ej. orina o heces). Si el mensaje no lo usa, ' +
+    'se agregan al final.',
 };
 
 /** Texto que se envía mientras el laboratorio no escriba el suyo. */
@@ -45,6 +50,8 @@ const PLANTILLA_POR_DEFECTO = [
   'Fecha: {fecha}',
   'Hora: {hora}',
   '{etiqueta_examenes}: {examenes}',
+  '',
+  '{indicaciones}',
   '',
   'Agradecemos su puntualidad.',
 ].join('\n');
@@ -60,6 +67,74 @@ const LONGITUD_MAXIMA_IMAGEN = 1_500_000;
 
 /** Formatos que WhatsApp muestra sin convertir. */
 const IMAGEN_DATA_URI = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+const LONGITUD_MAXIMA_FERIADO = 80;
+const MAXIMO_FERIADOS = 300;
+
+/** ¿Es un día que existe en el calendario? (descarta el 31 de febrero). */
+function esFechaReal(iso) {
+  if (!FECHA_ISO.test(iso)) return false;
+  const fecha = new Date(`${iso}T00:00:00Z`);
+  return !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === iso;
+}
+
+/**
+ * Feriados como lista de `{ fecha, descripcion, anual }`.
+ *
+ * En la base van como JSON; desde la pantalla llegan ya como lista. Un valor
+ * ilegible se devuelve como `null` para que la validación lo rechace en vez de
+ * dejar pasar una lista vacía que borraría los feriados sin avisar.
+ */
+function convertirFeriados(valor) {
+  let lista = valor;
+
+  if (typeof valor === 'string') {
+    if (valor.trim() === '') return [];
+    try {
+      lista = JSON.parse(valor);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!Array.isArray(lista)) return null;
+
+  return lista
+    .map((feriado) => ({
+      fecha: String(feriado?.fecha ?? '').slice(0, 10),
+      descripcion: String(feriado?.descripcion ?? '').trim(),
+      anual: feriado?.anual === true || feriado?.anual === 'true' || feriado?.anual === 1,
+    }))
+    .sort((uno, otro) => uno.fecha.localeCompare(otro.fecha));
+}
+
+/** Dos feriados chocan si caen el mismo día; el anual, en cualquier año. */
+function chocan(uno, otro) {
+  return uno.anual || otro.anual
+    ? uno.fecha.slice(5) === otro.fecha.slice(5)
+    : uno.fecha === otro.fecha;
+}
+
+function problemaConFeriados(lista) {
+  if (!Array.isArray(lista)) return 'Los feriados no tienen un formato válido.';
+  if (lista.length > MAXIMO_FERIADOS) return `No se pueden registrar más de ${MAXIMO_FERIADOS} feriados.`;
+
+  const invalido = lista.find((feriado) => !esFechaReal(feriado.fecha));
+  if (invalido) return `La fecha del feriado «${invalido.descripcion || invalido.fecha}» no es válida.`;
+
+  const largo = lista.find((feriado) => feriado.descripcion.length > LONGITUD_MAXIMA_FERIADO);
+  if (largo) return `La descripción de un feriado no puede exceder ${LONGITUD_MAXIMA_FERIADO} caracteres.`;
+
+  const repetido = lista.find((feriado, indice) =>
+    lista.slice(0, indice).some((anterior) => chocan(anterior, feriado)),
+  );
+  if (repetido) {
+    return `El ${repetido.fecha.split('-').reverse().join('/')} ya está registrado como feriado.`;
+  }
+
+  return null;
+}
 
 /** Marcadores usados en un texto, en orden de aparición y sin repetir. */
 function marcadoresDe(texto) {
@@ -118,6 +193,22 @@ const DEFINICIONES = {
     convertir: (valor) => String(valor).slice(0, 5),
     valido: (valor) => HORA.test(valor),
     mensaje: 'La hora de los recordatorios debe tener el formato HH:MM.',
+  },
+  [CLAVES.HORA_CITA_PREDETERMINADA]: {
+    // La de apertura: casi todas las citas se dan a primera hora.
+    porDefecto: '07:00',
+    convertir: (valor) => String(valor).slice(0, 5),
+    valido: (valor) => HORA.test(valor),
+    mensaje: 'La hora predeterminada de las citas debe tener el formato HH:MM.',
+  },
+  [CLAVES.DIAS_FERIADOS]: {
+    // Fechas en que el laboratorio cierra aunque el día de la semana sea de
+    // atención. Con `anual`, se repite cada año en el mismo día y mes.
+    porDefecto: [],
+    convertir: convertirFeriados,
+    valido: (valor) => problemaConFeriados(valor) === null,
+    mensaje: (valor) => problemaConFeriados(valor),
+    serializar: (valor) => JSON.stringify(valor),
   },
   [CLAVES.NOMBRE_LABORATORIO]: {
     porDefecto: 'El Arco Laboratorios',
@@ -239,8 +330,21 @@ async function establecerVarias(cambios, idUsuario) {
   return configuracion;
 }
 
+/**
+ * El feriado que cae en esa fecha, o `null`.
+ * Los anuales coinciden por día y mes, sea cual sea el año.
+ */
+function feriadoEn(fechaISO, feriados = []) {
+  return (
+    feriados.find((feriado) =>
+      feriado.anual ? feriado.fecha.slice(5) === fechaISO.slice(5) : feriado.fecha === fechaISO,
+    ) ?? null
+  );
+}
+
 module.exports = {
   CLAVES,
+  feriadoEn,
   MARCADORES,
   PLANTILLA_POR_DEFECTO,
   marcadoresDe,

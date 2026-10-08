@@ -7,6 +7,7 @@
 const citaModel = require('../models/cita.model');
 const ordenService = require('./orden.service');
 const disponibilidadService = require('./disponibilidad.service');
+const configuracionService = require('./configuracion.service');
 const AppError = require('../utils/AppError');
 const fechas = require('../utils/fechas');
 
@@ -53,12 +54,17 @@ async function obtenerVista(vista, fechaReferencia, { incluirCanceladas = false 
   const dias = [];
   for (let fecha = desde; fechas.comparar(fecha, hasta) <= 0; fecha = fechas.sumarDias(fecha, 1)) {
     const ocupacion = ocupaciones.get(fecha) ?? 0;
-    const laborable = disponibilidadService.esDiaLaborable(fecha, parametros.diasLaborables);
+    const laborable = disponibilidadService.esDiaLaborable(
+      fecha,
+      parametros.diasLaborables,
+      parametros.feriados,
+    );
 
     dias.push({
       fecha,
       dia_semana: fechas.diaDeLaSemana(fecha),
       laborable,
+      feriado: configuracionService.feriadoEn(fecha, parametros.feriados)?.descripcion ?? null,
       limite: parametros.limiteDiario,
       ocupacion,
       disponibles: laborable ? Math.max(parametros.limiteDiario - ocupacion, 0) : 0,

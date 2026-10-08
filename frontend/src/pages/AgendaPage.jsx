@@ -188,6 +188,7 @@ function AgendaPage() {
                 <button
                   key={dia.fecha}
                   type="button"
+                  title={dia.feriado ? `Feriado: ${dia.feriado}` : undefined}
                   onClick={() => {
                     setVista('dia');
                     setFecha(dia.fecha);
@@ -210,6 +211,7 @@ function AgendaPage() {
                       {dia.ocupacion}/{dia.limite}
                     </span>
                   )}
+                  {dia.feriado && <span className="text-[10px] opacity-70">Feriado</span>}
                 </button>
               ))}
             </div>

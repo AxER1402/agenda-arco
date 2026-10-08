@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarClock, Plus, TriangleAlert, UserRoundPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { CalendarClock, Plus, Search, TriangleAlert, UserRoundPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import CampoFormulario from '@/components/CampoFormulario';
@@ -19,10 +20,13 @@ import { Input } from '@/components/ui/input';
 import { SelectorFecha } from '@/components/ui/selector-fecha';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useConfiguracionAgenda } from '@/hooks/useConfiguracionAgenda';
 import { useTerminoRetrasado } from '@/hooks/useTerminoRetrasado';
 import { consultarDisponibilidad, recibirPaciente } from '@/services/cita.service';
 import { calcularVencimiento, listarExamenes } from '@/services/catalogo.service';
 import { buscarPorTelefono } from '@/services/paciente.service';
+import { coincideExamen } from '@/lib/busqueda';
+import { motivoDiaCerrado } from '@/lib/calendario';
 import { fechaLarga, hoyISO } from '@/lib/formato';
 import {
   esTelefonoValido,
@@ -35,9 +39,10 @@ import {
 } from '@/lib/validaciones';
 
 /**
- * Hora con la que llega el formulario. Es la de apertura del laboratorio: casi
- * todas las citas se dan a primera hora, y dejar el campo vacío obligaba a
- * teclearla entera en cada recepción.
+ * Hora con la que llega el formulario mientras se lee la configuración. La que
+ * vale es `hora_cita_predeterminada`, que el administrador cambia en
+ * Configuración: casi todas las citas se dan a la misma hora, y dejar el campo
+ * vacío obligaba a teclearla entera en cada recepción.
  */
 const HORA_SUGERIDA = '07:00';
 
@@ -86,6 +91,9 @@ function whatsappComoTexto(paciente) {
  * trabaja el laboratorio, pero se puede cambiar por cualquier otra válida. Si
  * el paciente ya tiene cita en el IGSS antes de que venza la orden, el límite
  * pasa a ser la víspera de esa cita: los resultados tienen que estar para ella.
+ *
+ * Al programarla se abre el módulo de Citas en el día de la cita, para ver que
+ * quedó donde se esperaba.
  */
 function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = null }) {
   const [valores, setValores] = useState(VACIO);
@@ -101,11 +109,19 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
   const [examenes, setExamenes] = useState([]);
   const [seleccionados, setSeleccionados] = useState([]);
   const [nuevoExamen, setNuevoExamen] = useState(false);
+  const [filtroExamen, setFiltroExamen] = useState('');
+
+  const navigate = useNavigate();
 
   const [vencimiento, setVencimiento] = useState(null);
   const [disponibilidad, setDisponibilidad] = useState(null);
   /** Si la fecha de la cita la eligió el usuario; si no, se repropone sola. */
   const fechaElegida = useRef(false);
+  /** Igual con la hora: la predeterminada no pisa la que ya se escribió. */
+  const horaElegida = useRef(false);
+
+  const configuracion = useConfiguracionAgenda(abierto);
+  const horaPredeterminada = configuracion?.hora_cita_predeterminada ?? HORA_SUGERIDA;
 
   const telefonoRetrasado = useTerminoRetrasado(valores.telefono, 400);
   const telefonoBuscable = useMemo(
@@ -129,16 +145,24 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
     setSeleccionado(pacienteInicial);
     setCoincidencias([]);
     setSeleccionados([]);
+    setFiltroExamen('');
     setErrores({});
     setRechazo(null);
     setVencimiento(null);
     setDisponibilidad(null);
     fechaElegida.current = false;
+    horaElegida.current = false;
 
     listarExamenes()
       .then(setExamenes)
       .catch((error) => toast.error(error.message));
   }, [abierto, pacienteInicial]);
+
+  // La configuración llega después de abrir: entonces se pone su hora.
+  useEffect(() => {
+    if (!abierto || horaElegida.current) return;
+    setValores((previo) => ({ ...previo, hora: horaPredeterminada }));
+  }, [abierto, horaPredeterminada]);
 
   // Al completar el teléfono se busca a quién pertenece.
   useEffect(() => {
@@ -217,6 +241,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
   function cambiar(campo) {
     return (evento) => {
       if (campo === 'fecha') fechaElegida.current = true;
+      if (campo === 'hora') horaElegida.current = true;
       setValores((previo) => ({ ...previo, [campo]: evento.target.value }));
       setErrores((previo) => ({ ...previo, [campo]: undefined }));
       setRechazo(null);
@@ -279,7 +304,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
     setRechazo(null);
 
     try {
-      const { avisos, paciente_registrado: registrado } = await recibirPaciente({
+      const { cita, avisos, paciente_registrado: registrado } = await recibirPaciente({
         ...(seleccionado
           ? { pacienteId: seleccionado.id }
           : {
@@ -306,6 +331,8 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
 
       onGuardada?.();
       onCerrar();
+      // El estado lleva la cita recién creada para resaltarla en la lista.
+      navigate(`/citas?fecha=${valores.fecha}`, { state: { citaResaltada: cita?.id } });
     } catch (error) {
       // El backend explica el motivo y propone fechas: se muestran tal cual.
       if (error.detalles?.motivo) {
@@ -318,6 +345,12 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
     }
   }
 
+  const examenesFiltrados = examenes.filter((examen) => coincideExamen(examen, filtroExamen));
+  // En el orden en que se marcaron: el resumen se lee como la orden que trae.
+  const examenesElegidos = seleccionados
+    .map((id) => examenes.find((examen) => examen.id === id))
+    .filter(Boolean);
+
   const sugeridas = rechazo?.fechas_sugeridas ?? vencimiento?.fechas_sugeridas ?? [];
 
   // La cita del IGSS es hoy o mañana: no queda ningún día antes de ella.
@@ -329,7 +362,9 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
       <Dialog open={abierto} onOpenChange={(valor) => !valor && onCerrar()}>
         {/* Es el formulario más largo del sistema: un clic fuera o un Escape
             no pueden tirar lo que ya se escribió. Se sale con Cancelar o la X. */}
-        <DialogContent className="sm:max-w-2xl" soloCierreExplicito>
+        {/* En el teléfono ocupa la pantalla (ver DialogContent); en una
+            pantalla ancha se abre para que quepan tres columnas de exámenes. */}
+        <DialogContent className="sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl" soloCierreExplicito>
           <DialogHeader>
             <DialogTitle>Nueva cita</DialogTitle>
             <DialogDescription>
@@ -338,7 +373,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
             </DialogDescription>
           </DialogHeader>
 
-          <form className="flex flex-col gap-5" onSubmit={enviar} noValidate>
+          <form className="flex flex-col gap-4 sm:gap-5" onSubmit={enviar} noValidate>
             {/* --- Paciente --- */}
             <fieldset className="flex flex-col gap-4">
               <legend className="rotulo mb-2">Paciente</legend>
@@ -560,13 +595,34 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                   </Button>
                 </div>
 
-                <div className="grid max-h-44 gap-1 overflow-y-auto rounded-lg border p-2 sm:grid-cols-2">
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    type="search"
+                    className="pl-11"
+                    placeholder="Buscar por código o nombre"
+                    aria-label="Buscar examen"
+                    value={filtroExamen}
+                    onChange={(evento) => setFiltroExamen(evento.target.value)}
+                    // Enter en el buscador no debe enviar el formulario entero.
+                    onKeyDown={(evento) => evento.key === 'Enter' && evento.preventDefault()}
+                  />
+                </div>
+
+                <div className="grid max-h-44 gap-1 overflow-y-auto rounded-lg border p-2 sm:grid-cols-2 lg:max-h-60 lg:grid-cols-3">
                   {examenes.length === 0 ? (
                     <p className="p-2 text-sm text-muted-foreground">
                       Todavía no hay exámenes en el catálogo.
                     </p>
+                  ) : examenesFiltrados.length === 0 ? (
+                    <p className="p-2 text-sm text-muted-foreground sm:col-span-full">
+                      Ningún examen coincide con «{filtroExamen.trim()}».
+                    </p>
                   ) : (
-                    examenes.map((examen) => (
+                    examenesFiltrados.map((examen) => (
                       <label
                         key={examen.id}
                         className="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
@@ -583,6 +639,36 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                     ))
                   )}
                 </div>
+
+                {/* Resumen: los marcados siguen a la vista aunque el buscador
+                    los deje fuera de la lista. */}
+                {examenesElegidos.length > 0 && (
+                  <div className="flex flex-col gap-2 rounded-lg border bg-secondary p-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {examenesElegidos.length === 1
+                        ? '1 examen seleccionado'
+                        : `${examenesElegidos.length} exámenes seleccionados`}
+                    </p>
+                    <ul className="flex flex-wrap gap-2" aria-label="Exámenes seleccionados">
+                      {examenesElegidos.map((examen) => (
+                        <li key={examen.id}>
+                          <Badge variant="outline" className="max-w-full gap-1.5 whitespace-normal bg-card py-1 pr-1 text-left">
+                            <span className="rotulo">{examen.codigo}</span>
+                            {examen.nombre}
+                            <button
+                              type="button"
+                              className="flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                              aria-label={`Quitar ${examen.nombre}`}
+                              onClick={() => alternarExamen(examen.id)}
+                            >
+                              <X className="size-3.5" aria-hidden="true" />
+                            </button>
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {errores.examenes && (
                   <p className="text-xs font-medium text-destructive">{errores.examenes}</p>
@@ -606,6 +692,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                       {...props}
                       min={hoyISO()}
                       max={vencimiento?.fecha_limite ?? vencimiento?.fecha_vencimiento}
+                      diaCerrado={(iso) => motivoDiaCerrado(iso, configuracion)}
                       value={valores.fecha}
                       onChange={cambiar('fecha')}
                     />
@@ -666,6 +753,8 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                       Ese día quedan <strong>{disponibilidad.disponibles}</strong> espacios de{' '}
                       {disponibilidad.limite}.
                     </>
+                  ) : disponibilidad.feriado ? (
+                    `Ese día es feriado (${disponibilidad.feriado}): el laboratorio no atiende.`
                   ) : (
                     'El laboratorio no atiende ese día.'
                   )}

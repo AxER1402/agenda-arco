@@ -26,6 +26,7 @@ docker compose exec -T database mysql -u root -p"$DB_ROOT_PASSWORD" el_arco \
 | `2026-10-07_fecha_cita_igss.sql` | Agrega a la orden la fecha de la cita del paciente en el IGSS. |
 | `2026-08-11_hora_recordatorios.sql` | Hora configurable del envío de recordatorios. |
 | `2026-08-11_plantilla_recordatorio.sql` | Mensaje del recordatorio editable y con imagen opcional. `configuracion.valor` pasa a `MEDIUMTEXT`. |
+| `2026-10-08_indicaciones_feriados.sql` | Indicaciones por examen para el recordatorio, hora predeterminada de la cita y feriados. |
 
 ## Volver a aplicar los scripts
 

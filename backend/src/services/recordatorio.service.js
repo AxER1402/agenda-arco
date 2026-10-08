@@ -25,7 +25,13 @@ const CITA_DE_EJEMPLO = {
   paciente_nombre: 'María González',
   fecha: '2026-08-12',
   hora: '09:30:00',
-  examenes: [{ nombre: 'Hematología completa' }, { nombre: 'Glucosa' }],
+  examenes: [
+    { nombre: 'Hematología completa' },
+    {
+      nombre: 'Orina completa',
+      indicaciones: 'La muestra de orina no debe pasar más de 1 hora en el frasco antes de traerla.',
+    },
+  ],
 };
 
 /**
@@ -58,7 +64,24 @@ function renderizarPlantilla(plantilla, valores) {
       return traeContenido || resto.length > 0;
     })
     .join('\n')
-    .replace(MARCADOR, (coincidencia, nombre) => valores[nombre] ?? coincidencia);
+    .replace(MARCADOR, (coincidencia, nombre) => valores[nombre] ?? coincidencia)
+    // Una línea quitada entre dos en blanco dejaría un hueco doble.
+    .replace(/\n{3,}/g, '\n\n');
+}
+
+/**
+ * Indicaciones de los exámenes de la cita, una por línea y sin repetir.
+ *
+ * Solo salen las de los exámenes que el paciente tiene: si no trae orina ni
+ * heces, la de «no más de 1 hora en el frasco» no aparece. Si dos exámenes
+ * comparten la misma indicación, se dice una vez.
+ */
+function indicacionesDe(cita) {
+  const textos = (cita.examenes ?? [])
+    .map((examen) => String(examen.indicaciones ?? '').trim())
+    .filter(Boolean);
+
+  return [...new Set(textos)].join('\n');
 }
 
 /**
@@ -76,14 +99,23 @@ function generarMensaje(
   plantilla = configuracionService.PLANTILLA_POR_DEFECTO,
 ) {
   const examenes = (cita.examenes ?? []).map((examen) => examen.nombre);
+  const indicaciones = indicacionesDe(cita);
 
-  return renderizarPlantilla(plantilla, {
+  // Un mensaje redactado antes de que existieran las indicaciones no las
+  // nombra: se agregan al final para que no se pierdan.
+  const conIndicaciones =
+    indicaciones && !configuracionService.marcadoresDe(plantilla).includes('indicaciones')
+      ? `${plantilla}\n\n{indicaciones}`
+      : plantilla;
+
+  return renderizarPlantilla(conIndicaciones, {
     paciente: cita.paciente_nombre ?? '',
     laboratorio: nombreLaboratorio,
     fecha: fechas.aFormatoLocal(cita.fecha),
     hora: fechas.horaAFormatoLocal(String(cita.hora)),
     examenes: examenes.join(', '),
     etiqueta_examenes: examenes.length === 0 ? '' : examenes.length === 1 ? 'Examen' : 'Exámenes',
+    indicaciones,
   });
 }
 
@@ -452,6 +484,7 @@ async function obtenerResumen() {
 
 module.exports = {
   generarMensaje,
+  indicacionesDe,
   renderizarPlantilla,
   obtenerPlantilla,
   guardarPlantilla,

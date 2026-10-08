@@ -1,6 +1,6 @@
 const { query, queryOne } = require('../config/database');
 
-const CAMPOS = 'id, codigo, nombre, descripcion, activo, creado_en';
+const CAMPOS = 'id, codigo, nombre, descripcion, indicaciones, activo, creado_en';
 
 async function buscarPorId(id) {
   return queryOne(`SELECT ${CAMPOS} FROM examenes WHERE id = :id`, { id });
@@ -41,11 +41,11 @@ async function listarPorIds(ids) {
   return query(`SELECT ${CAMPOS} FROM examenes WHERE id IN (${enteros.join(',')})`);
 }
 
-async function crear({ codigo, nombre, descripcion = null }) {
+async function crear({ codigo, nombre, descripcion = null, indicaciones = null }) {
   const resultado = await query(
-    `INSERT INTO examenes (codigo, nombre, descripcion)
-     VALUES (:codigo, :nombre, :descripcion)`,
-    { codigo, nombre, descripcion },
+    `INSERT INTO examenes (codigo, nombre, descripcion, indicaciones)
+     VALUES (:codigo, :nombre, :descripcion, :indicaciones)`,
+    { codigo, nombre, descripcion, indicaciones },
   );
   return buscarPorId(resultado.insertId);
 }
@@ -55,6 +55,7 @@ async function actualizar(id, cambios) {
     codigo: 'codigo',
     nombre: 'nombre',
     descripcion: 'descripcion',
+    indicaciones: 'indicaciones',
     activo: 'activo',
   };
 

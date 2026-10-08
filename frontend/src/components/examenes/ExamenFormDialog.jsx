@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { actualizarExamen, crearExamen } from '@/services/catalogo.service';
 import { validarFormulario, validarObligatorio } from '@/lib/validaciones';
 
-const VACIO = { codigo: '', nombre: '', descripcion: '' };
+const VACIO = { codigo: '', nombre: '', descripcion: '', indicaciones: '' };
 
 /**
  * Alta y edición de un examen del catálogo.
@@ -45,6 +45,7 @@ function ExamenFormDialog({ abierto, onCerrar, examen = null, onGuardado }) {
             codigo: examen.codigo ?? '',
             nombre: examen.nombre ?? '',
             descripcion: examen.descripcion ?? '',
+            indicaciones: examen.indicaciones ?? '',
           }
         : VACIO,
     );
@@ -134,6 +135,23 @@ function ExamenFormDialog({ abierto, onCerrar, examen = null, onGuardado }) {
                 rows={2}
                 value={valores.descripcion}
                 onChange={cambiar('descripcion')}
+              />
+            )}
+          </CampoFormulario>
+
+          <CampoFormulario
+            id="examen-indicaciones"
+            etiqueta="Indicación para el recordatorio"
+            ayuda="Opcional. Se agrega al WhatsApp solo a quien tenga este examen en su cita."
+          >
+            {(props) => (
+              <Textarea
+                {...props}
+                rows={2}
+                maxLength={255}
+                placeholder="La muestra no debe pasar más de 1 hora dentro del frasco."
+                value={valores.indicaciones}
+                onChange={cambiar('indicaciones')}
               />
             )}
           </CampoFormulario>

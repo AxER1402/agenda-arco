@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import { SelectorFecha } from '@/components/ui/selector-fecha';
 
-function Campo({ inicial = '', min, max }) {
+function Campo({ inicial = '', min, max, diaCerrado }) {
   const [valor, setValor] = useState(inicial);
   return (
     <>
@@ -14,6 +14,7 @@ function Campo({ inicial = '', min, max }) {
         value={valor}
         min={min}
         max={max}
+        diaCerrado={diaCerrado}
         onChange={(evento) => setValor(evento.target.value)}
       />
     </>
@@ -80,5 +81,38 @@ describe('SelectorFecha', () => {
 
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Fecha')).toHaveValue('2026-11-05');
+  });
+
+  describe('días cerrados', () => {
+    // Domingos cerrados y el 15 de noviembre de 2026 (domingo) no cuenta aparte.
+    const cerrado = (iso) => {
+      if (iso === '2026-11-20') return 'Feriado: Prueba';
+      return new Date(`${iso}T00:00:00Z`).getUTCDay() === 0 ? 'No se atiende los domingos' : null;
+    };
+
+    it('los apaga con su motivo y no deja elegirlos', async () => {
+      render(<Campo inicial="2026-11-05" diaCerrado={cerrado} />);
+      await userEvent.click(screen.getByLabelText('Fecha'));
+
+      const domingo = screen.getByRole('button', { name: /domingo 8 de noviembre de 2026/ });
+      expect(domingo).toHaveAttribute('aria-disabled', 'true');
+      expect(domingo).toHaveAttribute('title', 'No se atiende los domingos');
+
+      const feriado = screen.getByRole('button', { name: /viernes 20 de noviembre de 2026/ });
+      expect(feriado).toHaveAccessibleName(/Feriado: Prueba/);
+
+      await userEvent.click(feriado);
+      expect(screen.getByLabelText('Fecha')).toHaveValue('2026-11-05');
+    });
+
+    it('con las flechas se salta los días cerrados', async () => {
+      // 07/11/2026 es sábado: el siguiente abierto es el lunes 9.
+      render(<Campo inicial="2026-11-07" diaCerrado={cerrado} />);
+
+      screen.getByLabelText('Fecha').focus();
+      await userEvent.keyboard('{ArrowDown}');
+
+      expect(screen.getByLabelText('Fecha')).toHaveValue('2026-11-09');
+    });
   });
 });

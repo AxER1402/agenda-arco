@@ -15,8 +15,9 @@ const fechas = require('../utils/fechas');
 
 const LIMITE = 40;
 
-function configurar({ limite = LIMITE, diasLaborables = '1,2,3,4,5,6' } = {}) {
+function configurar({ limite = LIMITE, diasLaborables = '1,2,3,4,5,6', feriados = [] } = {}) {
   const valores = {
+    dias_feriados: JSON.stringify(feriados),
     limite_diario_pacientes: String(limite),
     vigencia_orden_meses: '3',
     dias_laborables: diasLaborables,
@@ -185,7 +186,10 @@ describe('disponibilidad.sugerirFechasParaOrden', () => {
   }
 
   it('propone primero las fechas más cercanas al vencimiento', async () => {
-    const vencimiento = fechas.sumarDias(HOY, 10);
+    // Un día de atención: si a los diez días cae en domingo, que aquí no se
+    // atiende, se toma el lunes. Sin esto la prueba fallaba un día de cada siete.
+    let vencimiento = fechas.sumarDias(HOY, 10);
+    if (fechas.diaDeLaSemana(vencimiento) === 7) vencimiento = fechas.sumarDias(vencimiento, 1);
 
     const sugerencias = await disponibilidadService.sugerirFechasParaOrden(orden(vencimiento), {
       cantidad: 3,
@@ -407,5 +411,54 @@ describe('resumen del panel', () => {
 
       expect(resumen.llamadas_pendientes).toBe(2);
     });
+  });
+});
+
+describe('feriados', () => {
+  it('un feriado no admite citas aunque su día de la semana sí', async () => {
+    // 15/09/2026 es martes.
+    configurar({ feriados: [{ fecha: '2026-09-15', descripcion: 'Independencia', anual: false }] });
+
+    const dia = await disponibilidadService.evaluarDia('2026-09-15');
+
+    expect(dia.laborable).toBe(false);
+    expect(dia.hayEspacio).toBe(false);
+    expect(dia.feriado).toBe('Independencia');
+  });
+
+  it('el anual se repite cada año en el mismo día y mes', async () => {
+    configurar({ feriados: [{ fecha: '2020-12-25', descripcion: 'Navidad', anual: true }] });
+
+    expect((await disponibilidadService.evaluarDia('2026-12-25')).laborable).toBe(false);
+    expect((await disponibilidadService.evaluarDia('2026-12-24')).laborable).toBe(true);
+  });
+
+  it('las sugerencias de fecha se saltan los feriados', async () => {
+    const desde = fechas.sumarDias(fechas.hoy(), 30);
+    const hasta = fechas.sumarDias(desde, 9);
+    // Todos los días de la ventana son de atención menos el feriado.
+    configurar({
+      diasLaborables: '1,2,3,4,5,6,7',
+      feriados: [{ fecha: hasta, descripcion: 'Feriado', anual: false }],
+    });
+
+    const sugerencias = await disponibilidadService.sugerirFechas({
+      desde,
+      hasta,
+      preferencia: 'CERCA_DEL_VENCIMIENTO',
+    });
+
+    expect(sugerencias.map((s) => s.fecha)).not.toContain(hasta);
+    expect(sugerencias[0].fecha).toBe(fechas.sumarDias(hasta, -1));
+  });
+
+  it('la agenda marca el día feriado con su descripción', async () => {
+    configurar({ feriados: [{ fecha: '2026-09-15', descripcion: 'Independencia', anual: false }] });
+
+    const vista = await agendaService.obtenerVista('dia', '2026-09-15');
+
+    expect(vista.dias[0]).toEqual(
+      expect.objectContaining({ laborable: false, feriado: 'Independencia', disponibles: 0 }),
+    );
   });
 });

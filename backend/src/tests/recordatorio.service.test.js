@@ -111,6 +111,59 @@ describe('generarMensaje', () => {
 });
 
 /**
+ * Indicaciones que dependen del examen: la de orina o heces solo le llega a
+ * quien trae ese examen.
+ */
+describe('indicaciones de los exámenes', () => {
+  const ORINA = {
+    nombre: 'Orina completa',
+    indicaciones: 'La muestra no debe pasar más de 1 hora en el frasco.',
+  };
+  const HECES = { nombre: 'Heces completa', indicaciones: ORINA.indicaciones };
+  const AYUNO = { nombre: 'Glucosa', indicaciones: 'Venga en ayunas.' };
+
+  it('van donde el mensaje pone {indicaciones}', () => {
+    const mensaje = recordatorioService.generarMensaje(
+      citaDePrueba({ examenes: [ORINA] }),
+      'El Arco Laboratorios',
+      'Hola {paciente}.\n{indicaciones}\nGracias.',
+    );
+
+    expect(mensaje).toBe(
+      'Hola Juan Pérez.\nLa muestra no debe pasar más de 1 hora en el frasco.\nGracias.',
+    );
+  });
+
+  it('no aparecen si el paciente no tiene ese examen', () => {
+    const mensaje = recordatorioService.generarMensaje(
+      citaDePrueba({ examenes: [{ nombre: 'Hematología completa' }] }),
+    );
+
+    expect(mensaje).not.toContain('frasco');
+    // Y la línea vacía no deja un hueco doble en el mensaje por defecto.
+    expect(mensaje).not.toMatch(/\n{3,}/);
+  });
+
+  it('una indicación compartida por orina y heces se dice una sola vez', () => {
+    expect(recordatorioService.indicacionesDe({ examenes: [ORINA, HECES, AYUNO] })).toBe(
+      'La muestra no debe pasar más de 1 hora en el frasco.\nVenga en ayunas.',
+    );
+  });
+
+  it('se agregan al final si el mensaje guardado no las nombra', () => {
+    const mensaje = recordatorioService.generarMensaje(
+      citaDePrueba({ examenes: [HECES] }),
+      'El Arco Laboratorios',
+      'Hola {paciente}.',
+    );
+
+    expect(mensaje).toBe(
+      'Hola Juan Pérez.\n\nLa muestra no debe pasar más de 1 hora en el frasco.',
+    );
+  });
+});
+
+/**
  * El texto lo redacta el laboratorio desde Configuración: el sistema solo
  * rellena los datos de la cita entre llaves.
  */
@@ -253,7 +306,13 @@ describe('obtenerPlantilla y previsualizarPlantilla', () => {
   it('previsualiza sin guardar nada', async () => {
     const datos = await recordatorioService.previsualizarPlantilla('Hola {paciente}.');
 
-    expect(datos.mensaje).toBe('Hola María González.');
+    // El ejemplo lleva un examen de orina: su indicación se agrega al final
+    // aunque el texto no la nombre.
+    expect(datos.mensaje).toBe(
+      'Hola María González.\n\n' +
+        'La muestra de orina no debe pasar más de 1 hora en el frasco antes de traerla.',
+    );
+    expect(datos.mensaje_sin_examenes).toBe('Hola María González.');
     expect(configuracionModel.establecer).not.toHaveBeenCalled();
   });
 });

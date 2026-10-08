@@ -27,20 +27,24 @@ INSERT INTO configuracion (clave, valor, descripcion) VALUES
   ('hora_cierre',             '17:00', 'Hora de fin de atención.'),
   ('intervalo_citas_minutos', '15', 'Duración del espacio asignado a cada cita.'),
   ('hora_recordatorios',      '08:00', 'Hora a la que se envían los recordatorios del día siguiente.'),
+  ('hora_cita_predeterminada', '07:00', 'Hora con la que llega el formulario de nueva cita.'),
+  ('dias_feriados',           '[]', 'Feriados en JSON: [{fecha, descripcion, anual}]. Esos días no se agenda.'),
   ('nombre_laboratorio',      'El Arco Laboratorios', 'Nombre mostrado en los recordatorios.'),
   -- Texto del recordatorio. Entre llaves van los datos de cada cita; el
   -- laboratorio puede reescribirlo desde Configuración.
   ('plantilla_recordatorio',
-   'Estimado(a) {paciente}:\n\nLe recordamos que tiene una cita programada en {laboratorio}.\n\nFecha: {fecha}\nHora: {hora}\n{etiqueta_examenes}: {examenes}\n\nAgradecemos su puntualidad.',
+   'Estimado(a) {paciente}:\n\nLe recordamos que tiene una cita programada en {laboratorio}.\n\nFecha: {fecha}\nHora: {hora}\n{etiqueta_examenes}: {examenes}\n\n{indicaciones}\n\nAgradecemos su puntualidad.',
    'Texto que se envía por WhatsApp como recordatorio de cita.'),
   ('imagen_recordatorio', '', 'Imagen adjunta al recordatorio (data URI en base64). Vacío = sin imagen.');
 
-INSERT INTO examenes (codigo, nombre, descripcion) VALUES
-  ('HEM-001', 'Hematología completa', 'Hemograma completo.'),
-  ('QUI-001', 'Glucosa', 'Glucosa en ayunas.'),
-  ('QUI-002', 'Perfil lipídico', 'Colesterol total, HDL, LDL y triglicéridos.'),
-  ('QUI-003', 'Creatinina', 'Creatinina sérica.'),
-  ('QUI-004', 'Ácido úrico', 'Ácido úrico en sangre.'),
-  ('ORI-001', 'Orina completa', 'Examen general de orina.'),
-  ('HEC-001', 'Heces completa', 'Examen general de heces.'),
-  ('HOR-001', 'Perfil tiroideo', 'TSH, T3 y T4.');
+INSERT INTO examenes (codigo, nombre, descripcion, indicaciones) VALUES
+  ('HEM-001', 'Hematología completa', 'Hemograma completo.', NULL),
+  ('QUI-001', 'Glucosa', 'Glucosa en ayunas.', NULL),
+  ('QUI-002', 'Perfil lipídico', 'Colesterol total, HDL, LDL y triglicéridos.', NULL),
+  ('QUI-003', 'Creatinina', 'Creatinina sérica.', NULL),
+  ('QUI-004', 'Ácido úrico', 'Ácido úrico en sangre.', NULL),
+  ('ORI-001', 'Orina completa', 'Examen general de orina.',
+   'La muestra de orina no debe pasar más de 1 hora dentro del frasco antes de entregarla.'),
+  ('HEC-001', 'Heces completa', 'Examen general de heces.',
+   'La muestra de heces no debe pasar más de 1 hora dentro del frasco antes de entregarla.'),
+  ('HOR-001', 'Perfil tiroideo', 'TSH, T3 y T4.', NULL);

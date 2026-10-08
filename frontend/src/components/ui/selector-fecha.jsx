@@ -83,8 +83,14 @@ function nombreDia(iso) {
  * Se usa igual que el nativo: `value` y `min`/`max` en 'AAAA-MM-DD', y
  * `onChange` recibe `{ target: { value } }`.
  *
+ * Con `diaCerrado` se apagan días sueltos dentro del rango —los que el
+ * laboratorio no atiende, como el domingo o un feriado—: la función recibe la
+ * fecha y devuelve el motivo, o `null` si el día se puede elegir. Esos días
+ * siguen recibiendo el foco al recorrer el calendario con el teclado, pero no
+ * se pueden elegir, y el motivo sale al pasar por encima.
+ *
  * Teclado: con el calendario cerrado, las flechas arriba/abajo mueven la fecha
- * un día y Enter lo abre. Abierto, las flechas recorren los días, RePág/AvPág
+ * un día (saltándose los cerrados) y Enter lo abre. Abierto, las flechas recorren los días, RePág/AvPág
  * cambian de mes, Inicio/Fin van al principio o final de la semana, Enter
  * elige y Escape cierra.
  */
@@ -94,6 +100,7 @@ function SelectorFecha({
   onChange,
   min,
   max,
+  diaCerrado,
   disabled = false,
   placeholder = 'Seleccione una fecha',
   className,
@@ -113,8 +120,12 @@ function SelectorFecha({
 
   const hoy = hoyLocal();
 
-  function permitido(iso) {
+  function enRango(iso) {
     return (!minimo || iso >= minimo) && (!maximo || iso <= maximo);
+  }
+
+  function permitido(iso) {
+    return enRango(iso) && !diaCerrado?.(iso);
   }
 
   /** Lleva una fecha al rango permitido. */
@@ -146,8 +157,18 @@ function SelectorFecha({
     if (key === 'ArrowDown' || key === 'ArrowUp') {
       evento.preventDefault();
       if (evento.altKey) return abrir();
-      const base = valor || acotar(hoy);
-      elegir(acotar(valor ? sumarDias(base, key === 'ArrowDown' ? 1 : -1) : base));
+      const paso = key === 'ArrowDown' ? 1 : -1;
+      let candidato = valor ? acotar(sumarDias(valor, paso)) : acotar(hoy);
+
+      // Se salta los días cerrados; un año de margen basta para dar con uno
+      // abierto o rendirse si no hay ninguno en esa dirección.
+      for (let intentos = 0; intentos < 366 && !permitido(candidato); intentos += 1) {
+        const siguiente = acotar(sumarDias(candidato, paso));
+        if (siguiente === candidato) break;
+        candidato = siguiente;
+      }
+
+      elegir(candidato);
     } else if (key === 'Enter' || key === ' ') {
       evento.preventDefault();
       abrir();
@@ -341,7 +362,8 @@ function SelectorFecha({
                   {casillas.slice(semana * 7, semana * 7 + 7).map((iso) => {
                     const delMes = iso.startsWith(mesVisible);
                     const elegida = iso === valor;
-                    const habilitada = permitido(iso);
+                    const habilitada = enRango(iso);
+                    const cerrado = habilitada ? (diaCerrado?.(iso) ?? null) : null;
 
                     return (
                       <span role="gridcell" key={iso} aria-selected={elegida} className="flex justify-center">
@@ -350,9 +372,12 @@ function SelectorFecha({
                           data-fecha={iso}
                           tabIndex={iso === enfocado ? 0 : -1}
                           disabled={!habilitada}
-                          aria-label={nombreDia(iso)}
+                          aria-disabled={cerrado ? true : undefined}
+                          title={cerrado ?? undefined}
+                          aria-label={cerrado ? `${nombreDia(iso)}. ${cerrado}` : nombreDia(iso)}
                           aria-current={iso === hoy ? 'date' : undefined}
                           onClick={() => {
+                            if (cerrado) return;
                             elegir(iso);
                             cerrar({ devolverFoco: true });
                           }}
@@ -364,6 +389,10 @@ function SelectorFecha({
                             iso === hoy && !elegida && 'font-semibold text-primary ring-1 ring-inset ring-primary/40',
                             elegida && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
                             'disabled:pointer-events-none disabled:text-muted-foreground/30 disabled:line-through',
+                            // Cerrado: igual de apagado, pero se puede enfocar y
+                            // pasar por encima para ver el motivo.
+                            cerrado &&
+                              'cursor-not-allowed text-muted-foreground/40 line-through hover:bg-transparent hover:text-muted-foreground/40',
                           )}
                         >
                           {aFecha(iso).getUTCDate()}

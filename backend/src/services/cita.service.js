@@ -14,6 +14,7 @@ const ordenModel = require('../models/orden.model');
 const examenService = require('./examen.service');
 const pacienteService = require('./paciente.service');
 const disponibilidadService = require('./disponibilidad.service');
+const configuracionService = require('./configuracion.service');
 const authService = require('./auth.service');
 const AppError = require('../utils/AppError');
 const fechas = require('../utils/fechas');
@@ -116,14 +117,24 @@ async function validarFecha({ fecha, orden, excluirCita = null }) {
 
   const parametros = await disponibilidadService.obtenerParametros();
 
-  // 3. Día laborable.
-  if (!disponibilidadService.esDiaLaborable(fechaISO, parametros.diasLaborables)) {
-    throw AppError.unprocessable('El laboratorio no atiende ese día.', {
-      motivo: 'DIA_NO_LABORABLE',
-      fechas_sugeridas: await disponibilidadService.sugerirFechasParaOrden(orden, {
-        excluirFechas: [fechaISO],
-      }),
-    });
+  // 3. Día laborable: de la semana de atención y sin feriado.
+  if (
+    !disponibilidadService.esDiaLaborable(fechaISO, parametros.diasLaborables, parametros.feriados)
+  ) {
+    const feriado = configuracionService.feriadoEn(fechaISO, parametros.feriados);
+
+    throw AppError.unprocessable(
+      feriado
+        ? `El ${fechas.aFormatoLocal(fechaISO)} es feriado` +
+            `${feriado.descripcion ? ` (${feriado.descripcion})` : ''}: el laboratorio no atiende.`
+        : 'El laboratorio no atiende ese día.',
+      {
+        motivo: feriado ? 'DIA_FERIADO' : 'DIA_NO_LABORABLE',
+        fechas_sugeridas: await disponibilidadService.sugerirFechasParaOrden(orden, {
+          excluirFechas: [fechaISO],
+        }),
+      },
+    );
   }
 
   // 4. LÍMITE DIARIO. Al reprogramar dentro del mismo día, la propia cita no

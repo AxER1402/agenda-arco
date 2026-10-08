@@ -24,6 +24,8 @@ const examenCrear = [
     .isLength({ max: 150 }).withMessage('El nombre no puede exceder 150 caracteres.'),
   body('descripcion').optional({ values: 'falsy' }).trim().isLength({ max: 255 })
     .withMessage('La descripción no puede exceder 255 caracteres.'),
+  body('indicaciones').optional({ values: 'falsy' }).trim().isLength({ max: 255 })
+    .withMessage('Las indicaciones no pueden exceder 255 caracteres.'),
   validar,
 ];
 
@@ -33,6 +35,8 @@ const examenActualizar = [
   body('nombre').optional().trim().notEmpty().withMessage('El nombre no puede quedar vacío.'),
   body('descripcion').optional({ values: 'null' }).trim().isLength({ max: 255 })
     .withMessage('La descripción no puede exceder 255 caracteres.'),
+  body('indicaciones').optional({ values: 'null' }).trim().isLength({ max: 255 })
+    .withMessage('Las indicaciones no pueden exceder 255 caracteres.'),
   body('activo')
     .optional()
     .isBoolean()
@@ -186,6 +190,12 @@ const configuracionActualizar = [
     .withMessage('Debe marcar al menos un día de atención.'),
   body('dias_laborables.*').optional().isInt({ min: 1, max: 7 })
     .withMessage('Los días de atención deben ser números del 1 (lunes) al 7 (domingo).'),
+  body('hora_cita_predeterminada').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .withMessage('La hora predeterminada de las citas debe tener el formato HH:MM.'),
+  // Lista de { fecha, descripcion, anual }. Cada feriado lo revisa
+  // configuracion.service, que es donde está declarado qué admite.
+  body('dias_feriados').optional().isArray()
+    .withMessage('Los feriados deben enviarse como lista.'),
   validar,
 ];
 

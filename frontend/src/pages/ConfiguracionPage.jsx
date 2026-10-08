@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 import CampoFormulario from '@/components/CampoFormulario';
 import DialogoConfirmacion from '@/components/DialogoConfirmacion';
+import FeriadosCard from '@/components/configuracion/FeriadosCard';
 import MensajeRecordatorioCard from '@/components/configuracion/MensajeRecordatorioCard';
 import EncabezadoModulo from '@/components/layout/EncabezadoModulo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -108,6 +109,7 @@ function ConfiguracionPage() {
         hora_cierre: configuracion.hora_cierre,
         intervalo_citas_minutos: Number(configuracion.intervalo_citas_minutos),
         hora_recordatorios: configuracion.hora_recordatorios,
+        hora_cita_predeterminada: configuracion.hora_cita_predeterminada,
         dias_laborables: configuracion.dias_laborables,
       });
 
@@ -286,6 +288,21 @@ function ConfiguracionPage() {
                 )}
               </CampoFormulario>
 
+              <CampoFormulario
+                id="hora-cita-predeterminada"
+                etiqueta="Hora predeterminada de las citas"
+                ayuda="Con esta hora llega el formulario de nueva cita. Se puede cambiar en cada una."
+              >
+                {(props) => (
+                  <Input
+                    {...props}
+                    type="time"
+                    value={configuracion.hora_cita_predeterminada ?? ''}
+                    onChange={cambiar('hora_cita_predeterminada')}
+                  />
+                )}
+              </CampoFormulario>
+
               <fieldset className="flex flex-col gap-2 sm:col-span-2 lg:col-span-3">
                 <legend className="mb-2 text-sm font-semibold text-titular">
                   Días de atención
@@ -336,6 +353,8 @@ function ConfiguracionPage() {
           )}
         </CardContent>
       </Card>
+
+      <FeriadosCard />
 
       <MensajeRecordatorioCard />
 

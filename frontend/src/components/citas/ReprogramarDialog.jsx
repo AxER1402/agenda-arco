@@ -16,7 +16,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { SelectorFecha } from '@/components/ui/selector-fecha';
+import { useConfiguracionAgenda } from '@/hooks/useConfiguracionAgenda';
 import { actualizarCita } from '@/services/cita.service';
+import { motivoDiaCerrado } from '@/lib/calendario';
 import { fechaLarga, hoyISO } from '@/lib/formato';
 
 /**
@@ -32,6 +34,7 @@ function ReprogramarDialog({ abierto, onCerrar, cita, onGuardada }) {
   const [guardando, setGuardando] = useState(false);
 
   const cancelada = cita?.estado === 'CANCELADA';
+  const configuracion = useConfiguracionAgenda(abierto);
 
   useEffect(() => {
     if (!abierto || !cita) return;
@@ -89,6 +92,7 @@ function ReprogramarDialog({ abierto, onCerrar, cita, onGuardada }) {
                   {...props}
                   min={hoyISO()}
                   max={cita?.fecha_limite ?? cita?.fecha_vencimiento}
+                  diaCerrado={(iso) => motivoDiaCerrado(iso, configuracion)}
                   value={valores.fecha}
                   onChange={(evento) =>
                     setValores((previo) => ({ ...previo, fecha: evento.target.value }))

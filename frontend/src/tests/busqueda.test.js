@@ -1,4 +1,4 @@
-import { coincideCita } from '@/lib/busqueda';
+import { coincideCita, coincideExamen } from '@/lib/busqueda';
 
 const CITA = {
   paciente_nombre: 'María José López',
@@ -25,5 +25,20 @@ describe('coincideCita', () => {
     ['99999', false],
   ])('"%s" → %s', (termino, esperado) => {
     expect(coincideCita(CITA, termino)).toBe(esperado);
+  });
+});
+
+describe('coincideExamen', () => {
+  const EXAMEN = { codigo: 'QUI-001', nombre: 'Glucosa pre y post' };
+
+  it.each([
+    ['', true],
+    ['qui', true],
+    ['qui-001', true],
+    ['GLUCOSA', true],
+    ['glucosa post', true],
+    ['hem', false],
+  ])('"%s" → %s', (termino, esperado) => {
+    expect(coincideExamen(EXAMEN, termino)).toBe(esperado);
   });
 });

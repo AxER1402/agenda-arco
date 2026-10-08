@@ -44,3 +44,21 @@ export function coincideCita(cita, termino) {
     return texto.includes(palabra) || (esNumero && telefono.includes(digitos));
   });
 }
+
+/**
+ * ¿El examen del catálogo coincide con lo buscado?
+ *
+ * Mira el código y el nombre, con las mismas reglas que las citas: sin tildes
+ * ni mayúsculas, y cada palabra tiene que aparecer. "hem" encuentra HEM-001 y
+ * "glu" encuentra la glucosa.
+ *
+ * @param {{ codigo?: string, nombre?: string }} examen
+ * @param {string} termino
+ */
+export function coincideExamen(examen, termino) {
+  const palabras = normalizar(termino).split(/\s+/).filter(Boolean);
+  if (palabras.length === 0) return true;
+
+  const texto = normalizar(`${examen.codigo ?? ''} ${examen.nombre ?? ''}`);
+  return palabras.every((palabra) => texto.includes(palabra));
+}

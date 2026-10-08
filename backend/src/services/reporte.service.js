@@ -173,7 +173,7 @@ async function resumenDeActividad({ desde, hasta, usuario = null } = {}) {
 
   let laborables = 0;
   for (let f = inicio; fechas.comparar(f, fin) <= 0; f = fechas.sumarDias(f, 1)) {
-    if (disponibilidadService.esDiaLaborable(f, parametros.diasLaborables)) laborables += 1;
+    if (disponibilidadService.esDiaLaborable(f, parametros.diasLaborables, parametros.feriados)) laborables += 1;
   }
 
   const total = citas.length;

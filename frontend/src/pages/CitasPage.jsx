@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { CalendarPlus, ClipboardList, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,9 +38,19 @@ import {
  * Listado de citas con filtros.
  * Complementa a la agenda: aquí se busca por estado ("¿quién falta por
  * confirmar?", "¿quién no asistió?") en lugar de por día.
+ *
+ * Con `?fecha=AAAA-MM-DD` abre ese día: es a donde lleva el formulario de nueva
+ * cita al programarla, con la cita recién creada resaltada.
  */
 function CitasPage() {
-  const [periodo, setPeriodo] = useState({ vista: 'semana', fecha: hoyISO() });
+  const [parametros] = useSearchParams();
+  const ubicacion = useLocation();
+  const fechaEnlace = parametros.get('fecha');
+  const citaResaltada = ubicacion.state?.citaResaltada ?? null;
+
+  const [periodo, setPeriodo] = useState(() =>
+    fechaEnlace ? { vista: 'dia', fecha: fechaEnlace } : { vista: 'semana', fecha: hoyISO() },
+  );
   const [estadoFiltro, setEstadoFiltro] = useState('');
   const [termino, setTermino] = useState('');
   const [estados, setEstados] = useState([]);
@@ -65,6 +76,19 @@ function CitasPage() {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  // Cada llegada por enlace (location.key cambia aunque la URL se repita) lleva
+  // a ese día y quita los filtros, que podrían dejar fuera la cita recién dada.
+  useEffect(() => {
+    if (!fechaEnlace) return;
+    setPeriodo((previo) =>
+      previo.vista === 'dia' && previo.fecha === fechaEnlace
+        ? previo
+        : { vista: 'dia', fecha: fechaEnlace },
+    );
+    setEstadoFiltro('');
+    setTermino('');
+  }, [fechaEnlace, ubicacion.key]);
 
   useEffect(() => {
     listarEstadosCita().then(setEstados).catch(() => setEstados([]));
@@ -174,7 +198,10 @@ function CitasPage() {
             </TableEmpty>
           ) : (
             citas.map((cita) => (
-              <TableRow key={cita.id}>
+              <TableRow
+                key={cita.id}
+                className={cita.id === citaResaltada ? 'bg-accent' : undefined}
+              >
                 <TableCell className="whitespace-nowrap">{fechaLarga(cita.fecha)}</TableCell>
                 <TableCell className="whitespace-nowrap">{hora12(String(cita.hora))}</TableCell>
                 <TableCell className="font-medium">{cita.paciente_nombre}</TableCell>

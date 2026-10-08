@@ -77,6 +77,9 @@ CREATE TABLE examenes (
   codigo        VARCHAR(30)   NOT NULL,
   nombre        VARCHAR(150)  NOT NULL,
   descripcion   VARCHAR(255)  NULL,
+  -- Lo que el paciente debe saber de este examen antes de venir. Va en el
+  -- recordatorio solo si la cita incluye el examen.
+  indicaciones  VARCHAR(255)  NULL,
   activo        BOOLEAN       NOT NULL DEFAULT TRUE,
   creado_en     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   actualizado_en TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

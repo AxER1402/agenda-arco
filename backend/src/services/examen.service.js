@@ -11,7 +11,7 @@ async function obtener(id) {
   return examen;
 }
 
-async function crear({ codigo, nombre, descripcion }) {
+async function crear({ codigo, nombre, descripcion, indicaciones }) {
   const codigoNormalizado = codigo.trim().toUpperCase();
 
   if (await examenModel.buscarPorCodigo(codigoNormalizado)) {
@@ -22,10 +22,11 @@ async function crear({ codigo, nombre, descripcion }) {
     codigo: codigoNormalizado,
     nombre: nombre.trim(),
     descripcion: descripcion?.trim() || null,
+    indicaciones: indicaciones?.trim() || null,
   });
 }
 
-async function actualizar(id, { codigo, nombre, descripcion, activo }) {
+async function actualizar(id, { codigo, nombre, descripcion, indicaciones, activo }) {
   await obtener(id);
 
   const cambios = { activo };
@@ -40,6 +41,7 @@ async function actualizar(id, { codigo, nombre, descripcion, activo }) {
 
   if (nombre !== undefined) cambios.nombre = nombre.trim();
   if (descripcion !== undefined) cambios.descripcion = descripcion?.trim() || null;
+  if (indicaciones !== undefined) cambios.indicaciones = indicaciones?.trim() || null;
 
   return examenModel.actualizar(id, cambios);
 }

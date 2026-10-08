@@ -273,6 +273,58 @@ describe('PATCH /api/agenda/configuracion', () => {
 
     expect(respuesta.status).toBe(422);
   });
+  it('guarda la hora con la que llega el formulario de nueva cita', async () => {
+    const respuesta = await request(app)
+      .patch('/api/agenda/configuracion')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ hora_cita_predeterminada: '08:30' });
+
+    expect(respuesta.status).toBe(200);
+    expect(configuracionModel.establecer).toHaveBeenCalledWith(
+      'hora_cita_predeterminada',
+      '08:30',
+      1,
+    );
+  });
+
+  it('guarda los feriados como JSON', async () => {
+    const feriados = [{ fecha: '2026-09-15', descripcion: 'Independencia', anual: true }];
+
+    const respuesta = await request(app)
+      .patch('/api/agenda/configuracion')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ dias_feriados: feriados });
+
+    expect(respuesta.status).toBe(200);
+    expect(configuracionModel.establecer).toHaveBeenCalledWith(
+      'dias_feriados',
+      JSON.stringify(feriados),
+      1,
+    );
+  });
+
+  it.each([
+    ['una fecha que no existe', [{ fecha: '2026-02-31', descripcion: 'X', anual: false }]],
+    [
+      'el mismo día dos veces',
+      [
+        { fecha: '2026-12-25', descripcion: 'Navidad', anual: true },
+        { fecha: '2027-12-25', descripcion: 'Otra', anual: false },
+      ],
+    ],
+  ])('rechaza feriados con %s', async (_caso, feriados) => {
+    const respuesta = await request(app)
+      .patch('/api/agenda/configuracion')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ dias_feriados: feriados });
+
+    expect(respuesta.status).toBeGreaterThanOrEqual(400);
+    expect(configuracionModel.establecer).not.toHaveBeenCalledWith(
+      'dias_feriados',
+      expect.anything(),
+      expect.anything(),
+    );
+  });
 });
 
 describe('DELETE /api/citas/:id', () => {
@@ -377,7 +429,7 @@ describe('Mensaje del recordatorio', () => {
       .send({ plantilla: 'Hola {paciente}.' });
 
     expect(respuesta.status).toBe(200);
-    expect(respuesta.body.mensaje).toBe('Hola María González.');
+    expect(respuesta.body.mensaje).toMatch(/^Hola María González\./);
     expect(configuracionModel.establecer).not.toHaveBeenCalled();
   });
 

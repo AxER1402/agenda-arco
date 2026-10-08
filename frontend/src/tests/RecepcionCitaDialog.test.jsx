@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 
 import RecepcionCitaDialog from '@/components/citas/RecepcionCitaDialog';
 import * as citaService from '@/services/cita.service';
@@ -37,9 +38,29 @@ const VENCIMIENTO = {
   ],
 };
 
+/** La página a la que lleva el formulario al programar: enseña a dónde llegó. */
+function DestinoCitas() {
+  const { search, state } = useLocation();
+  return (
+    <p data-testid="destino">
+      {search} {state?.citaResaltada}
+    </p>
+  );
+}
+
 function renderizar(props = {}) {
   return render(
-    <RecepcionCitaDialog abierto onCerrar={jest.fn()} onGuardada={jest.fn()} {...props} />,
+    <MemoryRouter initialEntries={['/agenda']}>
+      <Routes>
+        <Route
+          path="/agenda"
+          element={
+            <RecepcionCitaDialog abierto onCerrar={jest.fn()} onGuardada={jest.fn()} {...props} />
+          }
+        />
+        <Route path="/citas" element={<DestinoCitas />} />
+      </Routes>
+    </MemoryRouter>,
   );
 }
 
@@ -174,6 +195,44 @@ describe('Orden del IGSS dentro de la cita', () => {
   });
 });
 
+describe('Selección de exámenes', () => {
+  it('filtra la lista por código o por nombre', async () => {
+    renderizar();
+    const buscador = screen.getByLabelText('Buscar examen');
+    await screen.findByRole('checkbox', { name: /Glucosa/ });
+
+    await userEvent.type(buscador, 'hem');
+    expect(screen.getByRole('checkbox', { name: /Hematología completa/ })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /Glucosa/ })).not.toBeInTheDocument();
+
+    await userEvent.clear(buscador);
+    await userEvent.type(buscador, 'GLUCOSA');
+    expect(screen.getByRole('checkbox', { name: /Glucosa/ })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /Hematología/ })).not.toBeInTheDocument();
+
+    await userEvent.clear(buscador);
+    await userEvent.type(buscador, 'orina');
+    expect(screen.getByText(/Ningún examen coincide/)).toBeInTheDocument();
+  });
+
+  it('resume los marcados aunque el buscador los oculte, y deja quitarlos', async () => {
+    renderizar();
+    await userEvent.click(await screen.findByRole('checkbox', { name: /Glucosa/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /Hematología completa/ }));
+
+    await userEvent.type(screen.getByLabelText('Buscar examen'), 'hem');
+
+    const resumen = screen.getByRole('list', { name: 'Exámenes seleccionados' });
+    expect(screen.getByText('2 exámenes seleccionados')).toBeInTheDocument();
+    expect(resumen).toHaveTextContent('Glucosa');
+    expect(resumen).toHaveTextContent('Hematología completa');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar Glucosa' }));
+    expect(screen.getByText('1 examen seleccionado')).toBeInTheDocument();
+    expect(resumen).not.toHaveTextContent('Glucosa');
+  });
+});
+
 describe('Envío', () => {
   async function llenarFormulario() {
     await userEvent.type(screen.getByLabelText(/Teléfono/), '55599999');
@@ -187,6 +246,14 @@ describe('Envío', () => {
     await userEvent.clear(screen.getByLabelText(/^Hora/));
     await userEvent.type(screen.getByLabelText(/^Hora/), '09:00');
   }
+
+  it('llega con la hora predeterminada de Configuración', async () => {
+    catalogoService.obtenerConfiguracion.mockResolvedValue({ hora_cita_predeterminada: '08:30' });
+
+    renderizar();
+
+    await waitFor(() => expect(screen.getByLabelText(/^Hora/)).toHaveValue('08:30'));
+  });
 
   it('propone la hora de apertura sin que haya que teclearla', async () => {
     renderizar();
@@ -347,6 +414,21 @@ describe('Envío', () => {
 
     expect(await screen.findByText('No se pudo programar la cita')).toBeInTheDocument();
     expect(screen.getByText(/alcanzó el límite de 40 pacientes/)).toBeInTheDocument();
+  });
+});
+
+describe('Después de programar', () => {
+  it('lleva al módulo de Citas en el día de la cita, con la cita resaltada', async () => {
+    renderizar();
+    await screen.findByText(/Se puede recibir hasta el/);
+
+    await userEvent.type(screen.getByLabelText(/Teléfono/), '55599999');
+    await screen.findByText(/se registrará como paciente nuevo/);
+    await userEvent.type(screen.getByLabelText(/Nombre completo/), 'Marta Ruiz');
+    await userEvent.click(screen.getByRole('checkbox', { name: /Glucosa/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+
+    expect(await screen.findByTestId('destino')).toHaveTextContent('?fecha=2026-11-11 10');
   });
 });
 

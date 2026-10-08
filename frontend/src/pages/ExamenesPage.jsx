@@ -114,12 +114,13 @@ function ExamenesPage() {
             <TableHead>Código IGSS</TableHead>
             <TableHead>Nombre</TableHead>
             <TableHead>Descripción</TableHead>
+            <TableHead>Indicación al paciente</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {examenes.length === 0 ? (
-            <TableEmpty colSpan={4}>
+            <TableEmpty colSpan={5}>
               {cargando
                 ? 'Cargando...'
                 : termino
@@ -139,6 +140,9 @@ function ExamenesPage() {
                 </TableCell>
                 <TableCell>{examen.nombre}</TableCell>
                 <TableCell className="text-muted-foreground">{examen.descripcion}</TableCell>
+                <TableCell className="max-w-[18rem] text-muted-foreground">
+                  {examen.indicaciones}
+                </TableCell>
 
                 <TableCell>
                   <div className="flex justify-end gap-1">
