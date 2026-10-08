@@ -26,6 +26,8 @@ const examenCrear = [
     .withMessage('La descripción no puede exceder 255 caracteres.'),
   body('indicaciones').optional({ values: 'falsy' }).trim().isLength({ max: 255 })
     .withMessage('Las indicaciones no pueden exceder 255 caracteres.'),
+  body('categoriaId').optional({ values: 'falsy' }).isInt({ min: 1 })
+    .withMessage('La categoría no es válida.'),
   validar,
 ];
 
@@ -37,11 +39,33 @@ const examenActualizar = [
     .withMessage('La descripción no puede exceder 255 caracteres.'),
   body('indicaciones').optional({ values: 'null' }).trim().isLength({ max: 255 })
     .withMessage('Las indicaciones no pueden exceder 255 caracteres.'),
+  // null o '' quita la categoría.
+  body('categoriaId').optional({ values: 'falsy' }).isInt({ min: 1 })
+    .withMessage('La categoría no es válida.'),
   body('activo')
     .optional()
     .isBoolean()
     .withMessage('El estado activo debe ser verdadero o falso.')
     .toBoolean(),
+  validar,
+];
+
+// --- Categorías de exámenes ------------------------------------------------
+
+const categoriaCrear = [
+  body('nombre').trim().notEmpty().withMessage('El nombre de la categoría es obligatorio.')
+    .isLength({ max: 80 }).withMessage('El nombre no puede exceder 80 caracteres.'),
+  body('indicaciones').optional({ values: 'falsy' }).trim().isLength({ max: 255 })
+    .withMessage('Las indicaciones no pueden exceder 255 caracteres.'),
+  validar,
+];
+
+const categoriaActualizar = [
+  reglaId,
+  body('nombre').optional().trim().notEmpty().withMessage('El nombre no puede quedar vacío.')
+    .isLength({ max: 80 }).withMessage('El nombre no puede exceder 80 caracteres.'),
+  body('indicaciones').optional({ values: 'null' }).trim().isLength({ max: 255 })
+    .withMessage('Las indicaciones no pueden exceder 255 caracteres.'),
   validar,
 ];
 
@@ -244,6 +268,8 @@ const soloCitaId = [
 module.exports = {
   examenCrear,
   examenActualizar,
+  categoriaCrear,
+  categoriaActualizar,
   ordenCrear,
   ordenActualizar,
   ordenVencimiento,

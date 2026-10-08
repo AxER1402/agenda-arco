@@ -6,6 +6,7 @@ jest.mock('../models/paciente.model');
 jest.mock('../models/cita.model');
 jest.mock('../models/orden.model');
 jest.mock('../models/examen.model');
+jest.mock('../models/categoria.model');
 jest.mock('../models/configuracion.model');
 jest.mock('../models/recordatorio.model');
 jest.mock('../models/usuario.model');
@@ -19,6 +20,7 @@ const citaModel = require('../models/cita.model');
 const ordenModel = require('../models/orden.model');
 const examenModel = require('../models/examen.model');
 const configuracionModel = require('../models/configuracion.model');
+const categoriaModel = require('../models/categoria.model');
 const usuarioModel = require('../models/usuario.model');
 const password = require('../utils/password');
 
@@ -505,6 +507,95 @@ describe('Desvincular WhatsApp', () => {
 
     expect(respuesta.status).toBe(503);
     expect(respuesta.body.error.mensaje).toMatch(/servicio de WhatsApp/);
+  });
+});
+
+describe('Categorías de exámenes', () => {
+  const SANGRE = { id: 3, nombre: 'Sangre', indicaciones: 'Debe venir con 12 horas de ayuno.' };
+
+  it('el personal de citas puede crear una categoría con su indicación', async () => {
+    categoriaModel.buscarPorNombre.mockResolvedValue(null);
+    categoriaModel.crear.mockResolvedValue(SANGRE);
+
+    const respuesta = await request(app)
+      .post('/api/categorias-examen')
+      .set('Authorization', `Bearer ${tokenCitas}`)
+      .send({ nombre: ' Sangre ', indicaciones: SANGRE.indicaciones });
+
+    expect(respuesta.status).toBe(201);
+    expect(categoriaModel.crear).toHaveBeenCalledWith({
+      nombre: 'Sangre',
+      indicaciones: SANGRE.indicaciones,
+    });
+  });
+
+  it('no deja dos categorías con el mismo nombre', async () => {
+    categoriaModel.buscarPorNombre.mockResolvedValue(SANGRE);
+
+    const respuesta = await request(app)
+      .post('/api/categorias-examen')
+      .set('Authorization', `Bearer ${tokenCitas}`)
+      .send({ nombre: 'Sangre' });
+
+    expect(respuesta.status).toBe(409);
+    expect(categoriaModel.crear).not.toHaveBeenCalled();
+  });
+
+  it('asigna la categoría a un examen', async () => {
+    examenModel.buscarPorId.mockResolvedValue({ id: 9, codigo: 'X-1', nombre: 'Glucosa', activo: 1 });
+    examenModel.actualizar.mockResolvedValue({ id: 9, categoria_id: 3 });
+    categoriaModel.buscarPorId.mockResolvedValue(SANGRE);
+
+    const respuesta = await request(app)
+      .patch('/api/examenes/9')
+      .set('Authorization', `Bearer ${tokenCitas}`)
+      .send({ categoriaId: 3 });
+
+    expect(respuesta.status).toBe(200);
+    expect(examenModel.actualizar).toHaveBeenCalledWith(
+      '9',
+      expect.objectContaining({ categoriaId: 3 }),
+    );
+  });
+
+  it('quita la categoría de un examen con null', async () => {
+    examenModel.buscarPorId.mockResolvedValue({ id: 9, codigo: 'X-1', nombre: 'Glucosa', activo: 1 });
+    examenModel.actualizar.mockResolvedValue({ id: 9, categoria_id: null });
+
+    const respuesta = await request(app)
+      .patch('/api/examenes/9')
+      .set('Authorization', `Bearer ${tokenCitas}`)
+      .send({ categoriaId: null });
+
+    expect(respuesta.status).toBe(200);
+    expect(examenModel.actualizar).toHaveBeenCalledWith(
+      '9',
+      expect.objectContaining({ categoriaId: null }),
+    );
+  });
+
+  it('rechaza asignar una categoría que no existe', async () => {
+    examenModel.buscarPorId.mockResolvedValue({ id: 9, codigo: 'X-1', nombre: 'Glucosa', activo: 1 });
+    categoriaModel.buscarPorId.mockResolvedValue(null);
+
+    const respuesta = await request(app)
+      .patch('/api/examenes/9')
+      .set('Authorization', `Bearer ${tokenCitas}`)
+      .send({ categoriaId: 99 });
+
+    expect(respuesta.status).toBe(400);
+    expect(examenModel.actualizar).not.toHaveBeenCalled();
+  });
+
+  it('eliminar una categoría deja sus exámenes sin ella', async () => {
+    categoriaModel.buscarPorId.mockResolvedValue(SANGRE);
+
+    const respuesta = await request(app)
+      .delete('/api/categorias-examen/3')
+      .set('Authorization', `Bearer ${tokenCitas}`);
+
+    expect(respuesta.status).toBe(204);
+    expect(categoriaModel.eliminar).toHaveBeenCalledWith('3');
   });
 });
 

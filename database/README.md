@@ -27,6 +27,7 @@ docker compose exec -T database mysql -u root -p"$DB_ROOT_PASSWORD" el_arco \
 | `2026-08-11_hora_recordatorios.sql` | Hora configurable del envío de recordatorios. |
 | `2026-08-11_plantilla_recordatorio.sql` | Mensaje del recordatorio editable y con imagen opcional. `configuracion.valor` pasa a `MEDIUMTEXT`. |
 | `2026-10-08_indicaciones_feriados.sql` | Indicaciones por examen para el recordatorio, hora predeterminada de la cita y feriados. |
+| `2026-10-09_categorias_examen.sql` | Categorías de exámenes con una indicación común (p. ej. ayuno de 12 horas). |
 
 ## Volver a aplicar los scripts
 
@@ -51,6 +52,7 @@ docker compose exec database mysql -u arco_app -p el_arco
 ```text
 roles ──< usuarios
                 │
+                                   categorias_examen ──< examenes
 pacientes ──< ordenes ──< orden_examenes >── examenes
      │            │
      └────────< citas >── estados_cita

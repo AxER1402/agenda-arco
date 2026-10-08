@@ -72,6 +72,18 @@ CREATE TABLE pacientes (
   CONSTRAINT chk_pacientes_dpi CHECK (dpi IS NULL OR dpi REGEXP '^[0-9]{13}$')
 ) ENGINE=InnoDB;
 
+-- Agrupa exámenes (sangre, orina...) para dar una indicación a todos a la vez:
+-- el recordatorio la incluye una sola vez aunque la cita traiga varios.
+CREATE TABLE categorias_examen (
+  id            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  nombre        VARCHAR(80)   NOT NULL,
+  indicaciones  VARCHAR(255)  NULL,
+  creado_en     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actualizado_en TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_categorias_examen_nombre (nombre)
+) ENGINE=InnoDB;
+
 CREATE TABLE examenes (
   id            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   codigo        VARCHAR(30)   NOT NULL,
@@ -80,12 +92,17 @@ CREATE TABLE examenes (
   -- Lo que el paciente debe saber de este examen antes de venir. Va en el
   -- recordatorio solo si la cita incluye el examen.
   indicaciones  VARCHAR(255)  NULL,
+  categoria_id  INT UNSIGNED  NULL,
   activo        BOOLEAN       NOT NULL DEFAULT TRUE,
   creado_en     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   actualizado_en TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_examenes_codigo (codigo),
-  KEY idx_examenes_nombre (nombre)
+  KEY idx_examenes_nombre (nombre),
+  KEY idx_examenes_categoria (categoria_id),
+  -- Borrar una categoría no borra sus exámenes: se quedan sin categoría.
+  CONSTRAINT fk_examenes_categoria FOREIGN KEY (categoria_id) REFERENCES categorias_examen (id)
+    ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- --- Órdenes del IGSS ------------------------------------------------------

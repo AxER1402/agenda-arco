@@ -1,26 +1,31 @@
 const { query, queryOne } = require('../config/database');
 
-const CAMPOS = 'id, codigo, nombre, descripcion, indicaciones, activo, creado_en';
+const CAMPOS = `
+  e.id, e.codigo, e.nombre, e.descripcion, e.indicaciones, e.categoria_id, e.activo, e.creado_en,
+  c.nombre AS categoria_nombre, c.indicaciones AS categoria_indicaciones
+`;
+
+/** La categoría es opcional: LEFT JOIN para no perder los exámenes sin ella. */
+const DESDE = 'FROM examenes e LEFT JOIN categorias_examen c ON c.id = e.categoria_id';
 
 async function buscarPorId(id) {
-  return queryOne(`SELECT ${CAMPOS} FROM examenes WHERE id = :id`, { id });
+  return queryOne(`SELECT ${CAMPOS} ${DESDE} WHERE e.id = :id`, { id });
 }
 
 async function buscarPorCodigo(codigo, excluirId = null) {
   return queryOne(
-    `SELECT ${CAMPOS} FROM examenes
-      WHERE codigo = :codigo AND (:excluirId IS NULL OR id <> :excluirId)`,
+    `SELECT ${CAMPOS} ${DESDE}
+      WHERE e.codigo = :codigo AND (:excluirId IS NULL OR e.id <> :excluirId)`,
     { codigo, excluirId },
   );
 }
 
 async function listar({ termino = '', incluirInactivos = false } = {}) {
   return query(
-    `SELECT ${CAMPOS}
-       FROM examenes
-      WHERE (:incluirInactivos = 1 OR activo = 1)
-        AND (:termino = '' OR nombre LIKE :like OR codigo LIKE :like)
-      ORDER BY nombre`,
+    `SELECT ${CAMPOS} ${DESDE}
+      WHERE (:incluirInactivos = 1 OR e.activo = 1)
+        AND (:termino = '' OR e.nombre LIKE :like OR e.codigo LIKE :like)
+      ORDER BY e.nombre`,
     {
       termino: termino.trim(),
       like: `%${termino.trim()}%`,
@@ -38,14 +43,20 @@ async function listarPorIds(ids) {
   const enteros = ids.map((id) => Number.parseInt(id, 10)).filter(Number.isInteger);
   if (enteros.length === 0) return [];
 
-  return query(`SELECT ${CAMPOS} FROM examenes WHERE id IN (${enteros.join(',')})`);
+  return query(`SELECT ${CAMPOS} ${DESDE} WHERE e.id IN (${enteros.join(',')})`);
 }
 
-async function crear({ codigo, nombre, descripcion = null, indicaciones = null }) {
+async function crear({
+  codigo,
+  nombre,
+  descripcion = null,
+  indicaciones = null,
+  categoriaId = null,
+}) {
   const resultado = await query(
-    `INSERT INTO examenes (codigo, nombre, descripcion, indicaciones)
-     VALUES (:codigo, :nombre, :descripcion, :indicaciones)`,
-    { codigo, nombre, descripcion, indicaciones },
+    `INSERT INTO examenes (codigo, nombre, descripcion, indicaciones, categoria_id)
+     VALUES (:codigo, :nombre, :descripcion, :indicaciones, :categoriaId)`,
+    { codigo, nombre, descripcion, indicaciones, categoriaId },
   );
   return buscarPorId(resultado.insertId);
 }
@@ -56,6 +67,7 @@ async function actualizar(id, cambios) {
     nombre: 'nombre',
     descripcion: 'descripcion',
     indicaciones: 'indicaciones',
+    categoriaId: 'categoria_id',
     activo: 'activo',
   };
 

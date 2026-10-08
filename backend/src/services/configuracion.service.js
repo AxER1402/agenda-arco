@@ -37,8 +37,8 @@ const MARCADORES = {
   examenes: 'Exámenes de la cita, separados por comas.',
   etiqueta_examenes: '«Examen» o «Exámenes», según cuántos haya.',
   indicaciones:
-    'Indicaciones de los exámenes de la cita (p. ej. orina o heces). Si el mensaje no lo usa, ' +
-    'se agregan al final.',
+    'Indicaciones de los exámenes de la cita y de sus categorías (ayuno, orina, heces), sin ' +
+    'repetir. Si el mensaje no lo usa, se agregan al final.',
 };
 
 /** Texto que se envía mientras el laboratorio no escriba el suyo. */

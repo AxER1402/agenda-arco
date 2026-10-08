@@ -12,11 +12,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { actualizarExamen, crearExamen } from '@/services/catalogo.service';
+import { actualizarExamen, crearExamen, listarCategorias } from '@/services/catalogo.service';
 import { validarFormulario, validarObligatorio } from '@/lib/validaciones';
 
-const VACIO = { codigo: '', nombre: '', descripcion: '', indicaciones: '' };
+const VACIO = { codigo: '', nombre: '', descripcion: '', indicaciones: '', categoriaId: '' };
 
 /**
  * Alta y edición de un examen del catálogo.
@@ -35,6 +36,7 @@ function ExamenFormDialog({ abierto, onCerrar, examen = null, onGuardado }) {
   const [valores, setValores] = useState(VACIO);
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
+  const [categorias, setCategorias] = useState([]);
 
   useEffect(() => {
     if (!abierto) return;
@@ -46,10 +48,16 @@ function ExamenFormDialog({ abierto, onCerrar, examen = null, onGuardado }) {
             nombre: examen.nombre ?? '',
             descripcion: examen.descripcion ?? '',
             indicaciones: examen.indicaciones ?? '',
+            categoriaId: examen.categoria_id ? String(examen.categoria_id) : '',
           }
         : VACIO,
     );
     setErrores({});
+
+    // Sin categorías el formulario sigue funcionando: el examen queda sin ella.
+    Promise.resolve(listarCategorias())
+      .then((lista) => setCategorias(lista ?? []))
+      .catch(() => setCategorias([]));
   }, [abierto, examen]);
 
   function cambiar(campo) {
@@ -75,9 +83,13 @@ function ExamenFormDialog({ abierto, onCerrar, examen = null, onGuardado }) {
     setGuardando(true);
 
     try {
+      const datos = {
+        ...valores,
+        categoriaId: valores.categoriaId ? Number(valores.categoriaId) : null,
+      };
       const guardado = editando
-        ? await actualizarExamen(examen.id, valores)
-        : await crearExamen(valores);
+        ? await actualizarExamen(examen.id, datos)
+        : await crearExamen(datos);
 
       toast.success(editando ? 'Examen actualizado.' : 'Examen agregado al catálogo.');
       onGuardado?.(guardado);
@@ -140,9 +152,31 @@ function ExamenFormDialog({ abierto, onCerrar, examen = null, onGuardado }) {
           </CampoFormulario>
 
           <CampoFormulario
+            id="examen-categoria"
+            etiqueta="Categoría"
+            ayuda={
+              categorias.length === 0
+                ? 'Todavía no hay categorías. Se crean en Exámenes → Categorías.'
+                : (categorias.find((categoria) => String(categoria.id) === valores.categoriaId)
+                    ?.indicaciones ?? 'Su indicación se agrega una sola vez por cita.')
+            }
+          >
+            {(props) => (
+              <Select {...props} value={valores.categoriaId} onChange={cambiar('categoriaId')}>
+                <option value="">Sin categoría</option>
+                {categorias.map((categoria) => (
+                  <option key={categoria.id} value={String(categoria.id)}>
+                    {categoria.nombre}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </CampoFormulario>
+
+          <CampoFormulario
             id="examen-indicaciones"
             etiqueta="Indicación para el recordatorio"
-            ayuda="Opcional. Se agrega al WhatsApp solo a quien tenga este examen en su cita."
+            ayuda="Opcional. Solo lo propio de este examen (lo común va en la categoría)."
           >
             {(props) => (
               <Textarea

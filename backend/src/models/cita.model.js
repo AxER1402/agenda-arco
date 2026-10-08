@@ -41,9 +41,12 @@ async function adjuntarExamenes(citas) {
   if (ids.length === 0) return citas;
 
   const filas = await query(
-    `SELECT ce.cita_id, e.id, e.codigo, e.nombre, e.indicaciones
+    `SELECT ce.cita_id, e.id, e.codigo, e.nombre, e.indicaciones,
+            e.categoria_id, cat.nombre AS categoria_nombre,
+            cat.indicaciones AS categoria_indicaciones
        FROM cita_examenes ce
        JOIN examenes e ON e.id = ce.examen_id
+       LEFT JOIN categorias_examen cat ON cat.id = e.categoria_id
       WHERE ce.cita_id IN (${ids.join(',')})
       ORDER BY e.nombre`,
   );

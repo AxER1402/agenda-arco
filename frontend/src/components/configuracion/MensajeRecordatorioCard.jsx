@@ -156,8 +156,9 @@ function MensajeRecordatorioCard() {
         <CardTitle className="text-xl">Mensaje del recordatorio</CardTitle>
         <CardDescription>
           Lo que recibe el paciente por WhatsApp el día antes de su cita. Los datos entre llaves se
-          sustituyen por los de cada cita. Las indicaciones de cada examen (por ejemplo, la de
-          orina o heces) se escriben en Exámenes, y solo le llegan a quien tenga ese examen.
+          sustituyen por los de cada cita. Las indicaciones (el ayuno de una categoría, lo del
+          frasco de orina o heces) se escriben en Exámenes, y solo le llegan a quien tenga esos
+          exámenes, cada una una sola vez.
         </CardDescription>
       </CardHeader>
 

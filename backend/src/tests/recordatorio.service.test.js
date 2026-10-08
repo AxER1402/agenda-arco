@@ -150,6 +150,38 @@ describe('indicaciones de los exámenes', () => {
     );
   });
 
+  describe('por categoría', () => {
+    const AYUNO_12 = 'Debe venir con 12 horas de ayuno.';
+    const sangre = (nombre) => ({
+      nombre,
+      categoria_id: 1,
+      categoria_nombre: 'Sangre',
+      categoria_indicaciones: AYUNO_12,
+    });
+
+    it('con cinco exámenes de la misma categoría, la indicación sale una vez', () => {
+      const cita = {
+        examenes: ['Glucosa', 'Creatinina', 'Ácido úrico', 'Perfil lipídico', 'Hematología'].map(
+          sangre,
+        ),
+      };
+
+      expect(recordatorioService.indicacionesDe(cita)).toBe(AYUNO_12);
+    });
+
+    it('junta la de la categoría con la propia del examen', () => {
+      const cita = { examenes: [sangre('Glucosa'), ORINA] };
+
+      expect(recordatorioService.indicacionesDe(cita)).toBe(`${AYUNO_12}\n${ORINA.indicaciones}`);
+    });
+
+    it('sin exámenes de esa categoría no hay ayuno', () => {
+      const cita = { examenes: [ORINA, { nombre: 'Sin categoría' }] };
+
+      expect(recordatorioService.indicacionesDe(cita)).not.toContain('ayuno');
+    });
+  });
+
   it('se agregan al final si el mensaje guardado no las nombra', () => {
     const mensaje = recordatorioService.generarMensaje(
       citaDePrueba({ examenes: [HECES] }),
@@ -306,10 +338,11 @@ describe('obtenerPlantilla y previsualizarPlantilla', () => {
   it('previsualiza sin guardar nada', async () => {
     const datos = await recordatorioService.previsualizarPlantilla('Hola {paciente}.');
 
-    // El ejemplo lleva un examen de orina: su indicación se agrega al final
-    // aunque el texto no la nombre.
+    // El ejemplo lleva un examen de sangre y uno de orina: sus indicaciones
+    // se agregan al final aunque el texto no las nombre.
     expect(datos.mensaje).toBe(
       'Hola María González.\n\n' +
+        'Debe venir con 12 horas de ayuno.\n' +
         'La muestra de orina no debe pasar más de 1 hora en el frasco antes de traerla.',
     );
     expect(datos.mensaje_sin_examenes).toBe('Hola María González.');

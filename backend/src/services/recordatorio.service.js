@@ -26,7 +26,10 @@ const CITA_DE_EJEMPLO = {
   fecha: '2026-08-12',
   hora: '09:30:00',
   examenes: [
-    { nombre: 'Hematología completa' },
+    {
+      nombre: 'Hematología completa',
+      categoria_indicaciones: 'Debe venir con 12 horas de ayuno.',
+    },
     {
       nombre: 'Orina completa',
       indicaciones: 'La muestra de orina no debe pasar más de 1 hora en el frasco antes de traerla.',
@@ -72,13 +75,15 @@ function renderizarPlantilla(plantilla, valores) {
 /**
  * Indicaciones de los exámenes de la cita, una por línea y sin repetir.
  *
- * Solo salen las de los exámenes que el paciente tiene: si no trae orina ni
- * heces, la de «no más de 1 hora en el frasco» no aparece. Si dos exámenes
- * comparten la misma indicación, se dice una vez.
+ * Salen de dos sitios: la categoría del examen (el ayuno de 12 horas de
+ * «Sangre») y el propio examen (lo del frasco en «Orina completa»). Solo
+ * aparecen las de los exámenes que el paciente tiene, y cada texto una sola
+ * vez: con cinco exámenes de sangre, el ayuno se dice una vez.
  */
 function indicacionesDe(cita) {
   const textos = (cita.examenes ?? [])
-    .map((examen) => String(examen.indicaciones ?? '').trim())
+    .flatMap((examen) => [examen.categoria_indicaciones, examen.indicaciones])
+    .map((texto) => String(texto ?? '').trim())
     .filter(Boolean);
 
   return [...new Set(textos)].join('\n');

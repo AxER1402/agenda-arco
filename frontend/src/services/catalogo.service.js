@@ -22,6 +22,29 @@ export async function eliminarExamen(id) {
   await api.delete(`/examenes/${id}`);
 }
 
+// --- Categorías de exámenes -----------------------------------------------
+
+/** Cada una con su indicación común y cuántos exámenes la usan. */
+export async function listarCategorias() {
+  const { data } = await api.get('/categorias-examen');
+  return data;
+}
+
+export async function crearCategoria(categoria) {
+  const { data } = await api.post('/categorias-examen', categoria);
+  return data;
+}
+
+export async function actualizarCategoria(id, cambios) {
+  const { data } = await api.patch(`/categorias-examen/${id}`, cambios);
+  return data;
+}
+
+/** Sus exámenes no se borran: se quedan sin categoría. */
+export async function eliminarCategoria(id) {
+  await api.delete(`/categorias-examen/${id}`);
+}
+
 // --- Órdenes del IGSS ------------------------------------------------------
 
 export async function listarOrdenesDePaciente(pacienteId) {

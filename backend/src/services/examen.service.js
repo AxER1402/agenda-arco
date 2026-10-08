@@ -1,4 +1,5 @@
 const examenModel = require('../models/examen.model');
+const categoriaService = require('./categoria.service');
 const AppError = require('../utils/AppError');
 
 async function listar({ termino = '', incluirInactivos = false } = {}) {
@@ -11,7 +12,7 @@ async function obtener(id) {
   return examen;
 }
 
-async function crear({ codigo, nombre, descripcion, indicaciones }) {
+async function crear({ codigo, nombre, descripcion, indicaciones, categoriaId }) {
   const codigoNormalizado = codigo.trim().toUpperCase();
 
   if (await examenModel.buscarPorCodigo(codigoNormalizado)) {
@@ -23,10 +24,11 @@ async function crear({ codigo, nombre, descripcion, indicaciones }) {
     nombre: nombre.trim(),
     descripcion: descripcion?.trim() || null,
     indicaciones: indicaciones?.trim() || null,
+    categoriaId: (await categoriaService.validarAsignacion(categoriaId)) ?? null,
   });
 }
 
-async function actualizar(id, { codigo, nombre, descripcion, indicaciones, activo }) {
+async function actualizar(id, { codigo, nombre, descripcion, indicaciones, categoriaId, activo }) {
   await obtener(id);
 
   const cambios = { activo };
@@ -42,6 +44,9 @@ async function actualizar(id, { codigo, nombre, descripcion, indicaciones, activ
   if (nombre !== undefined) cambios.nombre = nombre.trim();
   if (descripcion !== undefined) cambios.descripcion = descripcion?.trim() || null;
   if (indicaciones !== undefined) cambios.indicaciones = indicaciones?.trim() || null;
+  if (categoriaId !== undefined) {
+    cambios.categoriaId = await categoriaService.validarAsignacion(categoriaId);
+  }
 
   return examenModel.actualizar(id, cambios);
 }

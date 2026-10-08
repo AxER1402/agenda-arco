@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlaskConical, Pencil, Power, Search, Trash2 } from 'lucide-react';
+import { FlaskConical, Pencil, Power, Search, Tags, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DialogoConfirmacion from '@/components/DialogoConfirmacion';
+import CategoriasDialog from '@/components/examenes/CategoriasDialog';
 import ExamenFormDialog from '@/components/examenes/ExamenFormDialog';
 import EncabezadoModulo from '@/components/layout/EncabezadoModulo';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ function ExamenesPage() {
   const [dialogo, setDialogo] = useState({ abierto: false, examen: null });
   const [desactivando, setDesactivando] = useState(null);
   const [eliminando, setEliminando] = useState(null);
+  const [gestionandoCategorias, setGestionandoCategorias] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -85,10 +87,16 @@ function ExamenesPage() {
         titulo="Exámenes"
         descripcion="Catálogo de exámenes que se pueden asignar a una cita."
         acciones={
-          <Button onClick={() => setDialogo({ abierto: true, examen: null })}>
-            <FlaskConical aria-hidden="true" />
-            Nuevo examen
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setGestionandoCategorias(true)}>
+              <Tags aria-hidden="true" />
+              Categorías
+            </Button>
+            <Button onClick={() => setDialogo({ abierto: true, examen: null })}>
+              <FlaskConical aria-hidden="true" />
+              Nuevo examen
+            </Button>
+          </>
         }
       />
 
@@ -113,6 +121,7 @@ function ExamenesPage() {
           <TableRow>
             <TableHead>Código IGSS</TableHead>
             <TableHead>Nombre</TableHead>
+            <TableHead>Categoría</TableHead>
             <TableHead>Descripción</TableHead>
             <TableHead>Indicación al paciente</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
@@ -120,7 +129,7 @@ function ExamenesPage() {
         </TableHeader>
         <TableBody>
           {examenes.length === 0 ? (
-            <TableEmpty colSpan={5}>
+            <TableEmpty colSpan={6}>
               {cargando
                 ? 'Cargando...'
                 : termino
@@ -139,6 +148,18 @@ function ExamenesPage() {
                   )}
                 </TableCell>
                 <TableCell>{examen.nombre}</TableCell>
+                <TableCell>
+                  {examen.categoria_nombre ? (
+                    <Badge
+                      variant="secondary"
+                      title={examen.categoria_indicaciones || undefined}
+                    >
+                      {examen.categoria_nombre}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-muted-foreground">{examen.descripcion}</TableCell>
                 <TableCell className="max-w-[18rem] text-muted-foreground">
                   {examen.indicaciones}
@@ -202,6 +223,12 @@ function ExamenesPage() {
         examen={dialogo.examen}
         onCerrar={() => setDialogo({ abierto: false, examen: null })}
         onGuardado={cargar}
+      />
+
+      <CategoriasDialog
+        abierto={gestionandoCategorias}
+        onCerrar={() => setGestionandoCategorias(false)}
+        onCambiadas={cargar}
       />
 
       <DialogoConfirmacion
