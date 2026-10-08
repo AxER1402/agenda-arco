@@ -308,6 +308,61 @@ describe('Reprogramación de citas', () => {
     ).rejects.toMatchObject({ statusCode: 422, details: { motivo: 'FUERA_DE_VIGENCIA' } });
   });
 
+  describe('con cita en el IGSS antes del vencimiento', () => {
+    // La orden vence en 30 días, pero el paciente va al IGSS en 10: los
+    // resultados tienen que estar antes, así que el límite es el día 9.
+    const CITA_IGSS = fechas.sumarDias(HOY, 10);
+    const VISPERA = fechas.sumarDias(CITA_IGSS, -1);
+
+    beforeEach(() => {
+      ordenModel.buscarPorId.mockResolvedValue(ordenDePrueba({ fecha_cita_igss: CITA_IGSS }));
+    });
+
+    it('deja moverla hasta la víspera de la cita del IGSS', async () => {
+      await citaService.actualizar(100, { fecha: VISPERA });
+
+      expect(citaModel.actualizar).toHaveBeenCalledWith(
+        100,
+        expect.objectContaining({ fecha: VISPERA }),
+        expect.any(Function),
+      );
+    });
+
+    it.each([
+      ['el mismo día de la cita del IGSS', 0],
+      ['después de la cita del IGSS, aunque la orden siga vigente', 5],
+    ])('rechaza moverla %s', async (_caso, diasDespues) => {
+      await expect(
+        citaService.actualizar(100, { fecha: fechas.sumarDias(CITA_IGSS, diasDespues) }),
+      ).rejects.toMatchObject({
+        statusCode: 422,
+        details: { motivo: 'DESPUES_DE_CITA_IGSS', fecha_limite: VISPERA },
+      });
+      expect(citaModel.actualizar).not.toHaveBeenCalled();
+    });
+
+    it('al reagendar una cancelada también respeta la cita del IGSS', async () => {
+      citaModel.buscarPorId.mockResolvedValue(
+        citaCreada({ estado: 'CANCELADA', estado_nombre: 'Cancelada', ocupa_cupo: 0 }),
+      );
+
+      await expect(
+        citaService.actualizar(100, { fecha: fechas.sumarDias(CITA_IGSS, 3) }),
+      ).rejects.toMatchObject({ details: { motivo: 'DESPUES_DE_CITA_IGSS' } });
+    });
+
+    it('las fechas que propone al rechazar no pasan de la víspera', async () => {
+      const error = await citaService
+        .actualizar(100, { fecha: fechas.sumarDias(CITA_IGSS, 5) })
+        .catch((problema) => problema);
+
+      expect(error.details.fechas_sugeridas.length).toBeGreaterThan(0);
+      error.details.fechas_sugeridas.forEach(({ fecha }) =>
+        expect(fechas.comparar(fecha, VISPERA)).toBeLessThanOrEqual(0),
+      );
+    });
+  });
+
   it('no cuenta dos veces la propia cita al cambiar solo la hora', async () => {
     // El día está justo en el límite, pero uno de esos lugares es esta cita.
     citaModel.contarOcupacion.mockResolvedValue(LIMITE_DIARIO);
