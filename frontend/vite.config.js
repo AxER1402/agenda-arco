@@ -15,6 +15,16 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    // Vite rechaza las peticiones que llegan con un dominio que no conoce. Sin
+    // esto, el sistema publicado detrás del proxy responde «Blocked request».
+    // Se pueden añadir más, separados por comas, en VITE_ALLOWED_HOSTS.
+    allowedHosts: [
+      'agenda.labarco.bid',
+      ...(process.env.VITE_ALLOWED_HOSTS ?? '')
+        .split(',')
+        .map((dominio) => dominio.trim())
+        .filter(Boolean),
+    ],
     // Dentro de Docker el watcher nativo no siempre detecta los cambios del
     // volumen montado desde macOS/Windows.
     watch: { usePolling: true },
