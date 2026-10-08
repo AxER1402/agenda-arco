@@ -12,15 +12,32 @@ async function buscarPorId(id) {
 }
 
 /**
- * Búsqueda por nombre, teléfono o DPI con paginación.
- * El LIKE lleva el comodín solo al final del nombre para poder aprovechar el
- * índice; el teléfono y el DPI se comparan por prefijo por el mismo motivo.
+ * Parámetros de la búsqueda a partir de lo que se escribió.
+ *
+ * El teléfono y el DPI se guardan solo con dígitos, pero en el mostrador se
+ * escriben como se leen: «5551-2345» o «1234 56789 0101». Si lo buscado son
+ * números con guiones o espacios, se comparan solo los dígitos, y en cualquier
+ * parte del número, igual que el buscador de citas. Si lleva letras, el
+ * teléfono y el DPI no pueden coincidir y solo se mira el nombre.
+ *
+ * @param {string} termino
  */
+function parametrosDeBusqueda(termino = '') {
+  const texto = String(termino ?? '').trim();
+  const esNumero = /^[\d\s-]+$/.test(texto) && /\d/.test(texto);
+
+  return {
+    hayTermino: texto.length > 0 ? 1 : 0,
+    filtroNombre: `%${texto}%`,
+    // NULL cuando no es un número: `LIKE NULL` nunca coincide.
+    filtroDigitos: esNumero ? `%${texto.replace(/\D/g, '')}%` : null,
+  };
+}
+
+/** Búsqueda por nombre, teléfono o DPI con paginación. */
 async function buscar({ termino = '', incluirInactivos = false, limite = 20, desplazamiento = 0 }) {
-  const filtro = `${termino.trim()}%`;
   const parametros = {
-    filtro,
-    filtroInterno: `%${termino.trim()}%`,
+    ...parametrosDeBusqueda(termino),
     incluirInactivos: incluirInactivos ? 1 : 0,
   };
 
@@ -33,8 +50,8 @@ async function buscar({ termino = '', incluirInactivos = false, limite = 20, des
     `SELECT ${CAMPOS}
        FROM pacientes
       WHERE (:incluirInactivos = 1 OR activo = 1)
-        AND (:filtro = '%' OR nombre_completo LIKE :filtroInterno OR telefono LIKE :filtro
-             OR dpi LIKE :filtro)
+        AND (:hayTermino = 0 OR nombre_completo LIKE :filtroNombre
+             OR telefono LIKE :filtroDigitos OR dpi LIKE :filtroDigitos)
       ORDER BY nombre_completo
       LIMIT ${limiteSeguro} OFFSET ${desplazamientoSeguro}`,
     parametros,
@@ -44,9 +61,9 @@ async function buscar({ termino = '', incluirInactivos = false, limite = 20, des
     `SELECT COUNT(*) AS total
        FROM pacientes
       WHERE (:incluirInactivos = 1 OR activo = 1)
-        AND (:filtro = '%' OR nombre_completo LIKE :filtroInterno OR telefono LIKE :filtro
-             OR dpi LIKE :filtro)`,
-    { filtro, filtroInterno: parametros.filtroInterno, incluirInactivos: parametros.incluirInactivos },
+        AND (:hayTermino = 0 OR nombre_completo LIKE :filtroNombre
+             OR telefono LIKE :filtroDigitos OR dpi LIKE :filtroDigitos)`,
+    parametros,
   );
 
   return { pacientes: filas, total: Number(total?.total ?? 0) };
@@ -183,6 +200,7 @@ async function eliminarConHistorial(id) {
 }
 
 module.exports = {
+  parametrosDeBusqueda,
   buscarPorId,
   buscar,
   buscarPorTelefono,
