@@ -6,10 +6,17 @@ import { cn } from '@/lib/utils';
  * El contenedor lleva el borde, el canto y el scroll horizontal; la tabla va
  * dentro. El radio se recorta solo, porque el `overflow` del contenedor ya
  * recorta las esquinas de la primera y la última fila.
+ *
+ * El `relative` no es decorativo. Los textos para lectores de pantalla de los
+ * botones de cada fila (`sr-only`) van en posición absoluta, y el recorte del
+ * `overflow` solo alcanza a los absolutos si el contenedor está posicionado.
+ * Sin él, en un teléfono quedaban fuera de la tabla, a cientos de píxeles a la
+ * derecha, y ensanchaban la página entera: se deslizaba hacia los lados y los
+ * formularios a pantalla completa salían enormes al alejar el zoom.
  */
 function Table({ className, ...props }) {
   return (
-    <div className="w-full overflow-x-auto rounded-xl border bg-card">
+    <div className="relative w-full overflow-x-auto rounded-xl border bg-card">
       <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   );

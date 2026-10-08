@@ -127,8 +127,11 @@ function AppLayout() {
         id="menu-lateral"
         ref={cajon}
         tabIndex={-1}
+        // En móvil la altura va en `dvh`, la parte visible de verdad. Con
+        // `inset-y-0` el cajón medía lo mismo que la ventana con la barra del
+        // navegador recogida, y el botón de Salir quedaba debajo de ella.
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 flex-col',
+          'fixed left-0 top-0 z-50 flex h-dvh w-72 flex-col',
           'border-r border-sidebar-border bg-sidebar text-sidebar-foreground',
           'transition-transform duration-200 ease-out focus:outline-none',
           'lg:sticky lg:top-0 lg:bottom-auto lg:z-auto lg:h-screen lg:w-64 lg:shrink-0 lg:translate-x-0',
@@ -181,7 +184,8 @@ function AppLayout() {
           </ul>
         </nav>
 
-        <div className="border-t border-sidebar-border p-4">
+        {/* El relleno de abajo respeta la franja del gesto de inicio. */}
+        <div className="border-t border-sidebar-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="mb-3 flex items-center gap-3">
             <span
               className="flex size-9 shrink-0 items-center justify-center bg-sidebar-accent text-xs font-medium text-sidebar-foreground"

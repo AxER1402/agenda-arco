@@ -134,7 +134,7 @@ function PacientesPage() {
             pacientes.map((paciente) => (
               <TableRow key={paciente.id}>
                 <TableCell className="font-medium">{paciente.nombre_completo}</TableCell>
-                <TableCell>{formatoTelefono(paciente.telefono)}</TableCell>
+                <TableCell className="whitespace-nowrap">{formatoTelefono(paciente.telefono)}</TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">
                   {paciente.dpi ? formatoDpi(paciente.dpi) : '—'}
                 </TableCell>
