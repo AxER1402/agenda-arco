@@ -255,6 +255,14 @@ describe('Envío', () => {
     await waitFor(() => expect(screen.getByLabelText(/^Hora/)).toHaveValue('08:30'));
   });
 
+  it('escribe el nombre en mayúsculas y sin tildes, conservando la Ñ', async () => {
+    renderizar();
+
+    await userEvent.type(screen.getByLabelText(/Nombre completo/), 'José Peña');
+
+    expect(screen.getByLabelText(/Nombre completo/)).toHaveValue('JOSE PEÑA');
+  });
+
   it('propone la hora de apertura sin que haya que teclearla', async () => {
     renderizar();
     await screen.findByText(/Se puede recibir hasta el/);
@@ -279,7 +287,7 @@ describe('Envío', () => {
       expect(citaService.recibirPaciente).toHaveBeenCalledWith(
         expect.objectContaining({
           paciente: expect.objectContaining({
-            nombreCompleto: 'Marta Ruiz',
+            nombreCompleto: 'MARTA RUIZ',
             telefono: '55599999',
           }),
           examenes: [1],

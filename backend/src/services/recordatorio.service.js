@@ -16,6 +16,7 @@ const configuracionService = require('./configuracion.service');
 const whatsappClient = require('./whatsapp.client');
 const AppError = require('../utils/AppError');
 const fechas = require('../utils/fechas');
+const { nombrePropio } = require('../utils/nombre');
 
 /** Motivos de fallo que significan "este número no tiene WhatsApp". */
 const MOTIVOS_SIN_WHATSAPP = new Set(['NUMERO_SIN_WHATSAPP']);
@@ -114,7 +115,8 @@ function generarMensaje(
       : plantilla;
 
   return renderizarPlantilla(conIndicaciones, {
-    paciente: cita.paciente_nombre ?? '',
+    // Guardado en mayúsculas; al paciente se le escribe con mayúscula inicial.
+    paciente: nombrePropio(cita.paciente_nombre ?? ''),
     laboratorio: nombreLaboratorio,
     fecha: fechas.aFormatoLocal(cita.fecha),
     hora: fechas.horaAFormatoLocal(String(cita.hora)),

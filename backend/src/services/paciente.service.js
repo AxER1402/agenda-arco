@@ -6,6 +6,7 @@ const authService = require('./auth.service');
 const AppError = require('../utils/AppError');
 const { normalizarTelefono, esTelefonoValido } = require('../utils/telefono');
 const { normalizarDpi, esDpiValido } = require('../utils/dpi');
+const { normalizarNombre } = require('../utils/nombre');
 
 /**
  * Normaliza y valida el teléfono.
@@ -133,7 +134,7 @@ async function crear({ nombreCompleto, telefono, dpi, notas, tieneWhatsapp }) {
   });
 
   const paciente = await pacienteModel.crear({
-    nombreCompleto: nombreCompleto.trim(),
+    nombreCompleto: normalizarNombre(nombreCompleto),
     telefono: telefonoNormalizado,
     dpi: dpiNormalizado,
     notas: notas?.trim() || null,
@@ -148,7 +149,7 @@ async function actualizar(id, { nombreCompleto, telefono, dpi, notas, activo, ti
 
   const cambios = { activo };
 
-  if (nombreCompleto !== undefined) cambios.nombreCompleto = nombreCompleto.trim();
+  if (nombreCompleto !== undefined) cambios.nombreCompleto = normalizarNombre(nombreCompleto);
   if (notas !== undefined) cambios.notas = notas?.trim() || null;
   if (dpi !== undefined) cambios.dpi = prepararDpi(dpi);
   if (telefono !== undefined) {

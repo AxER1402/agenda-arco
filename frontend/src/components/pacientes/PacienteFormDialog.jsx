@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { crearPaciente, actualizarPaciente } from '@/services/paciente.service';
+import { nombreEnMayusculas } from '@/lib/formato';
 import {
   validarDpi,
   validarFormulario,
@@ -136,7 +137,11 @@ function PacienteFormDialog({ abierto, onCerrar, paciente = null, onGuardado }) 
               <Input
                 {...props}
                 value={valores.nombreCompleto}
-                onChange={cambiar('nombreCompleto')}
+                onChange={(evento) =>
+                  cambiar('nombreCompleto')({
+                    target: { value: nombreEnMayusculas(evento.target.value) },
+                  })
+                }
                 autoFocus
               />
             )}

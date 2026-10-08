@@ -23,13 +23,13 @@ describe('crear paciente', () => {
     expect(paciente.telefono).toBe('55555555');
   });
 
-  it('recorta los espacios del nombre', async () => {
+  it('recorta los espacios del nombre y lo guarda en mayúsculas sin tildes', async () => {
     const { paciente } = await pacienteService.crear({
       nombreCompleto: '  Ana López  ',
       telefono: '55555555',
     });
 
-    expect(paciente.nombre_completo ?? paciente.nombreCompleto).toBe('Ana López');
+    expect(paciente.nombre_completo ?? paciente.nombreCompleto).toBe('ANA LOPEZ');
   });
 
   it.each(['2323232', '232323233', 'abcdefgh', ''])(

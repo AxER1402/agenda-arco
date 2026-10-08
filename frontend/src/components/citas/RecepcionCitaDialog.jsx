@@ -27,7 +27,7 @@ import { calcularVencimiento, listarExamenes } from '@/services/catalogo.service
 import { buscarPorTelefono } from '@/services/paciente.service';
 import { coincideExamen } from '@/lib/busqueda';
 import { motivoDiaCerrado } from '@/lib/calendario';
-import { fechaLarga, hoyISO } from '@/lib/formato';
+import { fechaLarga, hoyISO, nombreEnMayusculas } from '@/lib/formato';
 import {
   esTelefonoValido,
   normalizarTelefono,
@@ -411,7 +411,11 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                     <Input
                       {...props}
                       value={valores.nombreCompleto}
-                      onChange={cambiar('nombreCompleto')}
+                      onChange={(evento) =>
+                        cambiar('nombreCompleto')({
+                          target: { value: nombreEnMayusculas(evento.target.value) },
+                        })
+                      }
                       readOnly={Boolean(seleccionado)}
                     />
                   )}

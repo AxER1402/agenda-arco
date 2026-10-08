@@ -97,3 +97,21 @@ export function varianteVencimiento(diasParaVencer) {
   if (diasParaVencer <= 7) return 'warning';
   return 'secondary';
 }
+
+/**
+ * El nombre en mayúsculas y sin tildes mientras se escribe, para que se vea lo
+ * que se va a guardar: 'María Peña' → 'MARIA PEÑA'. La Ñ se conserva porque es
+ * otra letra, no una tilde.
+ *
+ * No recorta espacios: hacerlo a cada tecla impediría escribir el espacio entre
+ * nombre y apellido. Eso, y la regla definitiva, lo aplica el backend al
+ * guardar (`utils/nombre.js`).
+ */
+export function nombreEnMayusculas(texto) {
+  return String(texto ?? '')
+    .toUpperCase()
+    .replace(/Ñ/g, '\u0000')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\u0000/g, 'Ñ');
+}

@@ -28,6 +28,7 @@ docker compose exec -T database mysql -u root -p"$DB_ROOT_PASSWORD" el_arco \
 | `2026-08-11_plantilla_recordatorio.sql` | Mensaje del recordatorio editable y con imagen opcional. `configuracion.valor` pasa a `MEDIUMTEXT`. |
 | `2026-10-08_indicaciones_feriados.sql` | Indicaciones por examen para el recordatorio, hora predeterminada de la cita y feriados. |
 | `2026-10-09_categorias_examen.sql` | Categorías de exámenes con una indicación común (p. ej. ayuno de 12 horas). |
+| `2026-10-09_nombres_mayusculas.sql` | Pasa a mayúsculas y sin tildes los nombres de los pacientes ya registrados (conserva la Ñ). **Modifica datos.** |
 
 ## Volver a aplicar los scripts
 
