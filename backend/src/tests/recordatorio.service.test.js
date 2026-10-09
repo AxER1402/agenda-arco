@@ -548,6 +548,19 @@ describe('enviarParaCita (envío manual e inmediato)', () => {
     expect(whatsappClient.enviarMensaje).not.toHaveBeenCalled();
   });
 
+  it('no intenta enviar a un paciente sin WhatsApp', async () => {
+    citaModel.buscarPorId.mockResolvedValue(
+      citaDePrueba({ estado: 'PENDIENTE', estado_nombre: 'Pendiente', paciente_tiene_whatsapp: 0 }),
+    );
+
+    await expect(recordatorioService.enviarParaCita(100)).rejects.toMatchObject({
+      statusCode: 400,
+    });
+
+    expect(whatsappClient.enviarMensaje).not.toHaveBeenCalled();
+    expect(recordatorioModel.marcarFallido).not.toHaveBeenCalled();
+  });
+
   it('devuelve 404 si la cita no existe', async () => {
     citaModel.buscarPorId.mockResolvedValue(null);
 
@@ -592,6 +605,37 @@ describe('prepararParaFecha', () => {
     expect(resultado.preparados).toBe(0);
   });
 
+  it('no prepara nada para un paciente sin WhatsApp', async () => {
+    citaModel.listarParaRecordatorio.mockResolvedValue([
+      citaDePrueba({ paciente_tiene_whatsapp: 0 }),
+    ]);
+
+    const resultado = await recordatorioService.prepararParaFecha();
+
+    expect(recordatorioModel.crearSiNoExiste).not.toHaveBeenCalled();
+    expect(resultado.preparados).toBe(0);
+  });
+
+  it('quita el aviso que se preparó antes de saber que no tiene WhatsApp', async () => {
+    citaModel.listarParaRecordatorio.mockResolvedValue([
+      citaDePrueba({ paciente_tiene_whatsapp: 0, recordatorio_estado: 'PENDIENTE' }),
+    ]);
+
+    await recordatorioService.prepararParaFecha();
+
+    expect(recordatorioModel.descartarPendiente).toHaveBeenCalledWith(100);
+  });
+
+  it('sí lo prepara cuando no se preguntó si tiene WhatsApp', async () => {
+    citaModel.listarParaRecordatorio.mockResolvedValue([
+      citaDePrueba({ paciente_tiene_whatsapp: null }),
+    ]);
+
+    const resultado = await recordatorioService.prepararParaFecha();
+
+    expect(resultado.preparados).toBe(1);
+  });
+
   it('rechaza una fecha inválida', async () => {
     await expect(recordatorioService.prepararParaFecha('no-es-fecha')).rejects.toMatchObject({
       statusCode: 400,
@@ -629,6 +673,8 @@ describe('envío de recordatorios', () => {
     expect(resultado.estado).toBe('FALLIDO');
     // El personal debe poder identificar a quién contactar por otro medio.
     expect(pacienteModel.registrarResultadoWhatsapp).toHaveBeenCalledWith(1, false);
+    // Y sus otras citas ya no se intentan.
+    expect(recordatorioModel.descartarPendientesDePaciente).toHaveBeenCalledWith(1);
   });
 
   it('marca FALLIDO sin descartar el WhatsApp del paciente si el fallo es del servicio', async () => {

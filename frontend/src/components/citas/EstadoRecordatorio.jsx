@@ -8,6 +8,9 @@ import { fechaHora } from '@/lib/formato';
  * salió, que está preparado pero aún no ha salido, que se intentó y falló, y que
  * no hay nada preparado. Un simple "sí/no" dejaría el fallo pareciendo un "no",
  * cuando es justo el caso que alguien tiene que atender.
+ *
+ * Aparte va el paciente que no tiene WhatsApp: a él no se le intenta enviar
+ * nada, así que no es un fallo sino un aviso de que hay que llamarlo.
  */
 const ESTADOS = {
   ENVIADO: { texto: 'Notificado', variante: 'success' },
@@ -18,9 +21,22 @@ const ESTADOS = {
 function EstadoRecordatorio({ cita }) {
   const estado = ESTADOS[cita.recordatorio_estado];
 
+  const cerrada = ['ATENDIDA', 'NO_ASISTIO', 'CANCELADA'].includes(cita.estado);
+
+  if (cita.paciente_tiene_whatsapp === 0 && cita.recordatorio_estado !== 'ENVIADO' && !cerrada) {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <Badge variant="warning" title="El paciente no tiene WhatsApp: no se le envía recordatorio.">
+          Sin WhatsApp
+        </Badge>
+        <span className="text-xs text-muted-foreground">Avisar por llamada</span>
+      </div>
+    );
+  }
+
   if (!estado) {
     // Una cita cerrada a la que nunca se avisó no tiene nada que reportar.
-    return ['ATENDIDA', 'NO_ASISTIO', 'CANCELADA'].includes(cita.estado) ? (
+    return cerrada ? (
       <span className="text-muted-foreground">—</span>
     ) : (
       <Badge variant="outline" title="Todavía no se le ha enviado el recordatorio.">

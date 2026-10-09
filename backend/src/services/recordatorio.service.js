@@ -5,9 +5,13 @@
  *   citas de mañana → generar mensaje → registrar PENDIENTE →
  *   pedir el envío al whatsapp-service → registrar ENVIADO o FALLIDO
  *
- * El sistema no asume que todos los pacientes tengan WhatsApp: un número sin
- * WhatsApp se registra como FALLIDO con su motivo, y el paciente queda marcado
- * para que el personal lo contacte por otro medio.
+ * El sistema no asume que todos los pacientes tengan WhatsApp:
+ *   - Si consta que no tiene (lo dijo en recepción, o un envío anterior lo
+ *     descubrió), no se le prepara ni se le envía nada: no hay nada que falle.
+ *   - Si no se sabe («no se preguntó»), se intenta. Si el número no tiene
+ *     WhatsApp, ese intento queda FALLIDO con su motivo y el paciente se marca
+ *     para que el personal lo contacte por otro medio; desde ahí ya no se
+ *     vuelve a intentar.
  */
 const recordatorioModel = require('../models/recordatorio.model');
 const citaModel = require('../models/cita.model');
@@ -20,6 +24,11 @@ const { nombrePropio } = require('../utils/nombre');
 
 /** Motivos de fallo que significan "este número no tiene WhatsApp". */
 const MOTIVOS_SIN_WHATSAPP = new Set(['NUMERO_SIN_WHATSAPP']);
+
+/** Consta que el paciente de esta cita no tiene WhatsApp (null = no se sabe). */
+function sinWhatsapp(cita) {
+  return cita.paciente_tiene_whatsapp === 0 || cita.paciente_tiene_whatsapp === false;
+}
 
 /** Cita de ejemplo para enseñar cómo queda la plantilla mientras se edita. */
 const CITA_DE_EJEMPLO = {
@@ -160,6 +169,15 @@ async function prepararParaFecha(fecha = fechas.sumarDias(fechas.hoy(), 1)) {
     // Si ya se envió, no se regenera: el historial debe conservarse tal cual.
     if (cita.recordatorio_estado === 'ENVIADO') continue;
 
+    // A quien no tiene WhatsApp se le llama: un aviso preparado solo
+    // terminaría en error. Si ya tenía uno de antes de saberlo, se quita.
+    if (sinWhatsapp(cita)) {
+      if (cita.recordatorio_estado === 'PENDIENTE') {
+        await recordatorioModel.descartarPendiente(cita.id);
+      }
+      continue;
+    }
+
     preparados.push(
       await recordatorioModel.crearSiNoExiste({
         citaId: cita.id,
@@ -205,15 +223,19 @@ async function enviar(recordatorio, { imagen } = {}) {
     return recordatorioModel.marcarEnviado(recordatorio.id);
   }
 
-  if (MOTIVOS_SIN_WHATSAPP.has(resultado.motivo)) {
-    // Queda constancia de que este paciente necesita otro medio de contacto.
-    await pacienteModel.registrarResultadoWhatsapp(recordatorio.paciente_id, false);
-  }
-
-  return recordatorioModel.marcarFallido(
+  const fallido = await recordatorioModel.marcarFallido(
     recordatorio.id,
     `${resultado.motivo}: ${resultado.detalle ?? ''}`.trim(),
   );
+
+  if (MOTIVOS_SIN_WHATSAPP.has(resultado.motivo)) {
+    // Queda constancia de que este paciente necesita otro medio de contacto, y
+    // sus otras citas dejan de tener un aviso que fallaría igual.
+    await pacienteModel.registrarResultadoWhatsapp(recordatorio.paciente_id, false);
+    await recordatorioModel.descartarPendientesDePaciente(recordatorio.paciente_id);
+  }
+
+  return fallido;
 }
 
 /**
@@ -332,6 +354,11 @@ async function reprogramarParaCita(cita) {
   const existente = await recordatorioModel.buscarPorCita(cita.id);
   if (!existente) return null;
 
+  if (sinWhatsapp(cita)) {
+    await recordatorioModel.descartarPendiente(cita.id);
+    return null;
+  }
+
   const { nombreLaboratorio, plantilla, horaEnvio } = await obtenerAjustesDelMensaje();
 
   // Reabrir primero: `crearSiNoExiste` solo refresca lo que sigue pendiente.
@@ -364,6 +391,13 @@ async function enviarParaCita(citaId) {
   if (!['PENDIENTE', 'CONFIRMADA'].includes(cita.estado)) {
     throw AppError.badRequest(
       `La cita está ${cita.estado_nombre.toLowerCase()}: no tiene sentido recordarla.`,
+    );
+  }
+
+  if (sinWhatsapp(cita)) {
+    throw AppError.badRequest(
+      'El paciente no tiene WhatsApp: hay que avisarle por llamada. ' +
+        'Si ya tiene, cámbielo en su ficha y vuelva a intentarlo.',
     );
   }
 
@@ -400,6 +434,10 @@ async function reintentar(id) {
 
   if (recordatorio.estado === 'ENVIADO') {
     throw AppError.badRequest('El recordatorio ya fue enviado.');
+  }
+
+  if (sinWhatsapp(recordatorio)) {
+    throw AppError.badRequest('El paciente no tiene WhatsApp: hay que avisarle por llamada.');
   }
 
   return enviar(await recordatorioModel.reabrir(id));

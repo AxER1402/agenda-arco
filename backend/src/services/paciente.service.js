@@ -2,6 +2,7 @@
  * Reglas de negocio de pacientes.
  */
 const pacienteModel = require('../models/paciente.model');
+const recordatorioModel = require('../models/recordatorio.model');
 const authService = require('./auth.service');
 const AppError = require('../utils/AppError');
 const { normalizarTelefono, esTelefonoValido } = require('../utils/telefono');
@@ -164,7 +165,15 @@ async function actualizar(id, { nombreCompleto, telefono, dpi, notas, activo, ti
     cambios.tieneWhatsapp = prepararTieneWhatsapp(tieneWhatsapp);
   }
 
-  return pacienteModel.actualizar(id, cambios);
+  const paciente = await pacienteModel.actualizar(id, cambios);
+
+  // Los avisos que ya estaban preparados no deben salir hacia alguien que
+  // acaba de decir que no tiene WhatsApp.
+  if (cambios.tieneWhatsapp === false) {
+    await recordatorioModel.descartarPendientesDePaciente(id);
+  }
+
+  return paciente;
 }
 
 /**

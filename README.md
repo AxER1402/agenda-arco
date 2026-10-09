@@ -50,7 +50,7 @@ Cuatro servicios independientes, cada uno en su propio contenedor:
 | Reportes generados en el backend | El PDF (`pdfkit`) y el Word (`docx`) salen iguales desde cualquier equipo, sin depender de lo que tenga instalado quien los pide ni del diálogo de impresión del navegador. |
 | Un documento neutro y dos generadores | `reporte.service` arma el reporte como título, indicadores y tablas, sin saber de PDF ni de Word; `src/reportes/` lo pinta. Las columnas se deciden una vez, no dos veces mal, y las pruebas leen el contenido sin abrir un binario. |
 
----
+
 
 ## Instalación
 

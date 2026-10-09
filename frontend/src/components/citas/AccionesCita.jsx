@@ -59,7 +59,8 @@ function AccionesCita({ cita, onCambiada, onReprogramar, onEditar, onEliminada, 
   const puedeReprogramar = Boolean(onReprogramar) && REPROGRAMABLES.includes(cita.estado);
   // Mismo criterio que reprogramar: lo atendido o no asistido ya no se toca.
   const puedeEditar = Boolean(onEditar) && REPROGRAMABLES.includes(cita.estado);
-  const puedeRecordar = RECORDABLES.includes(cita.estado);
+  // A quien no tiene WhatsApp se le avisa por llamada: el envío solo fallaría.
+  const puedeRecordar = RECORDABLES.includes(cita.estado) && cita.paciente_tiene_whatsapp !== 0;
 
   /**
    * Cancelar y eliminar se parecen demasiado en el menú como para dispararlas

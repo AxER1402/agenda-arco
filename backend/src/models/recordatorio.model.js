@@ -13,7 +13,7 @@ const DESDE = `
 
 const EXTRA = `
   c.fecha, c.hora, c.paciente_id,
-  p.nombre_completo AS paciente_nombre
+  p.nombre_completo AS paciente_nombre, p.tiene_whatsapp AS paciente_tiene_whatsapp
 `;
 
 async function buscarPorId(id) {
@@ -83,6 +83,9 @@ async function listarPendientes({ hasta }) {
       WHERE r.estado = 'PENDIENTE'
         AND r.programado_para <= :hasta
         AND ec.codigo IN ('PENDIENTE', 'CONFIRMADA')
+        -- Quien dijo que no tiene WhatsApp no recibe nada, aunque su aviso se
+        -- hubiera preparado antes de saberlo.
+        AND COALESCE(p.tiene_whatsapp, 1) = 1
       ORDER BY r.programado_para`,
     { hasta },
   );
@@ -124,6 +127,27 @@ async function reabrir(id) {
   return buscarPorId(id);
 }
 
+/**
+ * Quita el aviso todavía sin enviar de una cita.
+ *
+ * Solo lo PENDIENTE: lo enviado o fallido es historial y se conserva.
+ */
+async function descartarPendiente(citaId) {
+  await query("DELETE FROM recordatorios WHERE cita_id = :citaId AND estado = 'PENDIENTE'", {
+    citaId,
+  });
+}
+
+/** Quita los avisos sin enviar de todas las citas de un paciente. */
+async function descartarPendientesDePaciente(pacienteId) {
+  await query(
+    `DELETE r FROM recordatorios r
+       JOIN citas c ON c.id = r.cita_id
+      WHERE c.paciente_id = :pacienteId AND r.estado = 'PENDIENTE'`,
+    { pacienteId },
+  );
+}
+
 module.exports = {
   buscarPorId,
   buscarPorCita,
@@ -134,4 +158,6 @@ module.exports = {
   listar,
   contarPorEstado,
   reabrir,
+  descartarPendiente,
+  descartarPendientesDePaciente,
 };

@@ -10,6 +10,7 @@ jest.mock('../models/orden.model');
 jest.mock('../models/paciente.model');
 jest.mock('../models/configuracion.model');
 jest.mock('../models/examen.model');
+jest.mock('../models/recordatorio.model');
 
 const citaModel = require('../models/cita.model');
 const ordenModel = require('../models/orden.model');

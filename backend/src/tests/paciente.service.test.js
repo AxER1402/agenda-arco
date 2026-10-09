@@ -1,8 +1,10 @@
 jest.mock('../models/paciente.model');
 jest.mock('../services/auth.service');
+jest.mock('../models/recordatorio.model');
 
 const pacienteModel = require('../models/paciente.model');
 const authService = require('../services/auth.service');
+const recordatorioModel = require('../models/recordatorio.model');
 const pacienteService = require('../services/paciente.service');
 
 beforeEach(() => {
@@ -112,6 +114,19 @@ describe('actualizar paciente', () => {
     await pacienteService.actualizar(1, { nombreCompleto: 'Ana María López' });
 
     expect(pacienteModel.actualizar.mock.calls[0][1]).not.toHaveProperty('tieneWhatsapp');
+  });
+
+  it('quita los avisos preparados si dice que no tiene WhatsApp', async () => {
+    await pacienteService.actualizar(1, { tieneWhatsapp: false });
+
+    expect(recordatorioModel.descartarPendientesDePaciente).toHaveBeenCalledWith(1);
+  });
+
+  it('conserva los avisos si tiene WhatsApp o no se sabe', async () => {
+    await pacienteService.actualizar(1, { tieneWhatsapp: true });
+    await pacienteService.actualizar(1, { tieneWhatsapp: null });
+
+    expect(recordatorioModel.descartarPendientesDePaciente).not.toHaveBeenCalled();
   });
 
   it('devuelve 404 si el paciente no existe', async () => {
