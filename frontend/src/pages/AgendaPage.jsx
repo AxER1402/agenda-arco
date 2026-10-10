@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  CalendarDays,
+  CalendarPlus,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import AccionesCita from '@/components/citas/AccionesCita';
+import DetalleCita from '@/components/citas/DetalleCita';
 import EditarCitaDialog from '@/components/citas/EditarCitaDialog';
 import RecepcionCitaDialog from '@/components/citas/RecepcionCitaDialog';
 import ReprogramarDialog from '@/components/citas/ReprogramarDialog';
@@ -59,6 +67,17 @@ function AgendaPage() {
   const [reprogramando, setReprogramando] = useState(null);
   const [editando, setEditando] = useState(null);
   const [agendando, setAgendando] = useState(false);
+  /** Citas con todos sus datos desplegados debajo de la fila, por id. */
+  const [desplegadas, setDesplegadas] = useState(() => new Set());
+
+  function alternarDetalle(id) {
+    setDesplegadas((actuales) => {
+      const nuevas = new Set(actuales);
+      if (nuevas.has(id)) nuevas.delete(id);
+      else nuevas.add(id);
+      return nuevas;
+    });
+  }
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -258,36 +277,74 @@ function AgendaPage() {
                 {dia.citas.length === 0 ? (
                   <TableEmpty colSpan={7}>Sin citas.</TableEmpty>
                 ) : (
-                  dia.citas.map((cita) => (
-                    <TableRow key={cita.id}>
-                      <TableCell className="whitespace-nowrap font-medium">
-                        {hora12(String(cita.hora))}
-                      </TableCell>
-                      <TableCell>{cita.paciente_nombre}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatoTelefono(cita.paciente_telefono)}
-                      </TableCell>
-                      <TableCell className="max-w-[16rem] truncate">
-                        {cita.examenes.map((examen) => examen.nombre).join(', ')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={varianteVencimiento(cita.dias_para_vencer)}>
-                          {cita.vencimiento_texto}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={varianteEstado(cita.estado)}>{cita.estado_nombre}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <AccionesCita
-                          cita={cita}
-                          onCambiada={cargar}
-                          onReprogramar={setReprogramando}
-                          onEditar={setEditando}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  dia.citas.map((cita) => {
+                    const desplegada = desplegadas.has(cita.id);
+
+                    return (
+                      <Fragment key={cita.id}>
+                        <TableRow className={cn(desplegada && 'border-b-0 bg-muted/40')}>
+                          <TableCell className="whitespace-nowrap font-medium">
+                            <button
+                              type="button"
+                              onClick={() => alternarDetalle(cita.id)}
+                              aria-expanded={desplegada}
+                              aria-controls={`detalle-cita-${cita.id}`}
+                              title={
+                                desplegada ? 'Ocultar detalles' : 'Ver todos los datos de la cita'
+                              }
+                              className="-ml-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <ChevronDown
+                                aria-hidden="true"
+                                className={cn(
+                                  'size-4 text-muted-foreground transition-transform',
+                                  desplegada && 'rotate-180',
+                                )}
+                              />
+                              {hora12(String(cita.hora))}
+                              <span className="sr-only">
+                                {desplegada ? ', ocultar detalles' : ', ver detalles'}
+                              </span>
+                            </button>
+                          </TableCell>
+                          <TableCell>{cita.paciente_nombre}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {formatoTelefono(cita.paciente_telefono)}
+                          </TableCell>
+                          <TableCell className="max-w-[16rem] truncate">
+                            {cita.examenes.map((examen) => examen.nombre).join(', ')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={varianteVencimiento(cita.dias_para_vencer)}>
+                              {cita.vencimiento_texto}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={varianteEstado(cita.estado)}>{cita.estado_nombre}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <AccionesCita
+                              cita={cita}
+                              onCambiada={cargar}
+                              onReprogramar={setReprogramando}
+                              onEditar={setEditando}
+                            />
+                          </TableCell>
+                        </TableRow>
+
+                        {desplegada && (
+                          <TableRow
+                            id={`detalle-cita-${cita.id}`}
+                            className="bg-muted/40 hover:bg-muted/40"
+                          >
+                            <TableCell colSpan={7} className="px-4 pb-5 pt-1 sm:px-6">
+                              <DetalleCita cita={cita} />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

@@ -7,8 +7,12 @@ const CAMPOS = `
   c.id, c.paciente_id, c.orden_id, c.estado_id, c.fecha, c.hora, c.notas,
   c.creado_por, c.creado_en, c.actualizado_en,
   p.nombre_completo AS paciente_nombre, p.telefono AS paciente_telefono,
-  p.tiene_whatsapp AS paciente_tiene_whatsapp,
+  p.tiene_whatsapp AS paciente_tiene_whatsapp, p.dpi AS paciente_dpi,
   o.fecha_entrega, o.fecha_vencimiento, o.numero_orden, o.fecha_cita_igss,
+  o.observaciones AS orden_observaciones,
+  -- Quién la registró y cuándo. El CAST la saca como texto en la hora local,
+  -- igual que los DATETIME, en lugar de como instante UTC.
+  u.nombre_completo AS registrada_por, CAST(c.creado_en AS DATETIME) AS registrada_en,
   -- Último día en que se puede poner la cita: el vencimiento, o la víspera de
   -- la cita del IGSS si cae antes. Es la misma regla que
   -- ordenService.fechaLimiteCita; aquí sale ya calculada para cada fila.
@@ -31,6 +35,7 @@ const DESDE = `
   JOIN ordenes o ON o.id = c.orden_id
   JOIN estados_cita ec ON ec.id = c.estado_id
   LEFT JOIN recordatorios r ON r.cita_id = c.id
+  LEFT JOIN usuarios u ON u.id = c.creado_por
 `;
 
 /** Adjunta los exámenes de cada cita en una sola consulta. */
