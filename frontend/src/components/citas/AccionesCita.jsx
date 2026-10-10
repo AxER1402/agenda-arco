@@ -34,6 +34,9 @@ const ACCIONES = {
   // Una cancelada se puede reactivar: recupera su cupo, así que el backend
   // revalida vigencia y límite diario antes de aceptarla.
   CANCELADA: [{ estado: 'PENDIENTE', texto: 'Reactivar', icono: RotateCcw }],
+  // El sistema marca «No asistió» solo al terminar el día; si el paciente sí
+  // vino y nadie lo marcó, se corrige aquí.
+  NO_ASISTIO: [{ estado: 'ATENDIDA', texto: 'Atendida', icono: Check }],
 };
 
 /** Atendida y no asistió ya no se reprograman: su desenlace ocurrió. */

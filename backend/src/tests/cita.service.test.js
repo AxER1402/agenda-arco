@@ -642,6 +642,8 @@ describe('Estados de la cita', () => {
     ['CONFIRMADA', 'CANCELADA'],
     ['CANCELADA', 'PENDIENTE'],
     ['CANCELADA', 'CONFIRMADA'],
+    // Corrige el cierre automático cuando el paciente sí vino.
+    ['NO_ASISTIO', 'ATENDIDA'],
   ])('permite pasar de %s a %s', async (desde, hacia) => {
     citaModel.buscarPorId.mockResolvedValue(
       citaCreada({
@@ -673,7 +675,8 @@ describe('Estados de la cita', () => {
   it.each([
     ['ATENDIDA', 'CANCELADA'],
     ['CANCELADA', 'ATENDIDA'],
-    ['NO_ASISTIO', 'ATENDIDA'],
+    ['NO_ASISTIO', 'PENDIENTE'],
+    ['NO_ASISTIO', 'CANCELADA'],
   ])('no permite pasar de %s a %s', async (desde, hacia) => {
     citaModel.buscarPorId.mockResolvedValue(citaCreada({ estado: desde, estado_nombre: desde }));
 
@@ -696,6 +699,18 @@ describe('Estados de la cita', () => {
     await citaService.cambiarEstado(100, 'CANCELADA', { motivo: 'El paciente no puede asistir' });
 
     expect(citaModel.actualizar.mock.calls[0][1].notas).toContain('El paciente no puede asistir');
+  });
+});
+
+describe('Cierre de las citas pasadas', () => {
+  it('marca «No asistió» lo que quedó abierto antes de hoy', async () => {
+    citaModel.marcarNoAsistidasAntesDe.mockResolvedValue(3);
+
+    const cerradas = await citaService.cerrarCitasPasadas();
+
+    // Hoy no: el paciente todavía puede llegar.
+    expect(citaModel.marcarNoAsistidasAntesDe).toHaveBeenCalledWith(HOY);
+    expect(cerradas).toBe(3);
   });
 });
 

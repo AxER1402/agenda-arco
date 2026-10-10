@@ -48,9 +48,11 @@ function CitasPage() {
   const fechaEnlace = parametros.get('fecha');
   const citaResaltada = ubicacion.state?.citaResaltada ?? null;
 
-  const [periodo, setPeriodo] = useState(() =>
-    fechaEnlace ? { vista: 'dia', fecha: fechaEnlace } : { vista: 'semana', fecha: hoyISO() },
-  );
+  // Se abre en el día de hoy: es lo que se consulta a diario en el mostrador.
+  const [periodo, setPeriodo] = useState(() => ({
+    vista: 'dia',
+    fecha: fechaEnlace ?? hoyISO(),
+  }));
   const [estadoFiltro, setEstadoFiltro] = useState('');
   const [termino, setTermino] = useState('');
   const [estados, setEstados] = useState([]);

@@ -5,6 +5,7 @@ const createApp = require('./app');
 const env = require('./config/env');
 const { ping, closePool } = require('./config/database');
 const recordatoriosJob = require('./jobs/recordatorios.job');
+const citasJob = require('./jobs/citas.job');
 
 const app = createApp();
 
@@ -21,11 +22,14 @@ const server = app.listen(env.port, () => {
   recordatoriosJob
     .iniciar()
     .catch((error) => console.error('[recordatorios] no se pudo programar:', error.message));
+
+  citasJob.iniciar();
 });
 
 async function shutdown(signal) {
   console.log(`[backend] recibido ${signal}, cerrando...`);
   recordatoriosJob.detener();
+  citasJob.detener();
 
   server.close(async () => {
     await closePool();

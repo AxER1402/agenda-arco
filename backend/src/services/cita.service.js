@@ -31,15 +31,19 @@ const ESTADOS = {
  * Transiciones permitidas entre estados.
  * Una cita cancelada puede reactivarse (el paciente vuelve a llamar), pero al
  * hacerlo recupera su cupo: la fecha se revalida contra la vigencia de la orden
- * y el límite diario. Atendida y no asistió sí son definitivas: si el paciente
- * quiere volver, se crea una cita nueva y el historial conserva ambas.
+ * y el límite diario. Atendida es definitiva: si el paciente quiere volver, se
+ * crea una cita nueva y el historial conserva ambas.
+ *
+ * «No asistió» solo admite corregirse a «Atendida»: el sistema la pone sola a
+ * las citas de días pasados que nadie cerró, y puede que el paciente sí viniera
+ * y solo faltara marcarlo.
  */
 const TRANSICIONES = {
   [ESTADOS.PENDIENTE]: [ESTADOS.CONFIRMADA, ESTADOS.ATENDIDA, ESTADOS.NO_ASISTIO, ESTADOS.CANCELADA],
   [ESTADOS.CONFIRMADA]: [ESTADOS.ATENDIDA, ESTADOS.NO_ASISTIO, ESTADOS.CANCELADA],
   [ESTADOS.ATENDIDA]: [],
   [ESTADOS.CANCELADA]: [ESTADOS.PENDIENTE, ESTADOS.CONFIRMADA],
-  [ESTADOS.NO_ASISTIO]: [],
+  [ESTADOS.NO_ASISTIO]: [ESTADOS.ATENDIDA],
 };
 
 /** Estados cuyo desenlace ya ocurrió: no se reprograman ni se editan. */
@@ -422,6 +426,17 @@ async function cambiarEstado(id, codigoEstado, { motivo } = {}) {
 }
 
 /**
+ * Cierra las citas de días pasados que quedaron pendientes o confirmadas: el
+ * día terminó sin que se marcaran como atendidas, así que el paciente no vino.
+ * Lo ejecuta el proceso nocturno.
+ *
+ * @returns {Promise<number>} cuántas citas pasaron a «No asistió».
+ */
+async function cerrarCitasPasadas() {
+  return citaModel.marcarNoAsistidasAntesDe(fechas.hoy());
+}
+
+/**
  * Borrado definitivo de una cita.
  *
  * Lo normal es cancelar, que conserva el historial; esto es para las citas
@@ -464,6 +479,7 @@ module.exports = {
   crear,
   actualizar,
   cambiarEstado,
+  cerrarCitasPasadas,
   eliminar,
   historialDePaciente,
   listarEstados,

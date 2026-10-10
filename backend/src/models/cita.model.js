@@ -259,6 +259,25 @@ async function listarParaRecordatorio(fecha) {
   return adjuntarExamenes(citas);
 }
 
+/**
+ * Pasa a «No asistió» las citas anteriores a `fecha` que siguen pendientes o
+ * confirmadas: si el día ya pasó y nadie las marcó como atendidas, el paciente
+ * no vino. Devuelve cuántas cambió.
+ */
+async function marcarNoAsistidasAntesDe(fecha) {
+  const resultado = await query(
+    `UPDATE citas c
+       JOIN estados_cita actual ON actual.id = c.estado_id
+       JOIN estados_cita nuevo ON nuevo.codigo = 'NO_ASISTIO'
+        SET c.estado_id = nuevo.id
+      WHERE c.fecha < :fecha
+        AND actual.codigo IN ('PENDIENTE', 'CONFIRMADA')`,
+    { fecha },
+  );
+
+  return Number(resultado?.affectedRows ?? 0);
+}
+
 // --- Catálogo de estados ---------------------------------------------------
 
 async function listarEstados() {
@@ -286,6 +305,7 @@ module.exports = {
   actualizar,
   eliminar,
   listarParaRecordatorio,
+  marcarNoAsistidasAntesDe,
   listarEstados,
   buscarEstadoPorCodigo,
 };
