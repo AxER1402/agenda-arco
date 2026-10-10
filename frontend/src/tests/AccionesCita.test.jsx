@@ -66,13 +66,16 @@ describe('Disposición de las acciones', () => {
   it('deja fuera solo la acción principal y el resto en el menú', async () => {
     renderizar(cita());
 
-    // Una cita pendiente se confirma de un clic, sin abrir nada.
-    expect(screen.getByRole('button', { name: /Confirmar/ })).toBeInTheDocument();
+    // Una cita pendiente se marca como atendida de un clic, sin abrir nada.
+    expect(screen.getByRole('button', { name: /Atendida/ })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: /Cancelar/ })).not.toBeInTheDocument();
 
     await abrirMenu();
 
+    expect(screen.getByRole('menuitem', { name: /No asistió/ })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /Cancelar/ })).toBeInTheDocument();
+    // Confirmar sigue disponible, pero apartado: al paciente no se le exige.
+    expect(screen.getByRole('menuitem', { name: /Confirmar/ })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /Reprogramar/ })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /Eliminar cita/ })).toBeInTheDocument();
   });
@@ -293,6 +296,19 @@ describe('Ficha del paciente', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Paciente no encontrado.'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('Citas confirmadas', () => {
+  it('deja quitar una confirmación marcada por error', async () => {
+    renderizar(cita({ estado: 'CONFIRMADA', estado_nombre: 'Confirmada' }));
+
+    await abrirMenu();
+    await userEvent.click(screen.getByRole('menuitem', { name: /Quitar confirmación/ }));
+
+    await waitFor(() =>
+      expect(citaService.cambiarEstadoCita).toHaveBeenCalledWith(7, 'PENDIENTE', undefined),
+    );
   });
 });
 

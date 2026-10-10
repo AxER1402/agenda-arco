@@ -640,6 +640,8 @@ describe('Estados de la cita', () => {
     ['CONFIRMADA', 'ATENDIDA'],
     ['CONFIRMADA', 'NO_ASISTIO'],
     ['CONFIRMADA', 'CANCELADA'],
+    // Quitar una confirmación marcada por error.
+    ['CONFIRMADA', 'PENDIENTE'],
     ['CANCELADA', 'PENDIENTE'],
     ['CANCELADA', 'CONFIRMADA'],
     // Corrige el cierre automático cuando el paciente sí vino.

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarClock, Check, Eye, MessageCircle, Pencil, RotateCcw, Trash2, UserX, X } from 'lucide-react';
+import { CalendarClock, Check, Eye, MessageCircle, Pencil, RotateCcw, Trash2, Undo2, UserX, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DialogoConfirmacion from '@/components/DialogoConfirmacion';
@@ -22,14 +22,25 @@ import { hoyISO } from '@/lib/formato';
  * actual; aun así, el backend vuelve a comprobarlas.
  */
 const ACCIONES = {
+  // Al paciente no se le pide confirmar: lo habitual es marcar si vino. Por
+  // eso «Atendida» queda a la vista y «Confirmar» se aparta al menú.
   PENDIENTE: [
-    { estado: 'CONFIRMADA', texto: 'Confirmar', icono: Check },
+    { estado: 'ATENDIDA', texto: 'Atendida', icono: Check },
+    { estado: 'NO_ASISTIO', texto: 'No asistió', icono: UserX },
     { estado: 'CANCELADA', texto: 'Cancelar', icono: X },
+    { estado: 'CONFIRMADA', texto: 'Confirmar', icono: Check },
   ],
   CONFIRMADA: [
     { estado: 'ATENDIDA', texto: 'Atendida', icono: Check },
     { estado: 'NO_ASISTIO', texto: 'No asistió', icono: UserX },
     { estado: 'CANCELADA', texto: 'Cancelar', icono: X },
+    // Por si se confirmó por error: vuelve a quedar pendiente.
+    {
+      estado: 'PENDIENTE',
+      texto: 'Quitar confirmación',
+      icono: Undo2,
+      aviso: 'Se quitó la confirmación: la cita vuelve a estar pendiente.',
+    },
   ],
   // Una cancelada se puede reactivar: recupera su cupo, así que el backend
   // revalida vigencia y límite diario antes de aceptarla.
@@ -70,21 +81,21 @@ function AccionesCita({ cita, onCambiada, onReprogramar, onEditar, onEliminada, 
    * de un clic: las dos abren su diálogo. Las demás transiciones son inocuas y
    * reversibles, así que se aplican directas.
    */
-  function elegir(estado, texto) {
+  function elegir({ estado, texto, aviso }) {
     if (estado === 'CANCELADA') {
       setConfirmando('CANCELAR');
       return;
     }
 
-    aplicar(estado, texto);
+    aplicar(estado, texto, undefined, aviso);
   }
 
-  async function aplicar(estado, texto, motivo) {
+  async function aplicar(estado, texto, motivo, aviso) {
     setProcesando(estado);
 
     try {
       await cambiarEstadoCita(cita.id, estado, motivo);
-      toast.success(`Cita marcada como "${texto.toLowerCase()}".`);
+      toast.success(aviso ?? `Cita marcada como "${texto.toLowerCase()}".`);
       onCambiada?.();
     } catch (error) {
       toast.error(error.message);
@@ -153,7 +164,7 @@ function AccionesCita({ cita, onCambiada, onReprogramar, onEditar, onEliminada, 
           size="sm"
           variant="secondary"
           disabled={ocupado}
-          onClick={() => elegir(principal.estado, principal.texto)}
+          onClick={() => elegir(principal)}
         >
           <principal.icono aria-hidden="true" />
           {principal.texto}
@@ -167,9 +178,9 @@ function AccionesCita({ cita, onCambiada, onReprogramar, onEditar, onEliminada, 
 
         <SeparadorMenu />
 
-        {secundarias.map(({ estado, texto, icono }) => (
-          <OpcionMenu key={estado} icono={icono} onClick={() => elegir(estado, texto)}>
-            {texto}
+        {secundarias.map((accion) => (
+          <OpcionMenu key={accion.estado} icono={accion.icono} onClick={() => elegir(accion)}>
+            {accion.texto}
           </OpcionMenu>
         ))}
 

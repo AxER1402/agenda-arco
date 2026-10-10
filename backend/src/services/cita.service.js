@@ -34,13 +34,20 @@ const ESTADOS = {
  * y el límite diario. Atendida es definitiva: si el paciente quiere volver, se
  * crea una cita nueva y el historial conserva ambas.
  *
+ * «Confirmada» puede volver a «Pendiente» si se marcó por error.
+ *
  * «No asistió» solo admite corregirse a «Atendida»: el sistema la pone sola a
  * las citas de días pasados que nadie cerró, y puede que el paciente sí viniera
  * y solo faltara marcarlo.
  */
 const TRANSICIONES = {
   [ESTADOS.PENDIENTE]: [ESTADOS.CONFIRMADA, ESTADOS.ATENDIDA, ESTADOS.NO_ASISTIO, ESTADOS.CANCELADA],
-  [ESTADOS.CONFIRMADA]: [ESTADOS.ATENDIDA, ESTADOS.NO_ASISTIO, ESTADOS.CANCELADA],
+  [ESTADOS.CONFIRMADA]: [
+    ESTADOS.PENDIENTE,
+    ESTADOS.ATENDIDA,
+    ESTADOS.NO_ASISTIO,
+    ESTADOS.CANCELADA,
+  ],
   [ESTADOS.ATENDIDA]: [],
   [ESTADOS.CANCELADA]: [ESTADOS.PENDIENTE, ESTADOS.CONFIRMADA],
   [ESTADOS.NO_ASISTIO]: [ESTADOS.ATENDIDA],
