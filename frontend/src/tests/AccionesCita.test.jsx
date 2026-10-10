@@ -312,6 +312,56 @@ describe('Citas confirmadas', () => {
   });
 });
 
+describe('Corregir una no asistida', () => {
+  it('ofrece «Atendida» solo en el menú, sin botón a la vista', async () => {
+    renderizar(cita({ estado: 'NO_ASISTIO', estado_nombre: 'No asistió' }));
+
+    expect(screen.queryByRole('button', { name: /Atendida/ })).not.toBeInTheDocument();
+
+    await abrirMenu();
+    await userEvent.click(screen.getByRole('menuitem', { name: /Atendida/ }));
+
+    await waitFor(() =>
+      expect(citaService.cambiarEstadoCita).toHaveBeenCalledWith(7, 'ATENDIDA', undefined),
+    );
+  });
+});
+
+describe('Corregir una atendida', () => {
+  it('ofrece las correcciones solo en el menú, sin botón a la vista', async () => {
+    renderizar(cita({ estado: 'ATENDIDA', estado_nombre: 'Atendida' }));
+
+    expect(screen.queryByRole('button', { name: /No asistió/ })).not.toBeInTheDocument();
+
+    await abrirMenu();
+    await userEvent.click(screen.getByRole('menuitem', { name: /No asistió/ }));
+
+    await waitFor(() =>
+      expect(citaService.cambiarEstadoCita).toHaveBeenCalledWith(7, 'NO_ASISTIO', undefined),
+    );
+  });
+
+  it('deja volver a pendiente si el día de la cita no ha pasado', async () => {
+    renderizar(cita({ estado: 'ATENDIDA', estado_nombre: 'Atendida' }));
+
+    await abrirMenu();
+    await userEvent.click(screen.getByRole('menuitem', { name: /Quitar «Atendida»/ }));
+
+    await waitFor(() =>
+      expect(citaService.cambiarEstadoCita).toHaveBeenCalledWith(7, 'PENDIENTE', undefined),
+    );
+  });
+
+  it('con el día ya pasado solo deja marcar «No asistió»', async () => {
+    renderizar(cita({ estado: 'ATENDIDA', estado_nombre: 'Atendida', fecha: '2020-01-01' }));
+
+    await abrirMenu();
+
+    expect(screen.getByRole('menuitem', { name: /No asistió/ })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Quitar «Atendida»/ })).not.toBeInTheDocument();
+  });
+});
+
 describe('Citas canceladas', () => {
   it('ofrece reactivar fuera y reagendar en el menú', async () => {
     const onReprogramar = jest.fn();

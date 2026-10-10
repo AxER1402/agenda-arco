@@ -46,8 +46,37 @@ const ACCIONES = {
   // revalida vigencia y límite diario antes de aceptarla.
   CANCELADA: [{ estado: 'PENDIENTE', texto: 'Reactivar', icono: RotateCcw }],
   // El sistema marca «No asistió» solo al terminar el día; si el paciente sí
-  // vino y nadie lo marcó, se corrige aquí.
-  NO_ASISTIO: [{ estado: 'ATENDIDA', texto: 'Atendida', icono: Check }],
+  // vino y nadie lo marcó, se corrige aquí. Solo en el menú, como las
+  // correcciones de una atendida.
+  NO_ASISTIO: [
+    {
+      estado: 'ATENDIDA',
+      texto: 'Atendida',
+      icono: Check,
+      soloMenu: true,
+      aviso: 'Corregido: la cita queda como «Atendida».',
+    },
+  ],
+  // Correcciones de una «Atendida» marcada por error. Van solo en el menú: un
+  // botón a la vista en cada cita atendida invitaría a pulsarlo sin querer.
+  ATENDIDA: [
+    {
+      estado: 'NO_ASISTIO',
+      texto: 'No asistió',
+      icono: UserX,
+      soloMenu: true,
+      aviso: 'Corregido: la cita queda como «No asistió».',
+    },
+    {
+      estado: 'PENDIENTE',
+      texto: 'Quitar «Atendida»',
+      icono: Undo2,
+      soloMenu: true,
+      // Una cita de un día pasado no puede volver a pendiente.
+      soloSinPasar: true,
+      aviso: 'Se quitó la marca de atendida: la cita vuelve a estar pendiente.',
+    },
+  ],
 };
 
 /** Atendida y no asistió ya no se reprograman: su desenlace ocurrió. */
@@ -68,7 +97,13 @@ function AccionesCita({ cita, onCambiada, onReprogramar, onEditar, onEliminada, 
   // Reactivarla la deja con su fecha original: si esa fecha ya pasó, la única
   // salida es reagendarla a otro día.
   const caducada = cancelada && cita.fecha < hoyISO();
-  const [principal, ...secundarias] = caducada ? [] : (ACCIONES[cita.estado] ?? []);
+  const acciones = caducada
+    ? []
+    : (ACCIONES[cita.estado] ?? []).filter(
+        (accion) => !accion.soloSinPasar || cita.fecha >= hoyISO(),
+      );
+  // La primera va a la vista como botón, salvo que deba quedarse en el menú.
+  const [principal, ...secundarias] = acciones[0]?.soloMenu ? [null, ...acciones] : acciones;
 
   const puedeReprogramar = Boolean(onReprogramar) && REPROGRAMABLES.includes(cita.estado);
   // Mismo criterio que reprogramar: lo atendido o no asistido ya no se toca.

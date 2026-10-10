@@ -31,8 +31,12 @@ const ESTADOS = {
  * Transiciones permitidas entre estados.
  * Una cita cancelada puede reactivarse (el paciente vuelve a llamar), pero al
  * hacerlo recupera su cupo: la fecha se revalida contra la vigencia de la orden
- * y el límite diario. Atendida es definitiva: si el paciente quiere volver, se
+ * y el límite diario. Si el paciente quiere volver después de atendido, se
  * crea una cita nueva y el historial conserva ambas.
+ *
+ * «Atendida» se puede corregir si se marcó por error: a «No asistió», o de
+ * vuelta a «Pendiente» mientras el día de la cita no haya pasado (ver
+ * `cambiarEstado`).
  *
  * «Confirmada» puede volver a «Pendiente» si se marcó por error.
  *
@@ -48,7 +52,7 @@ const TRANSICIONES = {
     ESTADOS.NO_ASISTIO,
     ESTADOS.CANCELADA,
   ],
-  [ESTADOS.ATENDIDA]: [],
+  [ESTADOS.ATENDIDA]: [ESTADOS.NO_ASISTIO, ESTADOS.PENDIENTE],
   [ESTADOS.CANCELADA]: [ESTADOS.PENDIENTE, ESTADOS.CONFIRMADA],
   [ESTADOS.NO_ASISTIO]: [ESTADOS.ATENDIDA],
 };
@@ -389,6 +393,18 @@ async function cambiarEstado(id, codigoEstado, { motivo } = {}) {
     throw AppError.conflict(
       `No se puede pasar de "${cita.estado_nombre}" a ese estado.`,
       { estado_actual: cita.estado, transiciones_permitidas: permitidos },
+    );
+  }
+
+  // Una cita de un día que ya pasó no puede quedar pendiente: el cierre
+  // nocturno la daría por no asistida. Lo que corresponde es «No asistió».
+  if (
+    cita.estado === ESTADOS.ATENDIDA &&
+    codigoEstado === ESTADOS.PENDIENTE &&
+    fechas.comparar(fechas.aISO(cita.fecha), fechas.hoy()) < 0
+  ) {
+    throw AppError.conflict(
+      'El día de esa cita ya pasó: si el paciente no vino, márquela como «No asistió».',
     );
   }
 

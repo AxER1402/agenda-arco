@@ -646,6 +646,9 @@ describe('Estados de la cita', () => {
     ['CANCELADA', 'CONFIRMADA'],
     // Corrige el cierre automático cuando el paciente sí vino.
     ['NO_ASISTIO', 'ATENDIDA'],
+    // Corrige una «Atendida» marcada por error.
+    ['ATENDIDA', 'NO_ASISTIO'],
+    ['ATENDIDA', 'PENDIENTE'],
   ])('permite pasar de %s a %s', async (desde, hacia) => {
     citaModel.buscarPorId.mockResolvedValue(
       citaCreada({
@@ -685,6 +688,17 @@ describe('Estados de la cita', () => {
     await expect(citaService.cambiarEstado(100, hacia)).rejects.toMatchObject({
       statusCode: 409,
     });
+  });
+
+  it('no devuelve a pendiente una atendida de un día que ya pasó', async () => {
+    citaModel.buscarPorId.mockResolvedValue(
+      citaCreada({ estado: 'ATENDIDA', estado_nombre: 'Atendida', fecha: AYER }),
+    );
+
+    await expect(citaService.cambiarEstado(100, 'PENDIENTE')).rejects.toMatchObject({
+      statusCode: 409,
+    });
+    expect(citaModel.actualizar).not.toHaveBeenCalled();
   });
 
   it('rechaza cambiar al estado en el que ya está', async () => {
