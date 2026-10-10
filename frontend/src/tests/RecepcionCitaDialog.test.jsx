@@ -64,6 +64,17 @@ function renderizar(props = {}) {
   );
 }
 
+/**
+ * Pulsa «Programar cita» y, si sale el aviso de que falta la cita del IGSS,
+ * guarda de todos modos: la mayoría de las pruebas no tratan de ese campo.
+ */
+async function programar() {
+  await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+
+  const guardarSinIgss = screen.queryByRole('button', { name: 'Guardar sin ella' });
+  if (guardarSinIgss) await userEvent.click(guardarSinIgss);
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   catalogoService.listarExamenes.mockResolvedValue(EXAMENES);
@@ -281,7 +292,7 @@ describe('Envío', () => {
     await screen.findByText(/Se puede recibir hasta el/);
     await llenarFormulario();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     await waitFor(() =>
       expect(citaService.recibirPaciente).toHaveBeenCalledWith(
@@ -309,7 +320,7 @@ describe('Envío', () => {
 
     await userEvent.click(screen.getByRole('checkbox', { name: /Glucosa/ }));
     await userEvent.type(screen.getByLabelText(/^Hora/), '10:30');
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     await waitFor(() =>
       expect(citaService.recibirPaciente).toHaveBeenCalledWith(
@@ -319,6 +330,51 @@ describe('Envío', () => {
     expect(citaService.recibirPaciente.mock.calls[0][0].paciente).toBeUndefined();
   });
 
+  it('avisa si falta la cita del IGSS y no guarda hasta que lo confirmen', async () => {
+    renderizar();
+    await screen.findByText(/Se puede recibir hasta el/);
+    await llenarFormulario();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+
+    expect(await screen.findByText('Falta la fecha de la cita del IGSS')).toBeInTheDocument();
+    expect(citaService.recibirPaciente).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar sin ella' }));
+
+    await waitFor(() => expect(citaService.recibirPaciente).toHaveBeenCalled());
+    expect(citaService.recibirPaciente.mock.calls[0][0].fechaCitaIgss).toBeUndefined();
+  });
+
+  it('guarda directo, sin aviso, cuando trae la cita del IGSS', async () => {
+    renderizar();
+    await screen.findByText(/Se puede recibir hasta el/);
+    await llenarFormulario();
+
+    screen.getByLabelText(/Fecha cita IGSS/).focus();
+    await userEvent.keyboard('{ArrowDown}');
+    await waitFor(() => expect(screen.getByLabelText(/Fecha cita IGSS/)).not.toHaveValue(''));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+
+    await waitFor(() => expect(citaService.recibirPaciente).toHaveBeenCalled());
+    expect(screen.queryByText('Falta la fecha de la cita del IGSS')).not.toBeInTheDocument();
+  });
+
+  it('deja volver a poner la cita del IGSS sin guardar', async () => {
+    renderizar();
+    await screen.findByText(/Se puede recibir hasta el/);
+    await llenarFormulario();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Agregar la fecha' }));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Falta la fecha de la cita del IGSS')).not.toBeInTheDocument(),
+    );
+    expect(citaService.recibirPaciente).not.toHaveBeenCalled();
+  });
+
   it('exige al menos un examen', async () => {
     renderizar();
     await screen.findByText(/Se puede recibir hasta el/);
@@ -326,7 +382,7 @@ describe('Envío', () => {
     await userEvent.type(screen.getByLabelText(/Teléfono/), '55599999');
     await userEvent.type(screen.getByLabelText(/Nombre completo/), 'Marta Ruiz');
     await userEvent.type(screen.getByLabelText(/^Hora/), '09:00');
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     expect(await screen.findByText('Indique al menos un examen.')).toBeInTheDocument();
     expect(citaService.recibirPaciente).not.toHaveBeenCalled();
@@ -338,7 +394,7 @@ describe('Envío', () => {
 
     await llenarFormulario();
     await userEvent.type(screen.getByLabelText(/DPI/), '1111111111');
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     expect(await screen.findByText(/El DPI debe tener 13 dígitos \(lleva 10\)/)).toBeInTheDocument();
     expect(citaService.recibirPaciente).not.toHaveBeenCalled();
@@ -350,7 +406,7 @@ describe('Envío', () => {
 
     await llenarFormulario();
     await userEvent.type(screen.getByLabelText(/DPI/), '1111111111111');
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     await waitFor(() =>
       expect(citaService.recibirPaciente).toHaveBeenCalledWith(
@@ -368,7 +424,7 @@ describe('Envío', () => {
 
     await userEvent.click(screen.getByLabelText(/tiene WhatsApp/));
     await userEvent.click(screen.getByRole('option', { name: 'No tiene' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     await waitFor(() =>
       expect(citaService.recibirPaciente).toHaveBeenCalledWith(
@@ -392,7 +448,7 @@ describe('Envío', () => {
     await screen.findByText(/Se puede recibir hasta el/);
     await llenarFormulario();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     await waitFor(() => expect(citaService.recibirPaciente).toHaveBeenCalled());
     expect(citaService.recibirPaciente.mock.calls[0][0]).not.toHaveProperty('tieneWhatsapp');
@@ -418,7 +474,7 @@ describe('Envío', () => {
     await screen.findByText(/Se puede recibir hasta el/);
     await llenarFormulario();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     expect(await screen.findByText('No se pudo programar la cita')).toBeInTheDocument();
     expect(screen.getByText(/alcanzó el límite de 40 pacientes/)).toBeInTheDocument();
@@ -434,7 +490,7 @@ describe('Después de programar', () => {
     await screen.findByText(/se registrará como paciente nuevo/);
     await userEvent.type(screen.getByLabelText(/Nombre completo/), 'Marta Ruiz');
     await userEvent.click(screen.getByRole('checkbox', { name: /Glucosa/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await programar();
 
     expect(await screen.findByTestId('destino')).toHaveTextContent('?fecha=2026-11-11 10');
   });

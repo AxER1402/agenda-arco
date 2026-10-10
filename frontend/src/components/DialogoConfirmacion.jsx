@@ -39,6 +39,7 @@ import { InputContrasena } from '@/components/ui/input-contrasena';
  * @param {string} props.titulo
  * @param {import('react').ReactNode} [props.descripcion]
  * @param {string} [props.textoConfirmar]
+ * @param {string} [props.textoVolver] Botón que cierra sin confirmar.
  * @param {boolean} [props.destructivo] Tiñe de rojo el botón que confirma.
  * @param {boolean} [props.pedirContrasena] Exige la contraseña de la sesión.
  * @param {{etiqueta: string, ayuda?: string, tipo?: string, requerido?: boolean,
@@ -51,6 +52,7 @@ function DialogoConfirmacion({
   titulo,
   descripcion,
   textoConfirmar = 'Confirmar',
+  textoVolver = 'Volver',
   destructivo = false,
   pedirContrasena = false,
   campo = null,
@@ -158,7 +160,7 @@ function DialogoConfirmacion({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onCerrar} disabled={enviando}>
-              Volver
+              {textoVolver}
             </Button>
             <Button
               type="submit"

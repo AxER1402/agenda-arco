@@ -4,6 +4,7 @@ import { CalendarClock, Plus, Search, TriangleAlert, UserRoundPlus, X } from 'lu
 import { toast } from 'sonner';
 
 import CampoFormulario from '@/components/CampoFormulario';
+import DialogoConfirmacion from '@/components/DialogoConfirmacion';
 import ExamenFormDialog from '@/components/examenes/ExamenFormDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -99,6 +100,8 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
   const [valores, setValores] = useState(VACIO);
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
+  /** Aviso de que falta la cita del IGSS, abierto antes de guardar. */
+  const [avisoSinIgss, setAvisoSinIgss] = useState(false);
   const [rechazo, setRechazo] = useState(null);
 
   // Paciente: null mientras no se sepa si el número corresponde a alguien.
@@ -300,6 +303,24 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
       return;
     }
 
+    // La cita del IGSS no es obligatoria —hay pacientes que no la saben—, pero
+    // sin ella no se puede comprobar que los exámenes estén antes. Se pide una
+    // confirmación para que omitirla sea una decisión y no un descuido.
+    if (!valores.fechaCitaIgss) {
+      setAvisoSinIgss(true);
+      return;
+    }
+
+    await guardar();
+  }
+
+  function agregarCitaIgss() {
+    setAvisoSinIgss(false);
+    // Tras cerrarse el aviso, el foco va al campo que falta.
+    setTimeout(() => document.getElementById('recepcion-fecha-cita-igss')?.focus(), 0);
+  }
+
+  async function guardar() {
     setGuardando(true);
     setRechazo(null);
 
@@ -535,13 +556,13 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                 <CampoFormulario
                   id="recepcion-fecha-cita-igss"
                   etiqueta="Fecha cita IGSS"
-                  ayuda="Opcional. La cita del laboratorio será antes de esa fecha"
+                  ayuda="Recomendada. La cita del laboratorio será antes de esa fecha"
                 >
                   {(props) => (
                     <SelectorFecha
                       {...props}
                       min={valores.fechaRecepcion || undefined}
-                      placeholder="Opcional"
+                      placeholder="Recomendada"
                       value={valores.fechaCitaIgss}
                       onChange={cambiar('fechaCitaIgss')}
                     />
@@ -799,6 +820,16 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
         abierto={nuevoExamen}
         onCerrar={() => setNuevoExamen(false)}
         onGuardado={agregarExamenNuevo}
+      />
+
+      <DialogoConfirmacion
+        abierto={avisoSinIgss}
+        onCerrar={agregarCitaIgss}
+        onConfirmar={guardar}
+        titulo="Falta la fecha de la cita del IGSS"
+        descripcion="Para mayor control es necesario registrarla: así la agenda comprueba que los exámenes queden antes de esa cita. Si el paciente no la sabe, puede guardar de todos modos."
+        textoVolver="Agregar la fecha"
+        textoConfirmar="Guardar sin ella"
       />
     </>
   );
