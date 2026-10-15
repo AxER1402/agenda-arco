@@ -3,6 +3,7 @@ import { coincideCita, coincideExamen } from '@/lib/busqueda';
 const CITA = {
   paciente_nombre: 'María José López',
   paciente_telefono: '55512345',
+  paciente_dpi: '1234567890101',
   numero_orden: 'IGSS-2026-881',
   notas: 'Viene en ayunas',
   examenes: [{ nombre: 'Glucosa', codigo: 'QUI-001' }],
@@ -15,6 +16,8 @@ describe('coincideCita', () => {
     ['LÓPEZ', true],
     ['5551-2345', true],
     ['12345', true],
+    ['1234 56789 0101', true],
+    ['7890101', true],
     ['glucosa', true],
     ['qui-001', true],
     ['igss-2026', true],

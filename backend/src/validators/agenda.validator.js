@@ -196,6 +196,12 @@ const agendaVista = [
   validar,
 ];
 
+const agendaBuscar = [
+  query('termino').trim().notEmpty().withMessage('Escriba qué desea buscar.')
+    .isLength({ max: 100 }).withMessage('La búsqueda no puede exceder 100 caracteres.'),
+  validar,
+];
+
 const configuracionActualizar = [
   body('limite_diario_pacientes').optional().isInt({ min: 1, max: 500 })
     .withMessage('El límite diario debe ser un entero entre 1 y 500.'),
@@ -280,6 +286,7 @@ module.exports = {
   citaDisponibilidad,
   citaSugerencias,
   agendaVista,
+  agendaBuscar,
   citaEliminar,
   configuracionActualizar,
   plantillaGuardar,

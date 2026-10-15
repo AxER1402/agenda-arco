@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { CalendarPlus, ClipboardList, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,7 +24,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { listarEstadosCita, obtenerAgenda } from '@/services/cita.service';
+import { useTerminoRetrasado } from '@/hooks/useTerminoRetrasado';
+import { buscarCitas, listarEstadosCita, obtenerAgenda } from '@/services/cita.service';
 import { coincideCita } from '@/lib/busqueda';
 import {
   fechaLarga,
@@ -33,6 +34,9 @@ import {
   telefono as formatoTelefono,
   varianteEstado,
 } from '@/lib/formato';
+
+/** Caracteres a partir de los cuales el buscador deja el periodo y busca en todo. */
+const MINIMO_BUSQUEDA = 3;
 
 /**
  * Listado de citas con filtros.
@@ -61,19 +65,36 @@ function CitasPage() {
   const [reprogramando, setReprogramando] = useState(null);
   const [editando, setEditando] = useState(null);
   const [agendando, setAgendando] = useState(false);
+  const [resultados, setResultados] = useState(null);
+
+  // Con algo escrito en el buscador se busca en todas las fechas, no solo en
+  // el periodo elegido: quien llama suele dar su teléfono, no el día de su cita.
+  const busqueda = useTerminoRetrasado(termino.trim());
+  const enTodasLasFechas = busqueda.length >= MINIMO_BUSQUEDA;
+  // Solo cuenta la respuesta de la última consulta: al teclear rápido, una
+  // búsqueda vieja que tarde más no debe pisar a la nueva.
+  const ultimaConsulta = useRef(0);
 
   const cargar = useCallback(async () => {
+    const consulta = ++ultimaConsulta.current;
     setCargando(true);
     try {
-      setAgenda(
-        await obtenerAgenda({ ...periodo, incluirCanceladas: true }),
-      );
+      if (enTodasLasFechas) {
+        const encontradas = await buscarCitas(busqueda);
+        if (consulta === ultimaConsulta.current) setResultados(encontradas);
+      } else {
+        const vista = await obtenerAgenda({ ...periodo, incluirCanceladas: true });
+        if (consulta === ultimaConsulta.current) {
+          setAgenda(vista);
+          setResultados(null);
+        }
+      }
     } catch (error) {
       toast.error(error.message);
     } finally {
-      setCargando(false);
+      if (consulta === ultimaConsulta.current) setCargando(false);
     }
-  }, [periodo]);
+  }, [periodo, busqueda, enTodasLasFechas]);
 
   useEffect(() => {
     cargar();
@@ -97,18 +118,27 @@ function CitasPage() {
   }, []);
 
   const citas = useMemo(() => {
-    const todas = (agenda?.dias ?? []).flatMap((dia) => dia.citas);
+    const todas = resultados
+      ? resultados.citas
+      : (agenda?.dias ?? []).flatMap((dia) => dia.citas);
     return todas.filter(
       (cita) => (!estadoFiltro || cita.estado === estadoFiltro) && coincideCita(cita, termino),
     );
-  }, [agenda, estadoFiltro, termino]);
+  }, [agenda, resultados, estadoFiltro, termino]);
+
+  let descripcion = `${citas.length} cita(s) en el periodo seleccionado.`;
+  if (resultados) {
+    descripcion = resultados.hay_mas
+      ? `Se muestran las ${citas.length} citas más recientes que coinciden, de cualquier fecha. Escriba más para afinar.`
+      : `${citas.length} cita(s) encontradas en todas las fechas.`;
+  }
 
   return (
     <div className="flex flex-col gap-8">
       <EncabezadoModulo
         icono={ClipboardList}
         titulo="Citas"
-        descripcion={`${citas.length} cita(s) en el periodo seleccionado. Para programar una, basta el teléfono del paciente.`}
+        descripcion={`${descripcion} Para programar una, basta el teléfono del paciente.`}
         acciones={
           <Button onClick={() => setAgendando(true)}>
             <CalendarPlus aria-hidden="true" />
@@ -172,11 +202,16 @@ function CitasPage() {
             <Input
               id="buscar-citas"
               className="pl-11"
-              placeholder="Paciente, teléfono, examen u orden"
+              placeholder="Paciente, teléfono, DPI, examen u orden"
               value={termino}
               onChange={(evento) => setTermino(evento.target.value)}
             />
           </div>
+          {enTodasLasFechas && (
+            <p className="text-xs text-muted-foreground">
+              Busca en todas las fechas; la fecha y el periodo no se aplican.
+            </p>
+          )}
         </div>
       </div>
 

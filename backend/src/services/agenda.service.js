@@ -95,6 +95,25 @@ function decorarCita(cita) {
   };
 }
 
+/** Lo más que devuelve una búsqueda: se muestran las más recientes. */
+const LIMITE_BUSQUEDA = 100;
+
+/**
+ * Citas de cualquier fecha que coinciden con lo buscado (nombre, teléfono,
+ * DPI, orden, examen o notas). Es para cuando no se sabe qué día es la cita.
+ *
+ * `hay_mas` avisa de que hubo más coincidencias de las que se devuelven.
+ */
+async function buscarCitas(termino) {
+  const citas = await citaModel.buscar({ termino, limite: LIMITE_BUSQUEDA + 1 });
+
+  return {
+    termino,
+    citas: citas.slice(0, LIMITE_BUSQUEDA).map(decorarCita),
+    hay_mas: citas.length > LIMITE_BUSQUEDA,
+  };
+}
+
 /**
  * ¿Hay que llamar por teléfono a este paciente?
  *
@@ -151,6 +170,8 @@ module.exports = {
   calcularRango,
   obtenerVista,
   obtenerResumen,
+  buscarCitas,
+  LIMITE_BUSQUEDA,
   decorarCita,
   necesitaLlamada,
 };

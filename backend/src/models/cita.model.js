@@ -99,6 +99,66 @@ async function listarPorPaciente(pacienteId) {
   return adjuntarExamenes(citas);
 }
 
+/**
+ * Condición y parámetros de la búsqueda de citas en todas las fechas.
+ *
+ * Cada palabra tiene que aparecer en alguno de los campos (nombre, orden,
+ * notas o un examen), igual que en el buscador de la pantalla: «ana glucosa»
+ * encuentra a Ana López con su glucosa. Si la palabra es un número, con
+ * guiones o sin ellos, se compara además con los dígitos del teléfono y del
+ * DPI, que se guardan sin separadores.
+ *
+ * @param {string} termino
+ */
+function condicionDeBusqueda(termino = '') {
+  const palabras = String(termino ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 6);
+  const parametros = {};
+
+  const condiciones = palabras.map((palabra, i) => {
+    // El % y el _ que se escriban se buscan tal cual, no como comodines.
+    parametros[`texto${i}`] = `%${palabra.replace(/[\\%_]/g, '\\$&')}%`;
+    const digitos = palabra.replace(/\D/g, '');
+    parametros[`digitos${i}`] =
+      /^[\d-]+$/.test(palabra) && digitos.length > 0 ? `%${digitos}%` : null;
+
+    return `(p.nombre_completo LIKE :texto${i}
+             OR o.numero_orden LIKE :texto${i}
+             OR c.notas LIKE :texto${i}
+             OR p.telefono LIKE :digitos${i}
+             OR p.dpi LIKE :digitos${i}
+             OR EXISTS (SELECT 1
+                          FROM cita_examenes ce
+                          JOIN examenes e ON e.id = ce.examen_id
+                         WHERE ce.cita_id = c.id
+                           AND (e.nombre LIKE :texto${i} OR e.codigo LIKE :texto${i})))`;
+  });
+
+  return { condicion: condiciones.join(' AND '), parametros };
+}
+
+/**
+ * Citas de cualquier fecha que coinciden con lo buscado, de la más reciente a
+ * la más antigua. Sirve para encontrar a un paciente sin saber cuándo es su
+ * cita.
+ */
+async function buscar({ termino, limite = 100 }) {
+  const { condicion, parametros } = condicionDeBusqueda(termino);
+  if (!condicion) return [];
+
+  // LIMIT no admite parámetros preparados con mysql2: se fuerza a entero.
+  const limiteSeguro = Math.min(Math.max(Number.parseInt(limite, 10) || 100, 1), 500);
+
+  const citas = await query(
+    `SELECT ${CAMPOS} ${DESDE}
+      WHERE ${condicion}
+      ORDER BY c.fecha DESC, c.hora DESC
+      LIMIT ${limiteSeguro}`,
+    parametros,
+  );
+
+  return adjuntarExamenes(citas);
+}
+
 async function listarPorOrden(ordenId, { soloActivas = false } = {}) {
   return query(
     `SELECT ${CAMPOS} ${DESDE}
@@ -297,6 +357,8 @@ module.exports = {
   buscarPorId,
   listarPorRango,
   listarPorPaciente,
+  condicionDeBusqueda,
+  buscar,
   listarPorOrden,
   contarOcupacion,
   contarOcupacionPorRango,

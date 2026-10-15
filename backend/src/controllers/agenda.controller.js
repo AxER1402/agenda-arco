@@ -14,6 +14,15 @@ async function obtenerVista(req, res, next) {
   }
 }
 
+/** GET /api/agenda/buscar?termino=... — citas de cualquier fecha. */
+async function buscar(req, res, next) {
+  try {
+    res.status(200).json(await agendaService.buscarCitas(req.query.termino));
+  } catch (error) {
+    next(error);
+  }
+}
+
 /** GET /api/agenda/resumen — datos del panel principal. */
 async function obtenerResumen(req, res, next) {
   try {
@@ -50,6 +59,7 @@ async function actualizarConfiguracion(req, res, next) {
 
 module.exports = {
   obtenerVista,
+  buscar,
   obtenerResumen,
   obtenerConfiguracion,
   actualizarConfiguracion,

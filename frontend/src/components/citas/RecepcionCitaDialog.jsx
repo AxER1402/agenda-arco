@@ -167,6 +167,21 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
     setValores((previo) => ({ ...previo, hora: horaPredeterminada }));
   }, [abierto, horaPredeterminada]);
 
+  // Con algo escrito, recargar o cerrar la pestaña pide confirmación: la
+  // recepción a medias vive solo en memoria y se perdería sin avisar.
+  const hayDatos = abierto && (valores.telefono.trim() !== '' || seleccionados.length > 0);
+  useEffect(() => {
+    if (!hayDatos) return undefined;
+
+    function avisar(evento) {
+      evento.preventDefault();
+      evento.returnValue = '';
+    }
+
+    window.addEventListener('beforeunload', avisar);
+    return () => window.removeEventListener('beforeunload', avisar);
+  }, [hayDatos]);
+
   // Al completar el teléfono se busca a quién pertenece.
   useEffect(() => {
     if (!abierto || pacienteInicial || !telefonoBuscable) {

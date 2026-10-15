@@ -63,6 +63,12 @@ export async function obtenerAgenda({ vista = 'dia', fecha, incluirCanceladas = 
   return data;
 }
 
+/** Citas de cualquier fecha que coinciden con lo buscado. */
+export async function buscarCitas(termino) {
+  const { data } = await api.get('/agenda/buscar', { params: { termino } });
+  return data;
+}
+
 export async function obtenerResumen() {
   const { data } = await api.get('/agenda/resumen');
   return data;

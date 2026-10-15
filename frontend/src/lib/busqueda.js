@@ -36,12 +36,18 @@ export function coincideCita(cita, termino) {
       ...(cita.examenes ?? []).flatMap((examen) => [examen.nombre, examen.codigo]),
     ].join(' '),
   );
-  const telefono = String(cita.paciente_telefono ?? '').replace(/\D/g, '');
+  // El DPI cuenta como el teléfono: el servidor también lo busca, y sin él aquí
+  // las citas encontradas por DPI desaparecerían al filtrar en pantalla.
+  const numeros = [cita.paciente_telefono, cita.paciente_dpi].map((valor) =>
+    String(valor ?? '').replace(/\D/g, ''),
+  );
 
   return palabras.every((palabra) => {
     const digitos = palabra.replace(/\D/g, '');
     const esNumero = digitos.length > 0 && digitos.length === palabra.replace(/-/g, '').length;
-    return texto.includes(palabra) || (esNumero && telefono.includes(digitos));
+    return (
+      texto.includes(palabra) || (esNumero && numeros.some((numero) => numero.includes(digitos)))
+    );
   });
 }
 
