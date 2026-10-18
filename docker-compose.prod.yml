@@ -3,6 +3,15 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
+# Todo pasa a la imagen de producción y nada queda a la vista desde fuera:
+#
+# - MySQL y el whatsapp-service no publican ningún puerto; solo se les habla
+#   desde la red interna de Docker.
+# - El backend y el frontend escuchan solo en 127.0.0.1: el único que entra
+#   desde internet es el proxy con HTTPS que corre en el propio servidor.
+# - Sin montar src: el código va dentro de la imagen, así que cada cambio exige
+#   reconstruir con --build.
+#
 # El frontend deja de ser el servidor de desarrollo de Vite y pasa a ser la SPA
 # compilada servida por nginx. El servidor de Vite mantiene un WebSocket abierto
 # con cada navegador para la recarga en caliente, y cuando esa conexión se corta
@@ -11,6 +20,23 @@
 # en ese momento se perdía.
 
 services:
+  database:
+    ports: !reset []
+
+  backend:
+    build: { context: ./backend, target: production }
+    volumes: !reset []
+    ports: !override
+      - "127.0.0.1:${BACKEND_PORT}:3000"
+
+  whatsapp-service:
+    build: { context: ./whatsapp-service, target: production }
+    ports: !reset []
+    # Solo la sesión vinculada. Sin el src montado ni el volumen anónimo de
+    # node_modules, que son cosa del desarrollo.
+    volumes: !override
+      - wa_session:/app/session
+
   frontend:
     build:
       context: ./frontend
@@ -18,6 +44,6 @@ services:
       args:
         # Va incrustada en el bundle al compilar, no se lee en tiempo de ejecución.
         VITE_API_URL: ${VITE_API_URL}
-    ports: !override
-      - "${FRONTEND_PORT}:80"
     volumes: !reset []
+    ports: !override
+      - "127.0.0.1:${FRONTEND_PORT}:80"
