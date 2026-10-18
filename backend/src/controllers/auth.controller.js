@@ -11,6 +11,21 @@ async function login(req, res, next) {
   }
 }
 
+/** GET /api/auth/google — si el botón de Google se muestra y con qué cliente. */
+function configuracionGoogle(req, res) {
+  res.status(200).json(authService.configuracionGoogle());
+}
+
+/** POST /api/auth/google */
+async function loginGoogle(req, res, next) {
+  try {
+    const resultado = await authService.loginConGoogle({ credencial: req.body.credencial });
+    res.status(200).json(resultado);
+  } catch (error) {
+    next(error);
+  }
+}
+
 /** GET /api/auth/perfil */
 async function perfil(req, res, next) {
   try {
@@ -34,4 +49,4 @@ async function cambiarContrasena(req, res, next) {
   }
 }
 
-module.exports = { login, perfil, cambiarContrasena };
+module.exports = { login, configuracionGoogle, loginGoogle, perfil, cambiarContrasena };

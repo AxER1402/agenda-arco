@@ -45,6 +45,12 @@ export function AuthProvider({ children }) {
     return autenticado;
   }, []);
 
+  const entrarConGoogle = useCallback(async (credencial) => {
+    const autenticado = await authService.iniciarSesionConGoogle(credencial);
+    setUsuario(autenticado);
+    return autenticado;
+  }, []);
+
   const salir = useCallback(() => {
     authService.cerrarSesion();
     setUsuario(null);
@@ -57,9 +63,10 @@ export function AuthProvider({ children }) {
       autenticado: Boolean(usuario),
       esAdministrador: usuario?.rol === 'ADMINISTRADOR',
       entrar,
+      entrarConGoogle,
       salir,
     }),
-    [usuario, cargando, entrar, salir],
+    [usuario, cargando, entrar, entrarConGoogle, salir],
   );
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

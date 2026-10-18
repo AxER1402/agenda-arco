@@ -89,6 +89,30 @@ docker compose up
 > docker compose up -d --build --renew-anon-volumes backend
 > ```
 
+### Acceso con Google (opcional)
+
+Sin configurar nada, se entra solo con usuario y contraseña. Para ofrecer
+además «Continuar con Google»:
+
+1. En [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
+   **Crear credenciales → ID de cliente de OAuth → Aplicación web**. Si lo pide,
+   configurar antes la pantalla de consentimiento (tipo «Externo», con el
+   nombre del laboratorio).
+2. En **Orígenes autorizados de JavaScript**, agregar cada dirección desde la
+   que se abre el sistema. En local, los dos: `http://localhost` y
+   `http://localhost:5173`; en producción, `https://agenda.labarco.bid`. No
+   hacen falta URI de redireccionamiento.
+3. Copiar el ID de cliente (termina en `.apps.googleusercontent.com`) en
+   `GOOGLE_CLIENT_ID` del `.env` y reiniciar el backend:
+   `docker compose up -d backend`. El frontend no se recompila: le pide el ID
+   al backend.
+4. En **Usuarios**, anotar en cada persona su **Correo de Google**.
+
+Google no crea cuentas: solo entra quien tenga un usuario **activo** con ese
+correo anotado. El resto ve «Esta cuenta de Google no tiene acceso al sistema».
+Quitar el correo, o desactivar al usuario, le retira el acceso con Google. La
+contraseña sigue funcionando igual en todos los casos.
+
 ---
 
 ## Credenciales de prueba
@@ -425,6 +449,8 @@ Todos los endpoints responden JSON. Los errores usan el formato
 | --- | --- | --- |
 | GET | `/api/health`, `/api/health/db` | Público |
 | POST | `/api/auth/login` | Público |
+| GET | `/api/auth/google` (si el acceso con Google está habilitado y su ID de cliente) | Público |
+| POST | `/api/auth/google` (cambia la `credencial` de Google por el token del sistema) | Público |
 | GET | `/api/auth/perfil` | Autenticado |
 | PATCH | `/api/auth/contrasena` | Autenticado |
 | GET/POST | `/api/usuarios` | Administrador |
@@ -497,6 +523,7 @@ curl -s -X POST http://localhost:3000/api/auth/login \
 | Validación de entradas por recurso | `backend/src/validators/` |
 | Cabeceras de seguridad (helmet) y CORS restringido | `backend/src/app.js` |
 | Límite de peticiones general y de login | `backend/src/app.js`, `auth.routes.js` |
+| Credencial de Google verificada en el servidor (firma, audiencia y caducidad) | `backend/src/utils/google.js` |
 | Clave interna comparada en tiempo constante | `whatsapp-service/src/middleware/apiKey.js` |
 | Errores no controlados sin detalles ni stack al cliente | `backend/src/middleware/errorHandler.js` |
 | Secretos solo por variables de entorno | `backend/src/config/env.js` |
@@ -510,6 +537,10 @@ Detalles que conviene poder explicar:
 - **El límite de login es por IP _y_ usuario.** Todo el laboratorio comparte una
   IP: si fuera solo por IP, que una persona se equivocara diez veces dejaría a
   toda la recepción bloqueada quince minutos.
+- **Google identifica, pero no autoriza.** El backend verifica la firma de la
+  credencial y que se emitió para nuestro ID de cliente, exige el correo
+  verificado y busca un usuario activo con ese correo. No se crean cuentas al
+  vuelo, y el token que se emite es el mismo JWT del login con contraseña.
 - **`X-Forwarded-For` no se confía por defecto.** Hacerlo permitiría falsear la
   IP y saltarse el límite. Se activa con `TRUST_PROXY` solo si hay un proxy real
   delante.

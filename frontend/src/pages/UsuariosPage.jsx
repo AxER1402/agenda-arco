@@ -119,7 +119,13 @@ function UsuariosPage() {
               return (
                 <TableRow key={fila.id}>
                   <TableCell className="font-medium">{fila.nombre_completo}</TableCell>
-                  <TableCell>{fila.usuario}</TableCell>
+                  <TableCell>
+                    {fila.usuario}
+                    {/* Solo si puede entrar con Google: es lo que el correo habilita. */}
+                    {fila.correo && (
+                      <span className="block text-xs text-muted-foreground">{fila.correo}</span>
+                    )}
+                  </TableCell>
                   <TableCell>{fila.rol_nombre}</TableCell>
                   <TableCell>
                     <Badge variant={fila.activo ? 'success' : 'outline'}>

@@ -32,6 +32,8 @@ CREATE TABLE usuarios (
   id              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   nombre_completo VARCHAR(120)  NOT NULL,
   usuario         VARCHAR(50)   NOT NULL,
+  -- Correo de Google con el que puede entrar. NULL = solo usuario y contraseña.
+  correo          VARCHAR(254)  NULL,
   password_hash   VARCHAR(255)  NOT NULL,
   rol_id          INT UNSIGNED  NOT NULL,
   activo          BOOLEAN       NOT NULL DEFAULT TRUE,
@@ -40,6 +42,7 @@ CREATE TABLE usuarios (
   actualizado_en  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_usuarios_usuario (usuario),
+  UNIQUE KEY uq_usuarios_correo (correo),
   KEY idx_usuarios_rol (rol_id),
   CONSTRAINT fk_usuarios_rol FOREIGN KEY (rol_id) REFERENCES roles (id)
     ON UPDATE CASCADE ON DELETE RESTRICT

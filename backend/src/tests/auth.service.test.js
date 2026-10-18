@@ -4,9 +4,13 @@
  * independientes entre sí.
  */
 jest.mock('../models/usuario.model');
+// Nunca se habla con Google: la verificación de la credencial se simula.
+jest.mock('../utils/google');
 
+const env = require('../config/env');
 const usuarioModel = require('../models/usuario.model');
 const authService = require('../services/auth.service');
+const google = require('../utils/google');
 const password = require('../utils/password');
 const jwt = require('../utils/jwt');
 
@@ -92,6 +96,104 @@ describe('auth.service.login', () => {
     await authService.login({ usuario: 'nadie', contrasena: 'x' }).catch(() => {});
 
     expect(usuarioModel.registrarAcceso).not.toHaveBeenCalled();
+  });
+});
+
+describe('auth.service.loginConGoogle', () => {
+  const identidad = { correo: 'ana.lopez@gmail.com', correoVerificado: true, nombre: 'Ana López' };
+
+  it('entra con el usuario que tiene ese correo y devuelve un token válido', async () => {
+    google.verificarCredencial.mockResolvedValue(identidad);
+    usuarioModel.buscarPorCorreo.mockResolvedValue(
+      await usuarioDePrueba({ correo: 'ana.lopez@gmail.com' }),
+    );
+
+    const resultado = await authService.loginConGoogle({ credencial: 'credencial-de-google' });
+
+    expect(google.verificarCredencial).toHaveBeenCalledWith('credencial-de-google');
+    expect(usuarioModel.buscarPorCorreo).toHaveBeenCalledWith('ana.lopez@gmail.com');
+    expect(jwt.verificar(resultado.token)).toMatchObject({ sub: 1, rol: 'PERSONAL_CITAS' });
+    expect(resultado.usuario).not.toHaveProperty('password_hash');
+    expect(usuarioModel.registrarAcceso).toHaveBeenCalledWith(1);
+  });
+
+  /**
+   * Google dice quién es la persona, pero quién entra lo decide el
+   * administrador: una cuenta de Google cualquiera no abre el sistema.
+   */
+  it('rechaza un correo que no está vinculado a ningún usuario', async () => {
+    google.verificarCredencial.mockResolvedValue(identidad);
+    usuarioModel.buscarPorCorreo.mockResolvedValue(null);
+
+    await expect(
+      authService.loginConGoogle({ credencial: 'credencial-de-google' }),
+    ).rejects.toMatchObject({ statusCode: 401 });
+    expect(usuarioModel.registrarAcceso).not.toHaveBeenCalled();
+  });
+
+  it('rechaza a un usuario inactivo', async () => {
+    google.verificarCredencial.mockResolvedValue(identidad);
+    usuarioModel.buscarPorCorreo.mockResolvedValue(await usuarioDePrueba({ activo: 0 }));
+
+    await expect(
+      authService.loginConGoogle({ credencial: 'credencial-de-google' }),
+    ).rejects.toMatchObject({ statusCode: 401 });
+  });
+
+  it('rechaza una cuenta de Google con el correo sin verificar', async () => {
+    google.verificarCredencial.mockResolvedValue({ ...identidad, correoVerificado: false });
+    usuarioModel.buscarPorCorreo.mockResolvedValue(await usuarioDePrueba());
+
+    await expect(
+      authService.loginConGoogle({ credencial: 'credencial-de-google' }),
+    ).rejects.toMatchObject({ statusCode: 401 });
+    expect(usuarioModel.buscarPorCorreo).not.toHaveBeenCalled();
+  });
+
+  it('rechaza una credencial que Google no da por buena', async () => {
+    google.verificarCredencial.mockRejectedValue(new Error('Wrong recipient'));
+
+    const error = await authService
+      .loginConGoogle({ credencial: 'credencial-falsa' })
+      .catch((e) => e);
+
+    expect(error.statusCode).toBe(401);
+    // El motivo técnico de la librería no llega a la pantalla.
+    expect(error.message).not.toMatch(/recipient/i);
+  });
+
+  it('responde 404 si el acceso con Google no está configurado', async () => {
+    const original = env.google.clientId;
+    env.google.clientId = '';
+
+    try {
+      await expect(
+        authService.loginConGoogle({ credencial: 'credencial-de-google' }),
+      ).rejects.toMatchObject({ statusCode: 404 });
+      expect(google.verificarCredencial).not.toHaveBeenCalled();
+    } finally {
+      env.google.clientId = original;
+    }
+  });
+});
+
+describe('auth.service.configuracionGoogle', () => {
+  it('indica el cliente cuando está configurado', () => {
+    expect(authService.configuracionGoogle()).toEqual({
+      habilitado: true,
+      clientId: 'cliente-de-prueba.apps.googleusercontent.com',
+    });
+  });
+
+  it('lo da por deshabilitado sin identificador de cliente', () => {
+    const original = env.google.clientId;
+    env.google.clientId = '';
+
+    try {
+      expect(authService.configuracionGoogle()).toEqual({ habilitado: false, clientId: null });
+    } finally {
+      env.google.clientId = original;
+    }
   });
 });
 

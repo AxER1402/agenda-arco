@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarCheck, ClipboardList, Loader2, MessageSquare } from 'lucide-react';
 
+import BotonGoogle from '@/components/BotonGoogle';
 import Logotipo from '@/components/layout/Logotipo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { InputContrasena } from '@/components/ui/input-contrasena';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
+import { obtenerConfigGoogle } from '@/services/auth.service';
 
 /** Lo que el personal viene a hacer aquí, dicho en tres líneas. */
 const CAPACIDADES = [
@@ -34,26 +36,48 @@ const CAPACIDADES = [
  * El panel se retira por debajo de `lg`: en un teléfono le robaría al
  * formulario la pantalla que necesita. Por eso la marca se repite arriba del
  * formulario, visible solo mientras el panel no está.
+ *
+ * «Continuar con Google» aparece debajo solo si el backend tiene configurado el
+ * identificador de cliente. Sin él la pantalla queda exactamente como estaba.
  */
 function LoginPage() {
-  const { entrar } = useAuth();
+  const { entrar, entrarConGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [credenciales, setCredenciales] = useState({ usuario: '', contrasena: '' });
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const [clienteGoogle, setClienteGoogle] = useState(null);
+
+  useEffect(() => {
+    let cancelado = false;
+
+    async function consultarGoogle() {
+      try {
+        const config = await obtenerConfigGoogle();
+        if (!cancelado && config?.habilitado) setClienteGoogle(config.clientId);
+      } catch {
+        // Sin respuesta no se ofrece Google; el usuario y la contraseña bastan.
+      }
+    }
+
+    consultarGoogle();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   function actualizar(campo) {
     return (evento) => setCredenciales((previo) => ({ ...previo, [campo]: evento.target.value }));
   }
 
-  async function manejarEnvio(evento) {
-    evento.preventDefault();
+  /** Las dos formas de entrar acaban igual: en el panel o con el motivo a la vista. */
+  async function ingresar(accion) {
     setError(null);
     setEnviando(true);
 
     try {
-      await entrar(credenciales);
+      await accion();
       // Siempre al panel: es el resumen del día y el punto de partida del turno.
       navigate('/dashboard', { replace: true });
     } catch (problema) {
@@ -61,6 +85,11 @@ function LoginPage() {
     } finally {
       setEnviando(false);
     }
+  }
+
+  function manejarEnvio(evento) {
+    evento.preventDefault();
+    ingresar(() => entrar(credenciales));
   }
 
   return (
@@ -142,6 +171,22 @@ function LoginPage() {
               {enviando ? 'Ingresando...' : 'Ingresar'}
             </Button>
           </form>
+
+          {clienteGoogle && (
+            <>
+              <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                <span>o</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              <BotonGoogle
+                clientId={clienteGoogle}
+                onCredencial={(credencial) => ingresar(() => entrarConGoogle(credencial))}
+                onError={setError}
+              />
+            </>
+          )}
         </div>
       </div>
     </main>

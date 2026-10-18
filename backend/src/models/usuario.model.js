@@ -5,7 +5,7 @@
 const { query, queryOne } = require('../config/database');
 
 const CAMPOS_PUBLICOS = `
-  u.id, u.nombre_completo, u.usuario, u.activo, u.ultimo_acceso,
+  u.id, u.nombre_completo, u.usuario, u.correo, u.activo, u.ultimo_acceso,
   u.creado_en, u.rol_id, r.codigo AS rol, r.nombre AS rol_nombre
 `;
 
@@ -17,6 +17,17 @@ async function buscarPorUsuarioConPassword(usuario) {
        JOIN roles r ON r.id = u.rol_id
       WHERE u.usuario = :usuario`,
     { usuario },
+  );
+}
+
+/** Para el acceso con Google: el correo es lo que identifica a la persona. */
+async function buscarPorCorreo(correo) {
+  return queryOne(
+    `SELECT ${CAMPOS_PUBLICOS}
+       FROM usuarios u
+       JOIN roles r ON r.id = u.rol_id
+      WHERE u.correo = :correo`,
+    { correo },
   );
 }
 
@@ -39,6 +50,15 @@ async function existeUsuario(nombreUsuario, excluirId = null) {
   return Boolean(fila);
 }
 
+async function existeCorreo(correo, excluirId = null) {
+  const fila = await queryOne(
+    `SELECT id FROM usuarios
+      WHERE correo = :correo AND (:excluirId IS NULL OR id <> :excluirId)`,
+    { correo, excluirId },
+  );
+  return Boolean(fila);
+}
+
 async function listar({ incluirInactivos = false } = {}) {
   return query(
     `SELECT ${CAMPOS_PUBLICOS}
@@ -50,11 +70,11 @@ async function listar({ incluirInactivos = false } = {}) {
   );
 }
 
-async function crear({ nombreCompleto, usuario, passwordHash, rolId }) {
+async function crear({ nombreCompleto, usuario, correo = null, passwordHash, rolId }) {
   const resultado = await query(
-    `INSERT INTO usuarios (nombre_completo, usuario, password_hash, rol_id)
-     VALUES (:nombreCompleto, :usuario, :passwordHash, :rolId)`,
-    { nombreCompleto, usuario, passwordHash, rolId },
+    `INSERT INTO usuarios (nombre_completo, usuario, correo, password_hash, rol_id)
+     VALUES (:nombreCompleto, :usuario, :correo, :passwordHash, :rolId)`,
+    { nombreCompleto, usuario, correo, passwordHash, rolId },
   );
   return buscarPorId(resultado.insertId);
 }
@@ -64,6 +84,7 @@ async function actualizar(id, cambios) {
   const columnas = {
     nombreCompleto: 'nombre_completo',
     usuario: 'usuario',
+    correo: 'correo',
     rolId: 'rol_id',
     activo: 'activo',
     passwordHash: 'password_hash',
@@ -120,8 +141,10 @@ async function listarRoles() {
 
 module.exports = {
   buscarPorUsuarioConPassword,
+  buscarPorCorreo,
   buscarPorId,
   existeUsuario,
+  existeCorreo,
   listar,
   crear,
   actualizar,

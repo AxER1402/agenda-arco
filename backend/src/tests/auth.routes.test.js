@@ -3,9 +3,11 @@
  * El modelo se simula para no depender de MySQL.
  */
 jest.mock('../models/usuario.model');
+jest.mock('../utils/google');
 
 const request = require('supertest');
 const usuarioModel = require('../models/usuario.model');
+const google = require('../utils/google');
 const createApp = require('../app');
 const password = require('../utils/password');
 const jwt = require('../utils/jwt');
@@ -61,6 +63,58 @@ describe('POST /api/auth/login', () => {
     expect(respuesta.body.error.detalles).toEqual(
       expect.arrayContaining([expect.objectContaining({ campo: 'usuario' })]),
     );
+  });
+});
+
+describe('GET /api/auth/google', () => {
+  it('es pública y devuelve el identificador de cliente', async () => {
+    const respuesta = await request(app).get('/api/auth/google');
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body).toEqual({
+      habilitado: true,
+      clientId: 'cliente-de-prueba.apps.googleusercontent.com',
+    });
+  });
+});
+
+describe('POST /api/auth/google', () => {
+  it('devuelve 200 y un token si el correo está vinculado', async () => {
+    google.verificarCredencial.mockResolvedValue({
+      correo: 'ana.lopez@gmail.com',
+      correoVerificado: true,
+    });
+    usuarioModel.buscarPorCorreo.mockResolvedValue(await filaUsuario());
+
+    const respuesta = await request(app)
+      .post('/api/auth/google')
+      .send({ credencial: 'credencial-de-google' });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.token).toEqual(expect.any(String));
+    expect(respuesta.body.usuario.password_hash).toBeUndefined();
+  });
+
+  it('devuelve 401 si el correo no está vinculado', async () => {
+    google.verificarCredencial.mockResolvedValue({
+      correo: 'desconocido@gmail.com',
+      correoVerificado: true,
+    });
+    usuarioModel.buscarPorCorreo.mockResolvedValue(null);
+
+    const respuesta = await request(app)
+      .post('/api/auth/google')
+      .send({ credencial: 'credencial-de-google' });
+
+    expect(respuesta.status).toBe(401);
+    expect(respuesta.body.error.mensaje).toMatch(/administrador/);
+  });
+
+  it('devuelve 422 sin credencial', async () => {
+    const respuesta = await request(app).post('/api/auth/google').send({});
+
+    expect(respuesta.status).toBe(422);
+    expect(google.verificarCredencial).not.toHaveBeenCalled();
   });
 });
 

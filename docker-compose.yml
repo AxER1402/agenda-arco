@@ -51,6 +51,7 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-0}
       WHATSAPP_SERVICE_URL: http://whatsapp-service:3001
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     ports:
       - "${BACKEND_PORT}:3000"
     volumes:

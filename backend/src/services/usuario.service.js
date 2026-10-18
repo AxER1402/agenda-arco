@@ -24,29 +24,52 @@ async function resolverRol(codigoRol) {
   return rol;
 }
 
-async function crear({ nombreCompleto, usuario, contrasena, rol }) {
+/**
+ * Un correo vacío es «sin acceso con Google». `undefined` se respeta tal cual:
+ * al editar significa que ese campo no se toca.
+ */
+function normalizarCorreo(correo) {
+  if (correo === undefined) return undefined;
+  return correo || null;
+}
+
+/** Un mismo correo en dos usuarios haría imposible saber a cuál entra Google. */
+async function comprobarCorreoLibre(correo, excluirId = null) {
+  if (correo && (await usuarioModel.existeCorreo(correo, excluirId))) {
+    throw AppError.conflict('Ese correo ya está vinculado a otro usuario.');
+  }
+}
+
+async function crear({ nombreCompleto, usuario, correo, contrasena, rol }) {
   if (await usuarioModel.existeUsuario(usuario)) {
     throw AppError.conflict('Ya existe un usuario con ese nombre de acceso.');
   }
+
+  const correoNormalizado = normalizarCorreo(correo) ?? null;
+  await comprobarCorreoLibre(correoNormalizado);
 
   const rolEncontrado = await resolverRol(rol);
 
   return usuarioModel.crear({
     nombreCompleto,
     usuario,
+    correo: correoNormalizado,
     passwordHash: await password.hashear(contrasena),
     rolId: rolEncontrado.id,
   });
 }
 
-async function actualizar(id, { nombreCompleto, usuario, rol, activo }) {
+async function actualizar(id, { nombreCompleto, usuario, correo, rol, activo }) {
   const existente = await obtener(id);
 
   if (usuario && (await usuarioModel.existeUsuario(usuario, id))) {
     throw AppError.conflict('Ya existe otro usuario con ese nombre de acceso.');
   }
 
-  const cambios = { nombreCompleto, usuario, activo };
+  const correoNormalizado = normalizarCorreo(correo);
+  await comprobarCorreoLibre(correoNormalizado, id);
+
+  const cambios = { nombreCompleto, usuario, correo: correoNormalizado, activo };
 
   if (rol) {
     cambios.rolId = (await resolverRol(rol)).id;

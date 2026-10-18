@@ -19,6 +19,7 @@ import { actualizarUsuario, crearUsuario } from '@/services/usuario.service';
 const VACIO = {
   nombreCompleto: '',
   usuario: '',
+  correo: '',
   contrasena: '',
   rol: 'PERSONAL_CITAS',
   activo: 'true',
@@ -57,6 +58,7 @@ function UsuarioFormDialog({ abierto, usuario = null, roles, onCerrar, onGuardad
             ...VACIO,
             nombreCompleto: usuario.nombre_completo ?? '',
             usuario: usuario.usuario ?? '',
+            correo: usuario.correo ?? '',
             rol: usuario.rol ?? VACIO.rol,
             activo: usuario.activo ? 'true' : 'false',
           }
@@ -84,6 +86,9 @@ function UsuarioFormDialog({ abierto, usuario = null, roles, onCerrar, onGuardad
           cambios.nombreCompleto = valores.nombreCompleto;
         }
         if (valores.usuario !== usuario.usuario) cambios.usuario = valores.usuario;
+        // Vacío es quitarle el acceso con Google; el backend lo guarda como null.
+        const correo = valores.correo.trim();
+        if (correo !== (usuario.correo ?? '')) cambios.correo = correo;
         if (valores.rol !== usuario.rol) cambios.rol = valores.rol;
         if ((valores.activo === 'true') !== Boolean(usuario.activo)) {
           cambios.activo = valores.activo === 'true';
@@ -101,6 +106,7 @@ function UsuarioFormDialog({ abierto, usuario = null, roles, onCerrar, onGuardad
         await crearUsuario({
           nombreCompleto: valores.nombreCompleto,
           usuario: valores.usuario,
+          correo: valores.correo.trim(),
           contrasena: valores.contrasena,
           rol: valores.rol,
         });
@@ -154,6 +160,24 @@ function UsuarioFormDialog({ abierto, usuario = null, roles, onCerrar, onGuardad
             requerido
           >
             {(props) => <Input {...props} value={valores.usuario} onChange={cambiar('usuario')} />}
+          </CampoFormulario>
+
+          <CampoFormulario
+            id="usuario-correo"
+            etiqueta="Correo de Google"
+            error={errores.correo}
+            ayuda="Opcional. Con él podrá entrar con «Continuar con Google»; vacío, solo con su contraseña."
+          >
+            {(props) => (
+              <Input
+                {...props}
+                type="email"
+                autoComplete="off"
+                placeholder="nombre@gmail.com"
+                value={valores.correo}
+                onChange={cambiar('correo')}
+              />
+            )}
           </CampoFormulario>
 
           {!editando && (

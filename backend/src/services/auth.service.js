@@ -2,9 +2,11 @@
  * Reglas de autenticación.
  * Los controladores no deciden nada: todo ocurre aquí.
  */
+const env = require('../config/env');
 const usuarioModel = require('../models/usuario.model');
 const password = require('../utils/password');
 const jwt = require('../utils/jwt');
+const google = require('../utils/google');
 const AppError = require('../utils/AppError');
 
 /** Quita el hash antes de devolver el usuario hacia afuera. */
@@ -37,11 +39,62 @@ async function login({ usuario, contrasena }) {
     throw credencialesInvalidas;
   }
 
+  return abrirSesion(fila);
+}
+
+/** Lo mismo para cualquier forma de entrar: anota el acceso y firma el token. */
+async function abrirSesion(fila) {
   await usuarioModel.registrarAcceso(fila.id);
 
   const token = jwt.firmar({ id: fila.id, usuario: fila.usuario, rol: fila.rol });
 
   return { token, usuario: aUsuarioPublico(fila) };
+}
+
+/**
+ * Lo que necesita la pantalla de acceso para pintar el botón de Google.
+ * El identificador de cliente no es secreto: Google lo enseña en cada botón.
+ */
+function configuracionGoogle() {
+  const { clientId } = env.google;
+  return { habilitado: Boolean(clientId), clientId: clientId || null };
+}
+
+/**
+ * Entrada con «Continuar con Google».
+ *
+ * Google solo dice quién es la persona; quién puede entrar lo sigue decidiendo
+ * el administrador. Por eso no se crean cuentas al vuelo: el correo tiene que
+ * estar anotado de antemano en un usuario activo. Si no, se rechaza con el
+ * mismo mensaje tanto si no hay usuario como si está desactivado.
+ */
+async function loginConGoogle({ credencial }) {
+  if (!env.google.clientId) {
+    throw AppError.notFound('El acceso con Google no está habilitado.');
+  }
+
+  let identidad;
+  try {
+    identidad = await google.verificarCredencial(credencial);
+  } catch {
+    throw AppError.unauthorized('No se pudo verificar la cuenta de Google. Intente de nuevo.');
+  }
+
+  // Un correo sin verificar podría ser de cualquiera: Google no garantiza que
+  // quien inició sesión sea el dueño del buzón.
+  if (!identidad.correo || !identidad.correoVerificado) {
+    throw AppError.unauthorized('La cuenta de Google no tiene un correo verificado.');
+  }
+
+  const fila = await usuarioModel.buscarPorCorreo(identidad.correo);
+
+  if (!fila || !fila.activo) {
+    throw AppError.unauthorized(
+      'Esta cuenta de Google no tiene acceso al sistema. Pida al administrador que la vincule a su usuario.',
+    );
+  }
+
+  return abrirSesion(fila);
 }
 
 /** Datos del usuario autenticado (para /api/auth/perfil). */
@@ -101,6 +154,8 @@ async function cambiarContrasenaPropia(idUsuario, { contrasenaActual, contrasena
 
 module.exports = {
   login,
+  loginConGoogle,
+  configuracionGoogle,
   obtenerPerfil,
   confirmarIdentidad,
   cambiarContrasenaPropia,

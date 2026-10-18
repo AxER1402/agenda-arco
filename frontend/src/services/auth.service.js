@@ -22,6 +22,22 @@ export async function iniciarSesion({ usuario, contrasena }) {
   return data.usuario;
 }
 
+/**
+ * GET /api/auth/google — si se ofrece «Continuar con Google» y con qué cliente.
+ * El identificador lo da el backend para que haya un único sitio que configurar.
+ */
+export async function obtenerConfigGoogle() {
+  const { data } = await api.get('/auth/google');
+  return data;
+}
+
+/** POST /api/auth/google — cambia la credencial de Google por la sesión propia. */
+export async function iniciarSesionConGoogle(credencial) {
+  const { data } = await api.post('/auth/google', { credencial });
+  guardarToken(data.token);
+  return data.usuario;
+}
+
 /** GET /api/auth/perfil — sirve también para validar el token guardado. */
 export async function obtenerPerfil() {
   const { data } = await api.get('/auth/perfil');

@@ -25,6 +25,14 @@ const env = {
     expiresIn: process.env.JWT_EXPIRES_IN || '8h',
   },
 
+  /**
+   * Acceso con Google. Sin el identificador de cliente el botón no aparece y
+   * solo se entra con usuario y contraseña, como siempre.
+   */
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+  },
+
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
 
   /**

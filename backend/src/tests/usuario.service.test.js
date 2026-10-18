@@ -45,6 +45,33 @@ describe('usuario.service.actualizar', () => {
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
+  it('quita el correo de Google si se envía vacío', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue({ ...administrador, id: 5, rol: ROLES.PERSONAL_CITAS });
+
+    await usuarioService.actualizar(5, { correo: '' });
+
+    expect(usuarioModel.actualizar).toHaveBeenCalledWith(5, expect.objectContaining({ correo: null }));
+  });
+
+  it('no toca el correo si no viene en los cambios', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue({ ...administrador, id: 5, rol: ROLES.PERSONAL_CITAS });
+
+    await usuarioService.actualizar(5, { nombreCompleto: 'Otro nombre' });
+
+    expect(usuarioModel.actualizar.mock.calls[0][1].correo).toBeUndefined();
+  });
+
+  it('rechaza un correo que ya usa otro usuario', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue({ ...administrador, id: 5, rol: ROLES.PERSONAL_CITAS });
+    usuarioModel.existeCorreo.mockResolvedValue(true);
+
+    await expect(
+      usuarioService.actualizar(5, { correo: 'compartido@gmail.com' }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(usuarioModel.existeCorreo).toHaveBeenCalledWith('compartido@gmail.com', 5);
+    expect(usuarioModel.actualizar).not.toHaveBeenCalled();
+  });
+
   it('devuelve 404 si el usuario no existe', async () => {
     usuarioModel.buscarPorId.mockResolvedValue(null);
 
@@ -107,6 +134,58 @@ describe('usuario.service.crear', () => {
     // Se guarda el hash, nunca la contraseña tal como se escribió.
     expect(datos.passwordHash).not.toBe('ClaveSegura2026');
     expect(datos.passwordHash).toMatch(/^\$2[aby]\$/);
+  });
+
+  it('guarda el correo de Google si se indica', async () => {
+    usuarioModel.existeUsuario.mockResolvedValue(false);
+    usuarioModel.existeCorreo.mockResolvedValue(false);
+    usuarioModel.buscarRolPorCodigo.mockResolvedValue({ id: 2, codigo: ROLES.PERSONAL_CITAS });
+    usuarioModel.crear.mockImplementation(async (datos) => ({ id: 8, ...datos }));
+
+    await usuarioService.crear({
+      nombreCompleto: 'Ana López',
+      usuario: 'ana.lopez',
+      correo: 'ana.lopez@gmail.com',
+      contrasena: 'ClaveSegura2026',
+      rol: ROLES.PERSONAL_CITAS,
+    });
+
+    expect(usuarioModel.crear.mock.calls[0][0].correo).toBe('ana.lopez@gmail.com');
+  });
+
+  it('guarda un correo vacío como «sin correo»', async () => {
+    usuarioModel.existeUsuario.mockResolvedValue(false);
+    usuarioModel.buscarRolPorCodigo.mockResolvedValue({ id: 2, codigo: ROLES.PERSONAL_CITAS });
+    usuarioModel.crear.mockImplementation(async (datos) => ({ id: 8, ...datos }));
+
+    await usuarioService.crear({
+      nombreCompleto: 'Ana López',
+      usuario: 'ana.lopez',
+      correo: '',
+      contrasena: 'ClaveSegura2026',
+      rol: ROLES.PERSONAL_CITAS,
+    });
+
+    expect(usuarioModel.crear.mock.calls[0][0].correo).toBeNull();
+    expect(usuarioModel.existeCorreo).not.toHaveBeenCalled();
+  });
+
+  /** Con el mismo correo en dos usuarios no se sabría a cuál entra Google. */
+  it('rechaza un correo vinculado a otro usuario', async () => {
+    usuarioModel.existeUsuario.mockResolvedValue(false);
+    usuarioModel.existeCorreo.mockResolvedValue(true);
+
+    await expect(
+      usuarioService.crear({
+        nombreCompleto: 'Ana López',
+        usuario: 'ana.lopez',
+        correo: 'compartido@gmail.com',
+        contrasena: 'ClaveSegura2026',
+        rol: ROLES.PERSONAL_CITAS,
+      }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(usuarioModel.crear).not.toHaveBeenCalled();
   });
 
   it('rechaza un nombre de acceso que ya existe', async () => {

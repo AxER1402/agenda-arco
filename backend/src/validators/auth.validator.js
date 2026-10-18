@@ -15,6 +15,22 @@ const reglasLogin = [
   validar,
 ];
 
+/**
+ * La credencial de Google es un JWT de un par de kilobytes. El tope solo evita
+ * que alguien haga trabajar al verificador con un cuerpo enorme.
+ */
+const reglasLoginGoogle = [
+  body('credencial')
+    .isString()
+    .withMessage('Falta la credencial de Google.')
+    .bail()
+    .notEmpty()
+    .withMessage('Falta la credencial de Google.')
+    .isLength({ max: 4096 })
+    .withMessage('La credencial de Google no es válida.'),
+  validar,
+];
+
 const reglasCambioContrasena = [
   body('contrasenaActual').notEmpty().withMessage('Debe indicar su contraseña actual.'),
   body('contrasenaNueva')
@@ -25,4 +41,4 @@ const reglasCambioContrasena = [
   validar,
 ];
 
-module.exports = { reglasLogin, reglasCambioContrasena, MIN_CONTRASENA };
+module.exports = { reglasLogin, reglasLoginGoogle, reglasCambioContrasena, MIN_CONTRASENA };

@@ -5,6 +5,20 @@ const { TODOS_LOS_ROLES } = require('../utils/roles');
 
 const reglaId = param('id').isInt({ min: 1 }).withMessage('El identificador no es válido.');
 
+/**
+ * Correo de Google con el que la persona puede entrar. Es opcional: vacío o
+ * null significa «sin acceso con Google» (y al editar, quitárselo). Se guarda
+ * en minúsculas porque Google lo entrega así y la búsqueda es exacta.
+ */
+const reglaCorreo = body('correo')
+  .optional({ values: 'falsy' })
+  .trim()
+  .isEmail()
+  .withMessage('El correo no es válido.')
+  .isLength({ max: 254 })
+  .withMessage('El correo no puede exceder 254 caracteres.')
+  .toLowerCase();
+
 const reglasCrear = [
   body('nombreCompleto')
     .trim()
@@ -20,6 +34,7 @@ const reglasCrear = [
     .withMessage('El nombre de acceso debe tener entre 4 y 50 caracteres.')
     .matches(/^[a-zA-Z0-9._-]+$/)
     .withMessage('El nombre de acceso solo admite letras, números, punto, guion y guion bajo.'),
+  reglaCorreo,
   body('contrasena')
     .isLength({ min: MIN_CONTRASENA })
     .withMessage(`La contraseña debe tener al menos ${MIN_CONTRASENA} caracteres.`),
@@ -45,6 +60,7 @@ const reglasActualizar = [
     .withMessage('El nombre de acceso debe tener entre 4 y 50 caracteres.')
     .matches(/^[a-zA-Z0-9._-]+$/)
     .withMessage('El nombre de acceso solo admite letras, números, punto, guion y guion bajo.'),
+  reglaCorreo,
   body('rol')
     .optional()
     .isIn(TODOS_LOS_ROLES)

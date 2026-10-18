@@ -8,6 +8,22 @@ import * as authService from '@/services/auth.service';
 
 jest.mock('@/services/auth.service');
 
+/**
+ * El botón real lo dibuja Google en un iframe y en las pruebas no hay red. Se
+ * cambia por uno que entrega una credencial inventada al pulsarlo.
+ */
+jest.mock('@/components/BotonGoogle', () => ({
+  __esModule: true,
+  default: function BotonGoogleFalso({ onCredencial }) {
+    const { createElement } = jest.requireActual('react');
+    return createElement(
+      'button',
+      { type: 'button', onClick: () => onCredencial('credencial-de-google') },
+      'Continuar con Google',
+    );
+  },
+}));
+
 function renderizarLogin({ entradas = ['/login'] } = {}) {
   return render(
     <MemoryRouter initialEntries={entradas}>
@@ -158,5 +174,60 @@ describe('LoginPage', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled(),
     );
+  });
+
+  describe('Continuar con Google', () => {
+    it('no aparece si el backend no lo tiene configurado', async () => {
+      authService.obtenerConfigGoogle.mockResolvedValue({ habilitado: false, clientId: null });
+
+      renderizarLogin();
+
+      await waitFor(() => expect(authService.obtenerConfigGoogle).toHaveBeenCalled());
+      expect(screen.queryByRole('button', { name: 'Continuar con Google' })).not.toBeInTheDocument();
+    });
+
+    it('no aparece si la consulta falla', async () => {
+      authService.obtenerConfigGoogle.mockRejectedValue(new Error('Sin conexión'));
+
+      renderizarLogin();
+
+      await waitFor(() => expect(authService.obtenerConfigGoogle).toHaveBeenCalled());
+      expect(screen.queryByRole('button', { name: 'Continuar con Google' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('entra con la credencial de Google y lleva al panel', async () => {
+      authService.obtenerConfigGoogle.mockResolvedValue({
+        habilitado: true,
+        clientId: 'cliente.apps.googleusercontent.com',
+      });
+      authService.iniciarSesionConGoogle.mockResolvedValue({
+        nombre_completo: 'Ana López',
+        rol: 'PERSONAL_CITAS',
+      });
+
+      renderizarLogin();
+      await userEvent.click(await screen.findByRole('button', { name: 'Continuar con Google' }));
+
+      expect(authService.iniciarSesionConGoogle).toHaveBeenCalledWith('credencial-de-google');
+      expect(await screen.findByText('Panel del día')).toBeInTheDocument();
+    });
+
+    it('muestra el motivo si la cuenta de Google no está vinculada', async () => {
+      authService.obtenerConfigGoogle.mockResolvedValue({
+        habilitado: true,
+        clientId: 'cliente.apps.googleusercontent.com',
+      });
+      authService.iniciarSesionConGoogle.mockRejectedValue(
+        new Error('Esta cuenta de Google no tiene acceso al sistema.'),
+      );
+
+      renderizarLogin();
+      await userEvent.click(await screen.findByRole('button', { name: 'Continuar con Google' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Esta cuenta de Google no tiene acceso al sistema.',
+      );
+    });
   });
 });

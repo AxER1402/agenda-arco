@@ -4,7 +4,11 @@ const rateLimit = require('express-rate-limit');
 const env = require('../config/env');
 const authController = require('../controllers/auth.controller');
 const { autenticar } = require('../middleware/auth');
-const { reglasLogin, reglasCambioContrasena } = require('../validators/auth.validator');
+const {
+  reglasLogin,
+  reglasLoginGoogle,
+  reglasCambioContrasena,
+} = require('../validators/auth.validator');
 
 const router = Router();
 
@@ -32,7 +36,26 @@ const limiteLogin = rateLimit({
   },
 });
 
+/**
+ * Límite del acceso con Google. Aquí no hay contraseña que adivinar —la firma
+ * de Google no se falsifica—, así que solo frena a quien insista con cuentas
+ * sin vincular. Va por IP porque la petición no trae nombre de usuario.
+ */
+const limiteGoogle = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  skipSuccessfulRequests: true,
+  skip: () => env.isTest,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    error: { mensaje: 'Demasiados intentos de inicio de sesión. Espere unos minutos.' },
+  },
+});
+
 router.post('/login', limiteLogin, reglasLogin, authController.login);
+router.get('/google', authController.configuracionGoogle);
+router.post('/google', limiteGoogle, reglasLoginGoogle, authController.loginGoogle);
 router.get('/perfil', autenticar, authController.perfil);
 router.patch('/contrasena', autenticar, reglasCambioContrasena, authController.cambiarContrasena);
 
