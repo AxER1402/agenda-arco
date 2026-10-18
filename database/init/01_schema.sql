@@ -34,6 +34,8 @@ CREATE TABLE usuarios (
   usuario         VARCHAR(50)   NOT NULL,
   -- Correo de Google con el que puede entrar. NULL = solo usuario y contraseña.
   correo          VARCHAR(254)  NULL,
+  -- Foto de la cuenta de Google; se refresca en cada entrada con Google.
+  foto_url        VARCHAR(512)  NULL,
   password_hash   VARCHAR(255)  NOT NULL,
   rol_id          INT UNSIGNED  NOT NULL,
   activo          BOOLEAN       NOT NULL DEFAULT TRUE,

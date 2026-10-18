@@ -18,7 +18,7 @@ function obtenerCliente() {
 
 /**
  * @param {string} credencial El `credential` que devuelve Google al navegador.
- * @returns {Promise<{ correo: string, correoVerificado: boolean, nombre?: string }>}
+ * @returns {Promise<{ correo: string, correoVerificado: boolean, nombre?: string, foto: string|null }>}
  * @throws {Error} si la firma, la audiencia o la caducidad no cuadran.
  */
 async function verificarCredencial(credencial) {
@@ -32,6 +32,10 @@ async function verificarCredencial(credencial) {
     correo: String(payload.email ?? '').toLowerCase(),
     correoVerificado: payload.email_verified === true,
     nombre: payload.name,
+    // Solo https: la página la carga tal cual en un <img>.
+    foto: typeof payload.picture === 'string' && payload.picture.startsWith('https://')
+      ? payload.picture
+      : null,
   };
 }
 

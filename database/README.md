@@ -30,6 +30,7 @@ docker compose exec -T database mysql -u root -p"$DB_ROOT_PASSWORD" el_arco \
 | `2026-10-09_categorias_examen.sql` | Categorías de exámenes con una indicación común (p. ej. ayuno de 12 horas). |
 | `2026-10-09_nombres_mayusculas.sql` | Pasa a mayúsculas y sin tildes los nombres de los pacientes ya registrados (conserva la Ñ). **Modifica datos.** |
 | `2026-10-17_correo_usuarios.sql` | Correo de Google (opcional y único) en los usuarios, para entrar con «Continuar con Google». |
+| `2026-10-17_foto_usuarios.sql` | Foto de perfil de la cuenta de Google en los usuarios. |
 
 ## Volver a aplicar los scripts
 

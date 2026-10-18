@@ -121,6 +121,31 @@ describe('auth.service.loginConGoogle', () => {
    * Google dice quién es la persona, pero quién entra lo decide el
    * administrador: una cuenta de Google cualquiera no abre el sistema.
    */
+  it('guarda la foto de Google y la devuelve con el usuario', async () => {
+    google.verificarCredencial.mockResolvedValue({
+      ...identidad,
+      foto: 'https://lh3.googleusercontent.com/a/foto-nueva=s96-c',
+    });
+    usuarioModel.buscarPorCorreo.mockResolvedValue(await usuarioDePrueba({ foto_url: null }));
+
+    const resultado = await authService.loginConGoogle({ credencial: 'credencial-de-google' });
+
+    expect(usuarioModel.actualizar).toHaveBeenCalledWith(1, {
+      fotoUrl: 'https://lh3.googleusercontent.com/a/foto-nueva=s96-c',
+    });
+    expect(resultado.usuario.foto_url).toBe('https://lh3.googleusercontent.com/a/foto-nueva=s96-c');
+  });
+
+  it('no escribe en la base si la foto no cambió', async () => {
+    const foto = 'https://lh3.googleusercontent.com/a/la-misma=s96-c';
+    google.verificarCredencial.mockResolvedValue({ ...identidad, foto });
+    usuarioModel.buscarPorCorreo.mockResolvedValue(await usuarioDePrueba({ foto_url: foto }));
+
+    await authService.loginConGoogle({ credencial: 'credencial-de-google' });
+
+    expect(usuarioModel.actualizar).not.toHaveBeenCalled();
+  });
+
   it('rechaza un correo que no está vinculado a ningún usuario', async () => {
     google.verificarCredencial.mockResolvedValue(identidad);
     usuarioModel.buscarPorCorreo.mockResolvedValue(null);

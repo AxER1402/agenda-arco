@@ -71,6 +71,12 @@ async function actualizar(id, { nombreCompleto, usuario, correo, rol, activo }) 
 
   const cambios = { nombreCompleto, usuario, correo: correoNormalizado, activo };
 
+  // La foto es de la cuenta de Google que se desvincula. La de la nueva llega
+  // sola la primera vez que entre con ella.
+  if (correoNormalizado !== undefined && correoNormalizado !== (existente.correo ?? null)) {
+    cambios.fotoUrl = null;
+  }
+
   if (rol) {
     cambios.rolId = (await resolverRol(rol)).id;
   }

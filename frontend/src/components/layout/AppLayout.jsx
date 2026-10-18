@@ -56,6 +56,9 @@ function AppLayout() {
 
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [confirmandoSalida, setConfirmandoSalida] = useState(false);
+  // Se recuerda qué dirección falló, no un sí o no: si llega otra foto (la
+  // persona la cambió en Google), se vuelve a intentar sin más.
+  const [fotoFallida, setFotoFallida] = useState(null);
   const botonMenu = useRef(null);
   const cajon = useRef(null);
 
@@ -104,6 +107,8 @@ function AppLayout() {
     .slice(0, 2)
     .map((palabra) => palabra[0].toUpperCase())
     .join('');
+
+  const mostrarFoto = Boolean(usuario?.foto_url) && usuario.foto_url !== fotoFallida;
 
   return (
     <div className="flex min-h-screen">
@@ -187,12 +192,26 @@ function AppLayout() {
         {/* El relleno de abajo respeta la franja del gesto de inicio. */}
         <div className="border-t border-sidebar-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="mb-3 flex items-center gap-3">
-            <span
-              className="flex size-9 shrink-0 items-center justify-center bg-sidebar-accent text-xs font-medium text-sidebar-foreground"
-              aria-hidden="true"
-            >
-              {iniciales}
-            </span>
+            {/* La foto de Google si entró con Google; si no, o si no carga, las
+                iniciales. Las dos son decorativas: el nombre va al lado.
+                `no-referrer` porque Google a veces rechaza la imagen cuando la
+                petición dice desde qué página viene. */}
+            {mostrarFoto ? (
+              <img
+                src={usuario.foto_url}
+                alt=""
+                referrerPolicy="no-referrer"
+                onError={() => setFotoFallida(usuario.foto_url)}
+                className="size-9 shrink-0 bg-sidebar-accent object-cover"
+              />
+            ) : (
+              <span
+                className="flex size-9 shrink-0 items-center justify-center bg-sidebar-accent text-xs font-medium text-sidebar-foreground"
+                aria-hidden="true"
+              >
+                {iniciales}
+              </span>
+            )}
             <div className="min-w-0 leading-tight">
               <p className="truncate text-sm font-medium text-sidebar-foreground">
                 {usuario?.nombre_completo}

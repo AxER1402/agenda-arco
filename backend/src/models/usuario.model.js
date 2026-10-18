@@ -5,7 +5,7 @@
 const { query, queryOne } = require('../config/database');
 
 const CAMPOS_PUBLICOS = `
-  u.id, u.nombre_completo, u.usuario, u.correo, u.activo, u.ultimo_acceso,
+  u.id, u.nombre_completo, u.usuario, u.correo, u.foto_url, u.activo, u.ultimo_acceso,
   u.creado_en, u.rol_id, r.codigo AS rol, r.nombre AS rol_nombre
 `;
 
@@ -85,6 +85,7 @@ async function actualizar(id, cambios) {
     nombreCompleto: 'nombre_completo',
     usuario: 'usuario',
     correo: 'correo',
+    fotoUrl: 'foto_url',
     rolId: 'rol_id',
     activo: 'activo',
     passwordHash: 'password_hash',

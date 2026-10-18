@@ -94,7 +94,14 @@ async function loginConGoogle({ credencial }) {
     );
   }
 
-  return abrirSesion(fila);
+  // La foto se refresca en cada entrada: si la persona la cambia en Google,
+  // aquí aparece la nueva sin que nadie toque nada.
+  const foto = identidad.foto ?? null;
+  if (foto !== (fila.foto_url ?? null)) {
+    await usuarioModel.actualizar(fila.id, { fotoUrl: foto });
+  }
+
+  return abrirSesion({ ...fila, foto_url: foto });
 }
 
 /** Datos del usuario autenticado (para /api/auth/perfil). */

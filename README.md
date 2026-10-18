@@ -113,6 +113,10 @@ correo anotado. El resto ve «Esta cuenta de Google no tiene acceso al sistema»
 Quitar el correo, o desactivar al usuario, le retira el acceso con Google. La
 contraseña sigue funcionando igual en todos los casos.
 
+Quien entra con Google ve su foto de perfil en la barra lateral, en lugar de
+las iniciales. Se refresca en cada entrada con Google y se borra si el
+administrador cambia o quita el correo.
+
 ---
 
 ## Credenciales de prueba

@@ -53,6 +53,39 @@ describe('usuario.service.actualizar', () => {
     expect(usuarioModel.actualizar).toHaveBeenCalledWith(5, expect.objectContaining({ correo: null }));
   });
 
+  /** La foto es de la cuenta anterior; la nueva la trae Google al entrar. */
+  it('borra la foto al cambiar el correo de Google', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue({
+      ...administrador,
+      id: 5,
+      rol: ROLES.PERSONAL_CITAS,
+      correo: 'antes@gmail.com',
+      foto_url: 'https://lh3.googleusercontent.com/a/antes',
+    });
+    usuarioModel.existeCorreo.mockResolvedValue(false);
+
+    await usuarioService.actualizar(5, { correo: 'despues@gmail.com' });
+
+    expect(usuarioModel.actualizar).toHaveBeenCalledWith(
+      5,
+      expect.objectContaining({ correo: 'despues@gmail.com', fotoUrl: null }),
+    );
+  });
+
+  it('conserva la foto si se edita otra cosa', async () => {
+    usuarioModel.buscarPorId.mockResolvedValue({
+      ...administrador,
+      id: 5,
+      rol: ROLES.PERSONAL_CITAS,
+      correo: 'ana@gmail.com',
+      foto_url: 'https://lh3.googleusercontent.com/a/ana',
+    });
+
+    await usuarioService.actualizar(5, { nombreCompleto: 'Ana María López' });
+
+    expect(usuarioModel.actualizar.mock.calls[0][1]).not.toHaveProperty('fotoUrl');
+  });
+
   it('no toca el correo si no viene en los cambios', async () => {
     usuarioModel.buscarPorId.mockResolvedValue({ ...administrador, id: 5, rol: ROLES.PERSONAL_CITAS });
 
