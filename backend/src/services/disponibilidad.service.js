@@ -11,18 +11,33 @@ const fechas = require('../utils/fechas');
 
 const { CLAVES } = configuracionService;
 
+/** Número ISO del sábado (1 = lunes ... 7 = domingo). */
+const SABADO = 6;
+
 /** Parámetros de agenda vigentes. Se leen una vez por operación. */
 async function obtenerParametros() {
   const configuracion = await configuracionService.obtenerTodas();
 
   return {
     limiteDiario: configuracion[CLAVES.LIMITE_DIARIO],
+    limiteSabado: configuracion[CLAVES.LIMITE_SABADO],
     diasLaborables: configuracion[CLAVES.DIAS_LABORABLES],
     horaApertura: configuracion[CLAVES.HORA_APERTURA],
     horaCierre: configuracion[CLAVES.HORA_CIERRE],
     intervaloMinutos: configuracion[CLAVES.INTERVALO_MINUTOS],
     feriados: configuracion[CLAVES.DIAS_FERIADOS] ?? [],
   };
+}
+
+/**
+ * Cuántos pacientes caben ese día: el sábado tiene su propio límite.
+ * @param {string} fechaISO
+ * @param {{limiteDiario: number, limiteSabado?: number}} parametros
+ */
+function limiteDelDia(fechaISO, parametros) {
+  return fechas.diaDeLaSemana(fechaISO) === SABADO
+    ? (parametros.limiteSabado ?? parametros.limiteDiario)
+    : parametros.limiteDiario;
 }
 
 /**
@@ -51,13 +66,14 @@ async function evaluarDia(fechaISO, { parametros = null } = {}) {
   const ocupacion = await citaModel.contarOcupacion(fechaISO);
 
   const laborable = esDiaLaborable(fechaISO, config.diasLaborables, config.feriados);
-  const disponibles = Math.max(config.limiteDiario - ocupacion, 0);
+  const limite = limiteDelDia(fechaISO, config);
+  const disponibles = Math.max(limite - ocupacion, 0);
 
   return {
     fecha: fechaISO,
     laborable,
     feriado: configuracionService.feriadoEn(fechaISO, config.feriados)?.descripcion ?? null,
-    limite: config.limiteDiario,
+    limite,
     ocupacion,
     disponibles,
     hayEspacio: laborable && disponibles > 0,
@@ -110,7 +126,7 @@ async function sugerirFechas({
     if (excluidas.has(fecha)) continue;
     if (!esDiaLaborable(fecha, parametros.diasLaborables, parametros.feriados)) continue;
 
-    const disponibles = parametros.limiteDiario - (ocupaciones.get(fecha) ?? 0);
+    const disponibles = limiteDelDia(fecha, parametros) - (ocupaciones.get(fecha) ?? 0);
     if (disponibles > 0) sugerencias.push({ fecha, disponibles });
   }
 
@@ -178,7 +194,9 @@ async function horasDisponibles(fechaISO) {
 }
 
 module.exports = {
+  SABADO,
   obtenerParametros,
+  limiteDelDia,
   esDiaLaborable,
   evaluarDia,
   sugerirFechas,

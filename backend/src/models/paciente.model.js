@@ -3,8 +3,17 @@
  */
 const { query, queryOne, withTransaction } = require('../config/database');
 
+/**
+ * Con el titular (nombre) y cuántos beneficiarios activos usan el número de
+ * este paciente. Son subconsultas sobre la clave primaria y sobre el índice de
+ * `titular_id`: no pesan ni en la búsqueda paginada.
+ */
 const CAMPOS = `
-  id, nombre_completo, telefono, dpi, tiene_whatsapp, notas, activo, creado_en, actualizado_en
+  id, nombre_completo, telefono, dpi, titular_id, tiene_whatsapp, notas, activo,
+  creado_en, actualizado_en,
+  (SELECT t.nombre_completo FROM pacientes t WHERE t.id = pacientes.titular_id) AS titular_nombre,
+  (SELECT COUNT(*) FROM pacientes b WHERE b.titular_id = pacientes.id AND b.activo = 1)
+    AS beneficiarios
 `;
 
 async function buscarPorId(id) {
@@ -100,11 +109,13 @@ async function crear({
   notas = null,
   // NULL = no se sabe todavía si ese número tiene WhatsApp.
   tieneWhatsapp = null,
+  // NULL = tiene su propio número; si no, el paciente cuyo número usa.
+  titularId = null,
 }) {
   const resultado = await query(
-    `INSERT INTO pacientes (nombre_completo, telefono, dpi, notas, tiene_whatsapp)
-     VALUES (:nombreCompleto, :telefono, :dpi, :notas, :tieneWhatsapp)`,
-    { nombreCompleto, telefono, dpi, notas, tieneWhatsapp },
+    `INSERT INTO pacientes (nombre_completo, telefono, dpi, notas, tiene_whatsapp, titular_id)
+     VALUES (:nombreCompleto, :telefono, :dpi, :notas, :tieneWhatsapp, :titularId)`,
+    { nombreCompleto, telefono, dpi, notas, tieneWhatsapp, titularId },
   );
   return buscarPorId(resultado.insertId);
 }
@@ -117,6 +128,7 @@ async function actualizar(id, cambios) {
     notas: 'notas',
     activo: 'activo',
     tieneWhatsapp: 'tiene_whatsapp',
+    titularId: 'titular_id',
   };
 
   const asignaciones = [];
@@ -136,14 +148,66 @@ async function actualizar(id, cambios) {
 }
 
 /**
+ * Beneficiarios de un titular: los pacientes que usan su número.
+ * @param {number} titularId
+ * @param {{soloActivos?: boolean}} [opciones]
+ */
+async function listarBeneficiarios(titularId, { soloActivos = false } = {}) {
+  return query(
+    `SELECT ${CAMPOS}
+       FROM pacientes
+      WHERE titular_id = :titularId
+        AND (:soloActivos = 0 OR activo = 1)
+      ORDER BY nombre_completo`,
+    { titularId, soloActivos: soloActivos ? 1 : 0 },
+  );
+}
+
+/**
+ * Copia a los beneficiarios lo que es del número y no de la persona: el propio
+ * teléfono y si tiene WhatsApp. Solo toca los campos que vengan definidos.
+ *
+ * @param {number} titularId
+ * @param {{telefono?: string, tieneWhatsapp?: boolean|null}} datos
+ */
+async function sincronizarBeneficiarios(titularId, { telefono, tieneWhatsapp } = {}) {
+  const asignaciones = [];
+  const parametros = { titularId };
+
+  if (telefono !== undefined) {
+    asignaciones.push('telefono = :telefono');
+    parametros.telefono = telefono;
+  }
+
+  if (tieneWhatsapp !== undefined) {
+    asignaciones.push('tiene_whatsapp = :tieneWhatsapp');
+    parametros.tieneWhatsapp = tieneWhatsapp;
+  }
+
+  if (asignaciones.length === 0) return;
+
+  await query(
+    `UPDATE pacientes SET ${asignaciones.join(', ')} WHERE titular_id = :titularId`,
+    parametros,
+  );
+}
+
+/**
  * Marca si el número resultó tener WhatsApp o no.
  * Lo alimenta el resultado real de los envíos (requisito 19).
+ *
+ * El dato es del número, no de la persona: si el paciente es titular o
+ * beneficiario, vale para toda la familia que comparte ese teléfono.
  */
 async function registrarResultadoWhatsapp(id, tieneWhatsapp) {
-  await query('UPDATE pacientes SET tiene_whatsapp = :tieneWhatsapp WHERE id = :id', {
-    id,
-    tieneWhatsapp: tieneWhatsapp ? 1 : 0,
-  });
+  const paciente = await queryOne('SELECT id, titular_id FROM pacientes WHERE id = :id', { id });
+  const raiz = paciente?.titular_id ?? id;
+
+  await query(
+    `UPDATE pacientes SET tiene_whatsapp = :tieneWhatsapp
+      WHERE id = :raiz OR titular_id = :raiz`,
+    { raiz, tieneWhatsapp: tieneWhatsapp ? 1 : 0 },
+  );
 }
 
 async function tieneCitas(id) {
@@ -211,5 +275,7 @@ module.exports = {
   eliminarConHistorial,
   contarHistorial,
   registrarResultadoWhatsapp,
+  listarBeneficiarios,
+  sincronizarBeneficiarios,
   tieneCitas,
 };

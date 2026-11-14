@@ -22,6 +22,7 @@ router.get('/', reglasBuscar, pacienteController.buscar);
 router.get('/telefono/:telefono', reglasPorTelefono, pacienteController.porTelefono);
 router.post('/', reglasCrear, pacienteController.crear);
 router.get('/:id', reglasObtener, pacienteController.obtener);
+router.get('/:id/beneficiarios', reglasObtener, pacienteController.beneficiarios);
 router.patch('/:id', reglasActualizar, pacienteController.actualizar);
 router.delete('/:id', autorizar(ROLES.ADMINISTRADOR), reglasObtener, pacienteController.desactivar);
 // Borrado definitivo, con su historial. Pide la contraseña de la sesión.

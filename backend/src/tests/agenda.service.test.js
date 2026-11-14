@@ -15,10 +15,16 @@ const fechas = require('../utils/fechas');
 
 const LIMITE = 40;
 
-function configurar({ limite = LIMITE, diasLaborables = '1,2,3,4,5,6', feriados = [] } = {}) {
+function configurar({
+  limite = LIMITE,
+  limiteSabado = null,
+  diasLaborables = '1,2,3,4,5,6',
+  feriados = [],
+} = {}) {
   const valores = {
     dias_feriados: JSON.stringify(feriados),
     limite_diario_pacientes: String(limite),
+    ...(limiteSabado === null ? {} : { limite_sabado_pacientes: String(limiteSabado) }),
     vigencia_orden_meses: '3',
     dias_laborables: diasLaborables,
     hora_apertura: '07:00',
@@ -460,5 +466,56 @@ describe('feriados', () => {
     expect(vista.dias[0]).toEqual(
       expect.objectContaining({ laborable: false, feriado: 'Independencia', disponibles: 0 }),
     );
+  });
+});
+
+/** El sábado lleva su propio límite de pacientes. */
+describe('cupo del sábado', () => {
+  // Fechas futuras: las sugerencias nunca proponen días pasados.
+  // 2030-08-17 es sábado; 2030-08-16, viernes; 2030-08-19, lunes.
+  const SABADO = '2030-08-17';
+  const VIERNES = '2030-08-16';
+  const LUNES = '2030-08-19';
+
+  it('el sábado usa su límite y los demás días el diario', async () => {
+    configurar({ limite: 40, limiteSabado: 15 });
+
+    const [sabado, viernes] = await Promise.all([
+      disponibilidadService.evaluarDia(SABADO),
+      disponibilidadService.evaluarDia(VIERNES),
+    ]);
+
+    expect(sabado.limite).toBe(15);
+    expect(viernes.limite).toBe(40);
+  });
+
+  it('sin configurarlo, el sábado admite lo mismo que cualquier día', async () => {
+    configurar({ limite: 40 });
+
+    expect((await disponibilidadService.evaluarDia(SABADO)).limite).toBe(40);
+  });
+
+  it('un sábado lleno no se sugiere aunque cupiera con el límite diario', async () => {
+    configurar({ limite: 40, limiteSabado: 2 });
+    citaModel.contarOcupacionPorRango.mockResolvedValue(new Map([[SABADO, 2]]));
+
+    const sugeridas = await disponibilidadService.sugerirFechas({
+      desde: VIERNES,
+      hasta: LUNES,
+      cantidad: 5,
+    });
+
+    // El domingo no se atiende en esta configuración (lunes a sábado).
+    expect(sugeridas.map((dia) => dia.fecha)).toEqual([VIERNES, LUNES]);
+  });
+
+  it('la vista de la semana marca el límite de cada día', async () => {
+    configurar({ limite: 40, limiteSabado: 15 });
+
+    const agenda = await agendaService.obtenerVista('semana', VIERNES);
+
+    expect(agenda.limite_sabado).toBe(15);
+    expect(agenda.dias.find((dia) => dia.fecha === SABADO).limite).toBe(15);
+    expect(agenda.dias.find((dia) => dia.fecha === VIERNES).limite).toBe(40);
   });
 });

@@ -139,9 +139,12 @@ Las crea `database/init/03_usuarios_demo.sql` al inicializar la base.
 
    1. **Teléfono.** Si ese número ya está fichado, el nombre se rellena solo. Si
       lo comparten varios familiares, se elige cuál es. Si no lo usa nadie, se
-      registra al paciente ahí mismo (nombre y, opcionalmente, DPI). Aquí se le
-      pregunta también **si ese número tiene WhatsApp**: de eso depende que el
-      recordatorio le llegue solo o que haya que llamarle.
+      registra al paciente ahí mismo (nombre y, opcionalmente, DPI). Si quien
+      llega no es el dueño del número (el hijo que viene con su papá), «No es
+      esta persona» lo registra como **beneficiario** del dueño: usa su número
+      y el recordatorio le llega al titular con el nombre del beneficiario. Aquí
+      se le pregunta también **si ese número tiene WhatsApp**: de eso depende
+      que el recordatorio le llegue solo o que haya que llamarle.
    2. **Fecha de recepción** de la orden del IGSS. El sistema muestra hasta qué
       día se puede recibir al paciente.
    3. **Exámenes que trae.** Si alguno no está en el catálogo, se agrega sin
@@ -186,7 +189,7 @@ Las crea `database/init/03_usuarios_demo.sql` al inicializar la base.
    cambio de contraseña, desactivación y borrado definitivo. Desactivar quita el
    acceso y conserva el historial; eliminar borra la fila. Un usuario inactivo se
    vuelve a activar desde el mismo formulario.
-10. **Configuración** (administrador): límite diario, días de atención,
+10. **Configuración** (administrador): límite diario y límite del sábado, días de atención,
     horario, vigencia de las órdenes, hora de los recordatorios, redacción del
     mensaje que se envía y vinculación de WhatsApp.
 
@@ -414,6 +417,22 @@ sin margen para reprogramar.
 
 Configurable (40 por defecto). Las citas canceladas no ocupan cupo. Al llegar al
 límite, la API responde `409` con fechas alternativas.
+
+El **sábado** tiene su propio límite (`limite_sabado_pacientes`), porque ese día
+se atiende distinto. Mientras no se guarde en Configuración, vale el diario.
+
+### Beneficiarios
+
+Un paciente puede ser **beneficiario** de otro (`pacientes.titular_id`): el hijo
+que llega con su papá no tiene teléfono y usa el de él. Solo hay un nivel —un
+beneficiario no tiene beneficiarios— y el titular tiene que estar registrado
+como paciente. El beneficiario guarda una copia del número que el backend
+mantiene igual a la del titular; lo que se sabe de su WhatsApp es del número y
+vale para toda la familia. El recordatorio de la cita de un beneficiario saluda
+al titular (`{paciente}`) y añade «Paciente: nombre (beneficiario)»
+(`{beneficiario}`, que se pone antes de la fecha si el mensaje no lo usa). Si el
+titular se borra definitivamente, sus beneficiarios conservan el número y quedan
+sueltos.
 
 ### Días de atención
 

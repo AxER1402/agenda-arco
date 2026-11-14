@@ -60,14 +60,16 @@ async function obtenerVista(vista, fechaReferencia, { incluirCanceladas = false 
       parametros.feriados,
     );
 
+    const limite = disponibilidadService.limiteDelDia(fecha, parametros);
+
     dias.push({
       fecha,
       dia_semana: fechas.diaDeLaSemana(fecha),
       laborable,
       feriado: configuracionService.feriadoEn(fecha, parametros.feriados)?.descripcion ?? null,
-      limite: parametros.limiteDiario,
+      limite,
       ocupacion,
-      disponibles: laborable ? Math.max(parametros.limiteDiario - ocupacion, 0) : 0,
+      disponibles: laborable ? Math.max(limite - ocupacion, 0) : 0,
       citas: citasPorFecha.get(fecha) ?? [],
     });
   }
@@ -76,6 +78,10 @@ async function obtenerVista(vista, fechaReferencia, { incluirCanceladas = false 
     vista,
     rango: { desde, hasta },
     limite_diario: parametros.limiteDiario,
+    // Solo cuenta si el sábado es día de atención.
+    limite_sabado: parametros.diasLaborables.includes(disponibilidadService.SABADO)
+      ? parametros.limiteSabado
+      : null,
     total_citas: citas.length,
     dias,
   };

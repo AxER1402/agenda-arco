@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CalendarPlus, Eye, Pencil, Search, Trash2, UserPlus, Users } from 'lucide-react';
+import {
+  CalendarPlus,
+  Eye,
+  Pencil,
+  Search,
+  Trash2,
+  UserPlus,
+  UserRoundPlus,
+  Users,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import RecepcionCitaDialog from '@/components/citas/RecepcionCitaDialog';
@@ -133,7 +142,19 @@ function PacientesPage() {
           ) : (
             pacientes.map((paciente) => (
               <TableRow key={paciente.id}>
-                <TableCell className="font-medium">{paciente.nombre_completo}</TableCell>
+                <TableCell>
+                  <span className="font-medium">{paciente.nombre_completo}</span>
+                  {/* Quién usa el número de quién: el hijo que vino con su papá. */}
+                  {paciente.titular_id ? (
+                    <span className="block text-xs text-muted-foreground">
+                      Beneficiario de {paciente.titular_nombre}
+                    </span>
+                  ) : paciente.beneficiarios > 0 ? (
+                    <span className="block text-xs text-muted-foreground">
+                      Titular de {paciente.beneficiarios} beneficiario(s)
+                    </span>
+                  ) : null}
+                </TableCell>
                 <TableCell className="whitespace-nowrap">{formatoTelefono(paciente.telefono)}</TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">
                   {paciente.dpi ? formatoDpi(paciente.dpi) : '—'}
@@ -165,6 +186,20 @@ function PacientesPage() {
                       <CalendarPlus aria-hidden="true" />
                       <span className="sr-only">Programar cita de {paciente.nombre_completo}</span>
                     </Button>
+                    {/* Solo hay un nivel: un beneficiario no tiene los suyos. */}
+                    {!paciente.titular_id && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Agregar beneficiario"
+                        onClick={() => abrir('beneficiario', paciente)}
+                      >
+                        <UserRoundPlus aria-hidden="true" />
+                        <span className="sr-only">
+                          Agregar beneficiario de {paciente.nombre_completo}
+                        </span>
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       variant="ghost"
@@ -223,6 +258,13 @@ function PacientesPage() {
       <PacienteFormDialog
         abierto={dialogo.tipo === 'formulario'}
         paciente={dialogo.paciente}
+        onCerrar={cerrar}
+        onGuardado={cargar}
+      />
+
+      <PacienteFormDialog
+        abierto={dialogo.tipo === 'beneficiario'}
+        titularInicial={dialogo.paciente}
         onCerrar={cerrar}
         onGuardado={cargar}
       />

@@ -59,6 +59,9 @@ const VACIO = {
   fecha: '',
   hora: HORA_SUGERIDA,
   notas: '',
+  // Paciente nuevo que usa el número de otro (el hijo con su papá): el id de
+  // ese titular. '' = número propio.
+  titularId: '',
 };
 
 /** Lo que el paciente responde cuando se le pregunta por su WhatsApp. */
@@ -108,6 +111,8 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
   const [coincidencias, setCoincidencias] = useState([]);
   const [seleccionado, setSeleccionado] = useState(null);
   const [buscando, setBuscando] = useState(false);
+  /** Dijeron que quien llega no es ninguno de los que ya usan el número. */
+  const [nuevoConEseNumero, setNuevoConEseNumero] = useState(false);
 
   const [examenes, setExamenes] = useState([]);
   const [seleccionados, setSeleccionados] = useState([]);
@@ -146,6 +151,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
       tieneWhatsapp: whatsappComoTexto(pacienteInicial),
     });
     setSeleccionado(pacienteInicial);
+    setNuevoConEseNumero(false);
     setCoincidencias([]);
     setSeleccionados([]);
     setFiltroExamen('');
@@ -268,8 +274,10 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
 
   function elegir(paciente) {
     setSeleccionado(paciente);
+    setNuevoConEseNumero(false);
     setValores((previo) => ({
       ...previo,
+      titularId: '',
       nombreCompleto: paciente.nombre_completo,
       dpi: paciente.dpi ?? '',
       // Se parte de lo que ya se sabía de ese número; si hoy responden otra
@@ -281,8 +289,45 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
 
   function olvidarPaciente() {
     setSeleccionado(null);
+    setNuevoConEseNumero(false);
     setCoincidencias([]);
-    setValores((previo) => ({ ...previo, nombreCompleto: '', dpi: '', tieneWhatsapp: '' }));
+    setValores((previo) => ({
+      ...previo,
+      nombreCompleto: '',
+      dpi: '',
+      tieneWhatsapp: '',
+      titularId: '',
+    }));
+  }
+
+  /**
+   * Quien llega no es ninguno de los que ya usan el número: se le registra.
+   * Lo normal es que sea beneficiario del dueño del número (el hijo que viene
+   * con su papá), así que se propone; se puede cambiar.
+   */
+  function registrarOtraPersona() {
+    const titular = coincidencias.find((candidato) => !candidato.titular_id);
+
+    setSeleccionado(null);
+    setNuevoConEseNumero(true);
+    setValores((previo) => ({
+      ...previo,
+      nombreCompleto: '',
+      dpi: '',
+      titularId: titular ? String(titular.id) : '',
+      tieneWhatsapp: titular ? whatsappComoTexto(titular) : '',
+    }));
+  }
+
+  function elegirTitular(evento) {
+    const id = evento.target.value;
+    const titular = coincidencias.find((candidato) => String(candidato.id) === id);
+
+    setValores((previo) => ({
+      ...previo,
+      titularId: id,
+      ...(titular ? { tieneWhatsapp: whatsappComoTexto(titular) } : {}),
+    }));
   }
 
   function alternarExamen(id) {
@@ -348,6 +393,7 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                 nombreCompleto: valores.nombreCompleto,
                 telefono: normalizarTelefono(valores.telefono),
                 dpi: valores.dpi,
+                ...(valores.titularId ? { titularId: Number(valores.titularId) } : {}),
               },
             }),
         // Solo se envía si hubo respuesta: así no se borra lo que ya se sabía.
@@ -430,7 +476,14 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                       value={valores.telefono}
                       onChange={(evento) => {
                         cambiar('telefono')(evento);
-                        if (seleccionado && !pacienteInicial) olvidarPaciente();
+                        if (pacienteInicial) return;
+                        if (seleccionado) {
+                          olvidarPaciente();
+                        } else if (nuevoConEseNumero || valores.titularId) {
+                          // Otro número: el vínculo con el titular ya no vale.
+                          setNuevoConEseNumero(false);
+                          setValores((previo) => ({ ...previo, titularId: '' }));
+                        }
                       }}
                       autoFocus
                     />
@@ -462,14 +515,25 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-secondary px-3 py-2">
                   <p className="text-sm">
                     Paciente ya registrado: <strong>{seleccionado.nombre_completo}</strong>
+                    {seleccionado.titular_id && seleccionado.titular_nombre && (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        — beneficiario de {seleccionado.titular_nombre}
+                      </span>
+                    )}
                   </p>
                   {!pacienteInicial && (
-                    <Button type="button" size="sm" variant="ghost" onClick={olvidarPaciente}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={registrarOtraPersona}
+                    >
                       No es esta persona
                     </Button>
                   )}
                 </div>
-              ) : coincidencias.length > 1 ? (
+              ) : coincidencias.length > 1 && !nuevoConEseNumero ? (
                 <div className="flex flex-col gap-2 rounded-lg border p-3">
                   <p className="text-sm font-medium">
                     Hay {coincidencias.length} pacientes con ese teléfono. ¿Cuál es?
@@ -486,6 +550,59 @@ function RecepcionCitaDialog({ abierto, onCerrar, onGuardada, pacienteInicial = 
                         {candidato.nombre_completo}
                       </Button>
                     ))}
+                    <Button type="button" size="sm" variant="ghost" onClick={registrarOtraPersona}>
+                      Es otra persona
+                    </Button>
+                  </div>
+                </div>
+              ) : nuevoConEseNumero && coincidencias.length > 0 ? (
+                <div className="flex flex-col gap-3 rounded-lg border p-3">
+                  <p className="flex items-center gap-2 text-sm">
+                    <UserRoundPlus className="size-4 shrink-0" aria-hidden="true" />
+                    Paciente nuevo. Ese número ya es de{' '}
+                    {coincidencias.map((candidato) => candidato.nombre_completo).join(', ')}.
+                  </p>
+
+                  {coincidencias.some((candidato) => !candidato.titular_id) && (
+                    <CampoFormulario
+                      id="recepcion-titular"
+                      etiqueta="¿Es beneficiario?"
+                      ayuda={
+                        valores.titularId
+                          ? 'Usará el número de su titular: el recordatorio le llega a él, con el nombre del beneficiario.'
+                          : 'Comparte el número, pero queda como paciente independiente.'
+                      }
+                    >
+                      {(props) => (
+                        <Select {...props} value={valores.titularId} onChange={elegirTitular}>
+                          {coincidencias
+                            .filter((candidato) => !candidato.titular_id)
+                            .map((candidato) => (
+                              <option key={candidato.id} value={String(candidato.id)}>
+                                Sí, de {candidato.nombre_completo}
+                              </option>
+                            ))}
+                          <option value="">No, solo comparte el número</option>
+                        </Select>
+                      )}
+                    </CampoFormulario>
+                  )}
+
+                  <div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setNuevoConEseNumero(false);
+                        setValores((previo) => ({ ...previo, titularId: '' }));
+                        if (coincidencias.length === 1) elegir(coincidencias[0]);
+                      }}
+                    >
+                      {coincidencias.length === 1
+                        ? `Sí era ${coincidencias[0].nombre_completo}`
+                        : 'Volver a la lista'}
+                    </Button>
                   </div>
                 </div>
               ) : (
