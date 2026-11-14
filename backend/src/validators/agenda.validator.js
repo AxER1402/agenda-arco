@@ -135,22 +135,13 @@ const citaRecepcion = [
     .withMessage('El teléfono debe ser un número de Guatemala de 8 dígitos.'),
   body('paciente.dpi').optional({ values: 'falsy' }).custom(esDpiOpcionalValido)
     .withMessage('El DPI debe tener exactamente 13 dígitos.'),
-  // Beneficiario: el paciente cuyo número usa. Con él, el teléfono sobra.
-  body('paciente.titularId').optional({ nullable: true }).isInt({ min: 1 })
-    .withMessage('El titular no es válido.')
-    .toInt(),
   // Lo que respondió el paciente sobre su WhatsApp. Si no lo saben, no se envía.
   body('tieneWhatsapp').optional({ nullable: true }).isBoolean()
     .withMessage('El dato de WhatsApp debe ser verdadero o falso.')
     .toBoolean(),
   body().custom((cuerpo) => {
     if (cuerpo.pacienteId) return true;
-    if (
-      cuerpo.paciente?.nombreCompleto &&
-      (cuerpo.paciente?.telefono || cuerpo.paciente?.titularId)
-    ) {
-      return true;
-    }
+    if (cuerpo.paciente?.nombreCompleto && cuerpo.paciente?.telefono) return true;
     throw new Error('Indique el paciente, o su nombre y teléfono si es nuevo.');
   }),
   reglaFecha(body('fechaRecepcion'), 'La fecha de recepción'),
@@ -214,8 +205,6 @@ const agendaBuscar = [
 const configuracionActualizar = [
   body('limite_diario_pacientes').optional().isInt({ min: 1, max: 500 })
     .withMessage('El límite diario debe ser un entero entre 1 y 500.'),
-  body('limite_sabado_pacientes').optional().isInt({ min: 1, max: 500 })
-    .withMessage('El límite del sábado debe ser un entero entre 1 y 500.'),
   body('vigencia_orden_meses').optional().isInt({ min: 1, max: 24 })
     .withMessage('La vigencia debe ser un entero de meses entre 1 y 24.'),
   body('hora_apertura').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/)

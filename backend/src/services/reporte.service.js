@@ -171,16 +171,9 @@ async function resumenDeActividad({ desde, hasta, usuario = null } = {}) {
     disponibilidadService.obtenerParametros(),
   ]);
 
-  // La capacidad se suma día por día: el sábado tiene su propio límite.
   let laborables = 0;
-  let sabados = 0;
-  let capacidad = 0;
   for (let f = inicio; fechas.comparar(f, fin) <= 0; f = fechas.sumarDias(f, 1)) {
-    if (disponibilidadService.esDiaLaborable(f, parametros.diasLaborables, parametros.feriados)) {
-      laborables += 1;
-      if (fechas.diaDeLaSemana(f) === disponibilidadService.SABADO) sabados += 1;
-      capacidad += disponibilidadService.limiteDelDia(f, parametros);
-    }
+    if (disponibilidadService.esDiaLaborable(f, parametros.diasLaborables, parametros.feriados)) laborables += 1;
   }
 
   const total = citas.length;
@@ -191,6 +184,7 @@ async function resumenDeActividad({ desde, hasta, usuario = null } = {}) {
   // La asistencia solo se puede medir sobre lo que ya pasó por el mostrador:
   // una cita todavía pendiente no es ni una ausencia ni una atención.
   const cerradas = atendidas + noAsistio;
+  const capacidad = laborables * parametros.limiteDiario;
 
   const porEstado = contarPor(citas, (cita) => cita.estado);
   const porExamen = contarPor(citas, (cita) => (cita.examenes ?? []).map((e) => e.nombre));
@@ -266,10 +260,7 @@ async function resumenDeActividad({ desde, hasta, usuario = null } = {}) {
         tipo: 'nota',
         texto:
           `El periodo tuvo ${laborables} día(s) de atención, con un límite de ` +
-          `${parametros.limiteDiario} pacientes por día` +
-          (sabados > 0 && parametros.limiteSabado !== parametros.limiteDiario
-            ? ` (${parametros.limiteSabado} los sábados).`
-            : '.'),
+          `${parametros.limiteDiario} pacientes por día.`,
       },
     ],
   };

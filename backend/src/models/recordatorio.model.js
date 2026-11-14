@@ -140,15 +140,10 @@ async function descartarPendiente(citaId) {
 
 /** Quita los avisos sin enviar de todas las citas de un paciente. */
 async function descartarPendientesDePaciente(pacienteId) {
-  // El WhatsApp es del número: si el paciente lo comparte con su titular o con
-  // sus beneficiarios, sus avisos pendientes tampoco van a llegar.
   await query(
     `DELETE r FROM recordatorios r
        JOIN citas c ON c.id = r.cita_id
-       JOIN pacientes p ON p.id = c.paciente_id
-       JOIN pacientes x ON x.id = :pacienteId
-      WHERE r.estado = 'PENDIENTE'
-        AND (p.id = COALESCE(x.titular_id, x.id) OR p.titular_id = COALESCE(x.titular_id, x.id))`,
+      WHERE c.paciente_id = :pacienteId AND r.estado = 'PENDIENTE'`,
     { pacienteId },
   );
 }

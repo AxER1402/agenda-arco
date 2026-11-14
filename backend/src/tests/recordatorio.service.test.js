@@ -111,55 +111,6 @@ describe('generarMensaje', () => {
 });
 
 /**
- * Beneficiario: el hijo no tiene número y el aviso llega al de su papá. Se
- * saluda al papá, que es quien lo lee, y se dice de quién es la cita.
- */
-describe('recordatorio de un beneficiario', () => {
-  const DEL_HIJO = { paciente_nombre: 'JUAN PEREZ', titular_nombre: 'PEDRO PEREZ' };
-
-  it('saluda al titular y nombra al beneficiario antes de la fecha', () => {
-    const mensaje = recordatorioService.generarMensaje(
-      citaDePrueba({ ...DEL_HIJO, fecha: '2026-08-10' }),
-    );
-
-    expect(mensaje).toContain('Estimado(a) Pedro Perez:');
-    expect(mensaje).toContain('Paciente: Juan Perez (beneficiario)\nFecha: 10/08/2026');
-  });
-
-  it('respeta el lugar de {beneficiario} si el mensaje lo usa', () => {
-    const mensaje = recordatorioService.generarMensaje(
-      citaDePrueba(DEL_HIJO),
-      'El Arco Laboratorios',
-      'Hola {paciente}.\n{beneficiario}\nFecha: {fecha}',
-    );
-
-    expect(mensaje.split('\n')[1]).toBe('Paciente: Juan Perez (beneficiario)');
-    expect(mensaje.match(/beneficiario/g)).toHaveLength(1);
-  });
-
-  it('pone la línea al principio si el mensaje no tiene fecha', () => {
-    const mensaje = recordatorioService.generarMensaje(
-      citaDePrueba(DEL_HIJO),
-      'El Arco Laboratorios',
-      'Hola {paciente}, le esperamos.',
-    );
-
-    expect(mensaje).toBe('Paciente: Juan Perez (beneficiario)\n\nHola Pedro Perez, le esperamos.');
-  });
-
-  it('a un paciente con número propio no le agrega nada', () => {
-    const mensaje = recordatorioService.generarMensaje(
-      citaDePrueba(),
-      'El Arco Laboratorios',
-      'Hola {paciente}.\n{beneficiario}\nFecha: {fecha}',
-    );
-
-    expect(mensaje).not.toContain('beneficiario');
-    expect(mensaje.split('\n')).toHaveLength(2);
-  });
-});
-
-/**
  * Indicaciones que dependen del examen: la de orina o heces solo le llega a
  * quien trae ese examen.
  */

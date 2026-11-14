@@ -104,7 +104,6 @@ function ConfiguracionPage() {
     try {
       const actualizada = await actualizarConfiguracion({
         limite_diario_pacientes: Number(configuracion.limite_diario_pacientes),
-        limite_sabado_pacientes: Number(configuracion.limite_sabado_pacientes),
         vigencia_orden_meses: Number(configuracion.vigencia_orden_meses),
         hora_apertura: configuracion.hora_apertura,
         hora_cierre: configuracion.hora_cierre,
@@ -201,8 +200,8 @@ function ConfiguracionPage() {
         <CardHeader>
           <CardTitle className="text-xl">Agenda</CardTitle>
           <CardDescription>
-            El límite diario controla cuántos pacientes caben en un día, y el sábado tiene el suyo;
-            los días de atención, en cuáles se puede agendar. La hora de los recordatorios se aplica en cuanto se guarda,
+            El límite diario controla cuántos pacientes caben en un día; los días de atención, en
+            cuáles se puede agendar. La hora de los recordatorios se aplica en cuanto se guarda,
             sin reiniciar nada.
           </CardDescription>
         </CardHeader>
@@ -218,27 +217,6 @@ function ConfiguracionPage() {
                     max={500}
                     value={configuracion.limite_diario_pacientes}
                     onChange={cambiar('limite_diario_pacientes')}
-                  />
-                )}
-              </CampoFormulario>
-
-              <CampoFormulario
-                id="limite-sabado"
-                etiqueta="Límite de pacientes el sábado"
-                ayuda={
-                  configuracion.dias_laborables?.includes(6)
-                    ? 'Los sábados se agenda hasta este número; los demás días, el límite diario.'
-                    : 'El sábado no está marcado como día de atención: este límite no se usa.'
-                }
-              >
-                {(props) => (
-                  <Input
-                    {...props}
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={configuracion.limite_sabado_pacientes ?? ''}
-                    onChange={cambiar('limite_sabado_pacientes')}
                   />
                 )}
               </CampoFormulario>

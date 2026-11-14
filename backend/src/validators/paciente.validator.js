@@ -17,13 +17,6 @@ const reglaTieneWhatsapp = body('tieneWhatsapp')
   .withMessage('El dato de WhatsApp debe ser verdadero o falso.')
   .toBoolean();
 
-// Paciente cuyo número usa el beneficiario. null quita el vínculo.
-const reglaTitular = body('titularId')
-  .optional({ nullable: true })
-  .isInt({ min: 1 })
-  .withMessage('El titular no es válido.')
-  .toInt();
-
 // El DPI puede venir vacío, pero si trae algo tiene que ser de 13 dígitos.
 const reglaDpi = (campo) =>
   campo
@@ -38,9 +31,7 @@ const reglasCrear = [
     .withMessage('El nombre completo es obligatorio.')
     .isLength({ min: 3, max: 150 })
     .withMessage('El nombre completo debe tener entre 3 y 150 caracteres.'),
-  // El beneficiario no trae teléfono: usa el de su titular.
-  reglaTelefono(body('telefono').if(body('titularId').not().exists({ values: 'null' }))),
-  reglaTitular,
+  reglaTelefono(body('telefono')),
   reglaDpi(body('dpi')),
   reglaTieneWhatsapp,
   body('notas').optional({ values: 'falsy' }).trim().isLength({ max: 255 })
@@ -56,7 +47,6 @@ const reglasActualizar = [
     .isLength({ min: 3, max: 150 })
     .withMessage('El nombre completo debe tener entre 3 y 150 caracteres.'),
   reglaTelefono(body('telefono').optional()),
-  reglaTitular,
   reglaDpi(body('dpi')),
   reglaTieneWhatsapp,
   body('notas').optional({ values: 'null' }).trim().isLength({ max: 255 })

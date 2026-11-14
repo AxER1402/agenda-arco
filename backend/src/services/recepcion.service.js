@@ -42,8 +42,6 @@ function prepararPaciente({ pacienteId, paciente }) {
     datos: {
       nombreCompleto: paciente.nombreCompleto,
       telefono: paciente.telefono,
-      // Beneficiario: usa el número de ese paciente (un hijo con su papá).
-      titularId: paciente.titularId ?? null,
       // Se validan aquí, antes de crear nada, para que un DPI incompleto no
       // aparezca recién al final del formulario.
       dpi: pacienteService.prepararDpi(paciente.dpi),

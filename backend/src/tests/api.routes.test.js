@@ -121,35 +121,6 @@ describe('POST /api/pacientes', () => {
     expect(respuesta.status).toBe(422);
     expect(respuesta.body.error.detalles[0].campo).toBe('telefono');
   });
-
-  it('el beneficiario se registra sin teléfono: usa el de su titular', async () => {
-    pacienteModel.buscarPorId.mockResolvedValue({
-      id: 1,
-      nombre_completo: 'PEDRO PEREZ',
-      telefono: '55551234',
-      titular_id: null,
-      activo: 1,
-    });
-    pacienteModel.listarBeneficiarios.mockResolvedValue([]);
-
-    const respuesta = await request(app)
-      .post('/api/pacientes')
-      .set('Authorization', `Bearer ${tokenCitas}`)
-      .send({ nombreCompleto: 'Juan Pérez', titularId: 1 });
-
-    expect(respuesta.status).toBe(201);
-    expect(respuesta.body.paciente).toMatchObject({ telefono: '55551234', titularId: 1 });
-  });
-
-  it('sin titular, el teléfono sigue siendo obligatorio', async () => {
-    const respuesta = await request(app)
-      .post('/api/pacientes')
-      .set('Authorization', `Bearer ${tokenCitas}`)
-      .send({ nombreCompleto: 'Juan Pérez', titularId: null });
-
-    expect(respuesta.status).toBe(422);
-    expect(respuesta.body.error.detalles[0].campo).toBe('telefono');
-  });
 });
 
 describe('DELETE /api/pacientes/:id', () => {

@@ -134,51 +134,6 @@ describe('Identificación por teléfono', () => {
   });
 });
 
-describe('Beneficiario', () => {
-  const PAPA = { ...PACIENTE, id: 10, nombre_completo: 'PEDRO PEREZ', tiene_whatsapp: 1 };
-
-  it('si no es el dueño del número, lo registra como su beneficiario', async () => {
-    pacienteService.buscarPorTelefono.mockResolvedValue([PAPA]);
-
-    renderizar();
-
-    await userEvent.type(screen.getByLabelText(/Teléfono/), '55512345');
-    await userEvent.click(await screen.findByRole('button', { name: 'No es esta persona' }));
-
-    expect(screen.getByLabelText(/¿Es beneficiario\?/)).toHaveTextContent('Sí, de PEDRO PEREZ');
-
-    await userEvent.type(screen.getByLabelText(/Nombre completo/), 'Juan Perez');
-    await userEvent.click(screen.getByRole('checkbox', { name: /Hematología completa/ }));
-    await programar();
-
-    await waitFor(() =>
-      expect(citaService.recibirPaciente).toHaveBeenCalledWith(
-        expect.objectContaining({
-          paciente: expect.objectContaining({ nombreCompleto: 'JUAN PEREZ', titularId: 10 }),
-        }),
-      ),
-    );
-  });
-
-  it('puede compartir el número sin quedar ligado', async () => {
-    pacienteService.buscarPorTelefono.mockResolvedValue([PAPA]);
-
-    renderizar();
-
-    await userEvent.type(screen.getByLabelText(/Teléfono/), '55512345');
-    await userEvent.click(await screen.findByRole('button', { name: 'No es esta persona' }));
-    await userEvent.click(screen.getByLabelText(/¿Es beneficiario\?/));
-    await userEvent.click(screen.getByRole('option', { name: 'No, solo comparte el número' }));
-
-    await userEvent.type(screen.getByLabelText(/Nombre completo/), 'Ana Perez');
-    await userEvent.click(screen.getByRole('checkbox', { name: /Hematología completa/ }));
-    await programar();
-
-    await waitFor(() => expect(citaService.recibirPaciente).toHaveBeenCalled());
-    expect(citaService.recibirPaciente.mock.calls[0][0].paciente).not.toHaveProperty('titularId');
-  });
-});
-
 describe('Orden del IGSS dentro de la cita', () => {
   it('muestra hasta qué día se puede recibir según la fecha de recepción', async () => {
     renderizar();

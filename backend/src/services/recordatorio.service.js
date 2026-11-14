@@ -100,21 +100,6 @@ function indicacionesDe(cita) {
 }
 
 /**
- * Pone la línea del beneficiario en un mensaje que no la nombra: justo antes de
- * la fecha, que es donde empiezan los datos de la cita, o al principio si el
- * mensaje no tiene fecha.
- */
-function conLineaDeBeneficiario(plantilla) {
-  const lineas = plantilla.split('\n');
-  const deLaFecha = lineas.findIndex((linea) => /\{\s*fecha\s*\}/.test(linea));
-
-  if (deLaFecha === -1) return `{beneficiario}\n\n${plantilla}`;
-
-  lineas.splice(deLaFecha, 0, '{beneficiario}');
-  return lineas.join('\n');
-}
-
-/**
  * Construye el texto del recordatorio.
  * Es una función pura para poder probarla sin base de datos ni WhatsApp.
  *
@@ -133,27 +118,14 @@ function generarMensaje(
 
   // Un mensaje redactado antes de que existieran las indicaciones no las
   // nombra: se agregan al final para que no se pierdan.
-  const marcadores = configuracionService.marcadoresDe(plantilla);
   const conIndicaciones =
-    indicaciones && !marcadores.includes('indicaciones')
+    indicaciones && !configuracionService.marcadoresDe(plantilla).includes('indicaciones')
       ? `${plantilla}\n\n{indicaciones}`
       : plantilla;
 
-  // Un beneficiario (el hijo que vino con su papá) no tiene número propio: el
-  // mensaje llega al de su titular. Se saluda a quien lo lee y se dice de
-  // quién es la cita.
-  const esBeneficiario = Boolean(cita.titular_nombre);
-  const texto =
-    esBeneficiario && !marcadores.includes('beneficiario')
-      ? conLineaDeBeneficiario(conIndicaciones)
-      : conIndicaciones;
-
-  return renderizarPlantilla(texto, {
+  return renderizarPlantilla(conIndicaciones, {
     // Guardado en mayúsculas; al paciente se le escribe con mayúscula inicial.
-    paciente: nombrePropio((esBeneficiario ? cita.titular_nombre : cita.paciente_nombre) ?? ''),
-    beneficiario: esBeneficiario
-      ? `Paciente: ${nombrePropio(cita.paciente_nombre ?? '')} (beneficiario)`
-      : '',
+    paciente: nombrePropio(cita.paciente_nombre ?? ''),
     laboratorio: nombreLaboratorio,
     fecha: fechas.aFormatoLocal(cita.fecha),
     hora: fechas.horaAFormatoLocal(String(cita.hora)),

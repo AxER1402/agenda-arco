@@ -157,15 +157,14 @@ async function validarFecha({ fecha, orden, excluirCita = null }) {
   const ocupacion = await citaModel.contarOcupacion(fechaISO);
   const yaOcupaEsteDia = excluirCita?.fecha === fechaISO && Boolean(excluirCita?.ocupa_cupo);
   const ocupacionEfectiva = yaOcupaEsteDia ? ocupacion - 1 : ocupacion;
-  const limiteDelDia = disponibilidadService.limiteDelDia(fechaISO, parametros);
 
-  if (ocupacionEfectiva >= limiteDelDia) {
+  if (ocupacionEfectiva >= parametros.limiteDiario) {
     throw AppError.conflict(
       `El ${fechas.aFormatoLocal(fechaISO)} ya alcanzó el límite de ` +
-        `${limiteDelDia} pacientes.`,
+        `${parametros.limiteDiario} pacientes.`,
       {
         motivo: 'LIMITE_DIARIO_ALCANZADO',
-        limite: limiteDelDia,
+        limite: parametros.limiteDiario,
         ocupacion: ocupacionEfectiva,
         fechas_sugeridas: await disponibilidadService.sugerirFechasParaOrden(orden, {
           excluirFechas: [fechaISO],
@@ -282,7 +281,7 @@ async function crear({ pacienteId, ordenId, fecha, hora, examenes, notas }, idUs
       examenes: resolverExamenes(orden, examenes),
       creadoPor: idUsuario ?? null,
     },
-    verificadorDeCupo(fechaISO, disponibilidadService.limiteDelDia(fechaISO, parametros)),
+    verificadorDeCupo(fechaISO, parametros.limiteDiario),
   );
 
   const diasParaVencer = ordenService.diasParaVencer(orden.fecha_vencimiento, fechaISO);
@@ -349,7 +348,7 @@ async function actualizar(id, { fecha, hora, examenes, notas }) {
     }
 
     cambios.fecha = fechaISO;
-    verificarCupo = verificadorDeCupo(fechaISO, disponibilidadService.limiteDelDia(fechaISO, parametros), cita);
+    verificarCupo = verificadorDeCupo(fechaISO, parametros.limiteDiario, cita);
   }
 
   if (reagendar) {
@@ -442,7 +441,7 @@ async function cambiarEstado(id, codigoEstado, { motivo } = {}) {
     return citaModel.actualizar(
       id,
       { estadoId: estado.id, notas, fecha: fechaISO },
-      verificadorDeCupo(fechaISO, disponibilidadService.limiteDelDia(fechaISO, parametros), cita),
+      verificadorDeCupo(fechaISO, parametros.limiteDiario, cita),
     );
   }
 

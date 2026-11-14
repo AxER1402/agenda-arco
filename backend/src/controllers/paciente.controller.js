@@ -36,15 +36,6 @@ async function porTelefono(req, res, next) {
   }
 }
 
-/** GET /api/pacientes/:id/beneficiarios — los que usan su número. */
-async function beneficiarios(req, res, next) {
-  try {
-    res.status(200).json(await pacienteService.beneficiarios(req.params.id));
-  } catch (error) {
-    next(error);
-  }
-}
-
 /** POST /api/pacientes */
 async function crear(req, res, next) {
   try {
@@ -99,7 +90,6 @@ module.exports = {
   buscar,
   obtener,
   porTelefono,
-  beneficiarios,
   crear,
   actualizar,
   desactivar,

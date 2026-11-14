@@ -187,10 +187,7 @@ function AgendaPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Ocupación del mes</CardTitle>
             <CardDescription>
-              Límite de {agenda.limite_diario} pacientes por día
-              {agenda.limite_sabado && agenda.limite_sabado !== agenda.limite_diario
-                ? ` (${agenda.limite_sabado} el sábado).`
-                : '.'}
+              Límite de {agenda.limite_diario} pacientes por día.
             </CardDescription>
           </CardHeader>
           <CardContent>
