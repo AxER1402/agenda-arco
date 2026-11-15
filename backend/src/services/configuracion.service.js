@@ -9,6 +9,7 @@ const AppError = require('../utils/AppError');
 
 const CLAVES = {
   LIMITE_DIARIO: 'limite_diario_pacientes',
+  LIMITE_SABADO: 'limite_sabado_pacientes',
   VIGENCIA_MESES: 'vigencia_orden_meses',
   DIAS_LABORABLES: 'dias_laborables',
   HORA_APERTURA: 'hora_apertura',
@@ -30,7 +31,12 @@ const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
  * de la misma lista.
  */
 const MARCADORES = {
-  paciente: 'Nombre del paciente.',
+  paciente:
+    'Nombre del paciente. Si la cita es de un beneficiario, el de su titular: es quien recibe ' +
+    'el mensaje en su número.',
+  beneficiario:
+    'Si la cita es de un beneficiario, la línea «Paciente: nombre (beneficiario)»; si no, nada. ' +
+    'Si el mensaje no lo usa, se agrega antes de la fecha.',
   laboratorio: 'Nombre del laboratorio.',
   fecha: 'Fecha de la cita (DD/MM/AAAA).',
   hora: 'Hora de la cita (HH:MM AM/PM).',
@@ -148,6 +154,14 @@ const DEFINICIONES = {
     convertir: (valor) => Number.parseInt(valor, 10),
     valido: (valor) => Number.isInteger(valor) && valor >= 1 && valor <= 500,
     mensaje: 'El límite diario debe ser un número entero entre 1 y 500.',
+  },
+  [CLAVES.LIMITE_SABADO]: {
+    // El sábado se atiende distinto (media jornada) y lleva su propio límite.
+    // Mientras no se configure, vale el de los demás días (ver obtenerTodas).
+    porDefecto: null,
+    convertir: (valor) => Number.parseInt(valor, 10),
+    valido: (valor) => Number.isInteger(valor) && valor >= 1 && valor <= 500,
+    mensaje: 'El límite del sábado debe ser un número entero entre 1 y 500.',
   },
   [CLAVES.VIGENCIA_MESES]: {
     porDefecto: 3,
@@ -283,8 +297,12 @@ async function obtener(clave) {
 async function obtenerTodas() {
   const claves = Object.values(CLAVES).filter((clave) => !DEFINICIONES[clave].interna);
   const valores = await Promise.all(claves.map((clave) => obtener(clave)));
+  const todas = Object.fromEntries(claves.map((clave, indice) => [clave, valores[indice]]));
 
-  return Object.fromEntries(claves.map((clave, indice) => [clave, valores[indice]]));
+  // Sin un límite propio, el sábado admite los mismos pacientes que otro día.
+  todas[CLAVES.LIMITE_SABADO] ??= todas[CLAVES.LIMITE_DIARIO];
+
+  return todas;
 }
 
 /** Solo el administrador llega aquí (lo garantiza el middleware de la ruta). */

@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { historialDePaciente } from '@/services/paciente.service';
+import { beneficiariosDe, historialDePaciente } from '@/services/paciente.service';
 import { listarOrdenesDePaciente } from '@/services/catalogo.service';
 import {
   dpi as formatoDpi,
@@ -38,6 +38,7 @@ import {
 function PacienteDetalleDialog({ abierto, onCerrar, paciente, onNuevaCita }) {
   const [ordenes, setOrdenes] = useState([]);
   const [historial, setHistorial] = useState([]);
+  const [beneficiarios, setBeneficiarios] = useState([]);
   const [cargando, setCargando] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -45,12 +46,14 @@ function PacienteDetalleDialog({ abierto, onCerrar, paciente, onNuevaCita }) {
 
     setCargando(true);
     try {
-      const [susOrdenes, susCitas] = await Promise.all([
+      const [susOrdenes, susCitas, suyos] = await Promise.all([
         listarOrdenesDePaciente(paciente.id),
         historialDePaciente(paciente.id),
+        paciente.beneficiarios > 0 ? beneficiariosDe(paciente.id) : [],
       ]);
       setOrdenes(susOrdenes);
       setHistorial(susCitas);
+      setBeneficiarios((suyos ?? []).filter((beneficiario) => beneficiario.activo));
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -71,7 +74,14 @@ function PacienteDetalleDialog({ abierto, onCerrar, paciente, onNuevaCita }) {
             Teléfono: {formatoTelefono(paciente?.telefono)}
             {paciente?.dpi && ` — DPI ${formatoDpi(paciente.dpi)}`}
             {paciente?.tiene_whatsapp === 0 && ' — sin WhatsApp'}
+            {paciente?.titular_id && ` — beneficiario de ${paciente.titular_nombre}`}
           </DialogDescription>
+          {beneficiarios.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Beneficiarios que usan este número:{' '}
+              {beneficiarios.map((beneficiario) => beneficiario.nombre_completo).join(', ')}
+            </p>
+          )}
         </DialogHeader>
 
         {/* Programar cita solo aparece donde hay un flujo que la reciba: desde

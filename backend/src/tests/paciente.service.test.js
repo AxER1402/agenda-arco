@@ -233,3 +233,162 @@ describe('borrado definitivo', () => {
     expect(pacienteModel.eliminarConHistorial).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Beneficiarios: el hijo que llega con su papá no tiene teléfono y usa el de
+ * él. Solo hay un nivel: titular y beneficiarios.
+ */
+describe('beneficiarios', () => {
+  const PAPA = {
+    id: 10,
+    nombre_completo: 'PEDRO PEREZ',
+    telefono: '55551234',
+    tiene_whatsapp: 1,
+    titular_id: null,
+    activo: 1,
+  };
+
+  function conPacientes(...pacientes) {
+    pacienteModel.buscarPorId.mockImplementation(
+      async (id) => pacientes.find((paciente) => paciente.id === Number(id)) ?? null,
+    );
+  }
+
+  beforeEach(() => {
+    pacienteModel.listarBeneficiarios.mockResolvedValue([]);
+    pacienteModel.sincronizarBeneficiarios.mockResolvedValue();
+    conPacientes(PAPA);
+  });
+
+  it('el beneficiario se registra con el número y el WhatsApp de su titular', async () => {
+    const { paciente, avisos } = await pacienteService.crear({
+      nombreCompleto: 'Juan Pérez',
+      titularId: 10,
+    });
+
+    expect(paciente).toMatchObject({ telefono: '55551234', titularId: 10, tieneWhatsapp: true });
+    // Compartir el número es lo esperado: no es un posible duplicado.
+    expect(avisos).toEqual([]);
+    expect(pacienteModel.buscarPorTelefono).not.toHaveBeenCalled();
+  });
+
+  it('ignora el teléfono escrito: manda el del titular', async () => {
+    const { paciente } = await pacienteService.crear({
+      nombreCompleto: 'Juan Pérez',
+      telefono: '22223333',
+      titularId: 10,
+    });
+
+    expect(paciente.telefono).toBe('55551234');
+  });
+
+  it('si dicen que el número no tiene WhatsApp, vale para toda la familia', async () => {
+    await pacienteService.crear({ nombreCompleto: 'Juan Pérez', titularId: 10, tieneWhatsapp: false });
+
+    expect(pacienteModel.actualizar).toHaveBeenCalledWith(10, { tieneWhatsapp: false });
+    expect(pacienteModel.sincronizarBeneficiarios).toHaveBeenCalledWith(10, {
+      tieneWhatsapp: false,
+    });
+    expect(recordatorioModel.descartarPendientesDePaciente).toHaveBeenCalledWith(10);
+  });
+
+  it('rechaza como titular a quien ya es beneficiario de otro', async () => {
+    conPacientes(PAPA, {
+      id: 11,
+      nombre_completo: 'JUAN PEREZ',
+      telefono: '55551234',
+      titular_id: 10,
+      titular_nombre: 'PEDRO PEREZ',
+      activo: 1,
+    });
+
+    await expect(
+      pacienteService.crear({ nombreCompleto: 'Luis Pérez', titularId: 11 }),
+    ).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('PEDRO PEREZ') });
+    expect(pacienteModel.crear).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un titular inactivo o que no existe', async () => {
+    conPacientes({ ...PAPA, activo: 0 });
+    await expect(
+      pacienteService.crear({ nombreCompleto: 'Juan Pérez', titularId: 10 }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+
+    await expect(
+      pacienteService.crear({ nombreCompleto: 'Juan Pérez', titularId: 99 }),
+    ).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it('un paciente no puede ser beneficiario de sí mismo', async () => {
+    await expect(pacienteService.actualizar(10, { titularId: 10 })).rejects.toMatchObject({
+      statusCode: 400,
+    });
+  });
+
+  it('quien tiene beneficiarios no puede volverse beneficiario de otro', async () => {
+    conPacientes(PAPA, { ...PAPA, id: 20, nombre_completo: 'ANA PEREZ', telefono: '44443333' });
+    pacienteModel.listarBeneficiarios.mockResolvedValue([{ id: 11 }]);
+
+    await expect(pacienteService.actualizar(10, { titularId: 20 })).rejects.toMatchObject({
+      statusCode: 400,
+    });
+  });
+
+  it('al ligarlo toma el número de su titular', async () => {
+    conPacientes(PAPA, {
+      id: 11,
+      nombre_completo: 'JUAN PEREZ',
+      telefono: '22223333',
+      tiene_whatsapp: null,
+      titular_id: null,
+      activo: 1,
+    });
+
+    await pacienteService.actualizar(11, { titularId: 10, telefono: '22223333' });
+
+    expect(pacienteModel.actualizar).toHaveBeenCalledWith(
+      11,
+      expect.objectContaining({ titularId: 10, telefono: '55551234', tieneWhatsapp: true }),
+    );
+  });
+
+  it('no deja darle otro número a un beneficiario sin quitar el vínculo', async () => {
+    conPacientes(PAPA, {
+      id: 11,
+      nombre_completo: 'JUAN PEREZ',
+      telefono: '55551234',
+      titular_id: 10,
+      activo: 1,
+    });
+
+    await expect(pacienteService.actualizar(11, { telefono: '22223333' })).rejects.toMatchObject({
+      statusCode: 400,
+    });
+  });
+
+  it('al quitar el vínculo puede llevar su propio número', async () => {
+    conPacientes(PAPA, {
+      id: 11,
+      nombre_completo: 'JUAN PEREZ',
+      telefono: '55551234',
+      titular_id: 10,
+      activo: 1,
+    });
+
+    await pacienteService.actualizar(11, { titularId: null, telefono: '22223333' });
+
+    expect(pacienteModel.actualizar).toHaveBeenCalledWith(
+      11,
+      expect.objectContaining({ titularId: null, telefono: '22223333', tieneWhatsapp: null }),
+    );
+  });
+
+  it('si el titular cambia de número, sus beneficiarios lo siguen', async () => {
+    await pacienteService.actualizar(10, { telefono: '77778888' });
+
+    expect(pacienteModel.sincronizarBeneficiarios).toHaveBeenCalledWith(10, {
+      telefono: '77778888',
+      tieneWhatsapp: null,
+    });
+  });
+});

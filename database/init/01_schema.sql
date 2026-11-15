@@ -58,6 +58,10 @@ CREATE TABLE pacientes (
   telefono        CHAR(8)       NOT NULL,
   -- Opcional: mucha gente llega sin el documento. Si se registra, va completo.
   dpi             CHAR(13)      NULL,
+  -- Beneficiario: paciente que no tiene teléfono propio (un hijo que llega con
+  -- su papá) y usa el de su titular. `telefono` guarda una copia que el backend
+  -- mantiene igual a la del titular. NULL = tiene su propio número.
+  titular_id      INT UNSIGNED  NULL,
   -- NULL = todavía no se sabe si el número tiene WhatsApp. Se actualiza con el
   -- resultado real de los intentos de envío (requisito 19).
   tiene_whatsapp  BOOLEAN       NULL DEFAULT NULL,
@@ -69,6 +73,10 @@ CREATE TABLE pacientes (
   KEY idx_pacientes_nombre (nombre_completo),
   KEY idx_pacientes_telefono (telefono),
   KEY idx_pacientes_dpi (dpi),
+  KEY idx_pacientes_titular (titular_id),
+  -- Si el titular se borra, el beneficiario se queda con el número y se suelta.
+  CONSTRAINT fk_pacientes_titular FOREIGN KEY (titular_id) REFERENCES pacientes (id)
+    ON DELETE SET NULL,
   -- Regla del requisito 10: teléfono de Guatemala = exactamente 8 dígitos.
   -- La validación principal vive en el backend; esta restricción es la última
   -- línea de defensa para que no entre basura por otra vía.

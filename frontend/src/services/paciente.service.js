@@ -16,6 +16,12 @@ export async function buscarPorTelefono(telefono) {
   return data;
 }
 
+/** Beneficiarios de un paciente: los que usan su número. */
+export async function beneficiariosDe(id) {
+  const { data } = await api.get(`/pacientes/${id}/beneficiarios`);
+  return data;
+}
+
 export async function obtenerPaciente(id) {
   const { data } = await api.get(`/pacientes/${id}`);
   return data;

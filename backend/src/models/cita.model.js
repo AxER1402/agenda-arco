@@ -8,6 +8,9 @@ const CAMPOS = `
   c.creado_por, c.creado_en, c.actualizado_en,
   p.nombre_completo AS paciente_nombre, p.telefono AS paciente_telefono,
   p.tiene_whatsapp AS paciente_tiene_whatsapp, p.dpi AS paciente_dpi,
+  -- Si el paciente es beneficiario, el número es de su titular: el recordatorio
+  -- se le dirige a él y nombra al beneficiario.
+  p.titular_id AS paciente_titular_id, tp.nombre_completo AS titular_nombre,
   o.fecha_entrega, o.fecha_vencimiento, o.numero_orden, o.fecha_cita_igss,
   o.observaciones AS orden_observaciones,
   -- Quién la registró y cuándo. El CAST la saca como texto en la hora local,
@@ -32,6 +35,7 @@ const CAMPOS = `
 const DESDE = `
   FROM citas c
   JOIN pacientes p ON p.id = c.paciente_id
+  LEFT JOIN pacientes tp ON tp.id = p.titular_id
   JOIN ordenes o ON o.id = c.orden_id
   JOIN estados_cita ec ON ec.id = c.estado_id
   LEFT JOIN recordatorios r ON r.cita_id = c.id
